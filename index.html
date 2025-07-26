@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Chess Arena Pi</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 400px;
+    }
+
+    .logo {
+      width: 100px;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #5f259f;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      color: #444;
+      margin-bottom: 2rem;
+    }
+
+    .login-btn {
+      background: #5f259f;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .login-btn:hover {
+      background: #4a1e7e;
+    }
+
+    .footer {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="library/logo.png" alt="Chess Arena Pi Logo" class="logo" />
+    <h1>Welcome to The Chess Arena Pi</h1>
+    <p>Battle with Pi pioneers in real-time chess duels.</p>
+    <button class="login-btn" onclick="startLogin()">🔒 Login with Pi</button>
+    <div class="footer">© 2025 Chess Arena Pi</div>
+  </div>
+
+  <script>
+    function startLogin() {
+      alert("Pi Network login coming soon...");
+      // Insert Pi SDK login here later
+    }
+  </script>
+</body>
+</html>
