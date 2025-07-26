@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi App</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      background: #ffaa00;
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #ffcc33;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to Chess Arena Pi</h1>
+  <button id="login">Login with Pi</button>
+
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script>
+    const scopes = ['username', 'payments'];
+
+    const onIncompletePaymentFound = (payment) => {
+      console.log('Incomplete payment found:', payment);
+    };
+
+    document.getElementById('login').addEventListener('click', () => {
+      Pi.init({ version: "2.0", sandbox: true });
+
+      Pi.authenticate(scopes, onIncompletePaymentFound)
+        .then(auth => {
+          console.log('Authenticated user:', auth.user);
+          alert("Welcome " + auth.user.username + "!");
+        })
+        .catch(error => {
+          console.error('Authentication failed:', error);
+        });
+    });
+  </script>
+</body>
+</html>
