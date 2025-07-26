@@ -1,0 +1,4 @@
+📁 chess-arena-pi/
+├── index.html         ← This is in the root
+├── library/
+│   └── logo.png       ← This is inside the 'library' folder
