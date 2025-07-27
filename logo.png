@@ -1,0 +1,26 @@
+<style>
+  .logo-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .logo {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    animation: popIn 1.5s ease-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes popIn {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+</style>
