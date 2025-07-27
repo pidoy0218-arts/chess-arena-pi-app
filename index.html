@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Chess Arena Pi</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #fffefb;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .animated-logo {
+      animation: fadeIn 1.2s ease-out;
+      width: 100%;
+      max-width: 600px;
+      display: block;
+      margin: 20px auto;
+    }
+    .welcome-text {
+      font-size: 1.2rem;
+      color: #5d2c8d;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <img src="welcome-pi-player.png" alt="Welcome screen" class="animated-logo" />
+  <div class="welcome-text">Welcome to The Chess Arena Pi ♟️</div>
+
+  <audio id="welcomeSound" src="welcome.mp3" preload="auto"></audio>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const sound = document.getElementById('welcomeSound');
+      sound.play().catch(e => {
+        // Autoplay may be blocked — ignore silently
+      });
+    });
+  </script>
+</body>
+</html>
