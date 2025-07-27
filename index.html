@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Enter The Chess Arena Pi</title>
+  <style>
+    body {
+      background: black;
+      color: white;
+      text-align: center;
+      font-family: sans-serif;
+      margin-top: 20%;
+    }
+    button {
+      padding: 1em 2em;
+      font-size: 1.2em;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚔️ Welcome to The Chess Arena Pi</h1>
+  <audio id="sword" src="sounds/sword.ogg" preload="auto"></audio>
+  <button onclick="enterArena()">Enter the Arena</button>
+
+  <script>
+    window.addEventListener('load', () => {
+      const swordSound = document.getElementById('sword');
+      swordSound.volume = 0.7;
+      swordSound.play().catch(() => {
+        // Autoplay might be blocked until user interacts
+      });
+    });
+
+    function enterArena() {
+      document.getElementById('sword').play();
+      setTimeout(() => {
+        window.location.href = "login.html";
+      }, 700); // give time for the sound to finish
+    }
+  </script>
+</body>
+</html>
