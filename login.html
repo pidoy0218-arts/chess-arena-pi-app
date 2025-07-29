@@ -11,14 +11,21 @@
   <div class="logo-container">
     <img src="images/logo-main.png" alt="Chess Arena Pi" class="logo" />
     <div class="title">Welcome to Chess Arena Pi</div>
-    <button id="loginButton" style="margin-top: 30px; padding: 10px 20px; font-size: 18px;">
+
+    <!-- 🟡 Updated button with class (use CSS to style) -->
+    <button id="loginButton" class="login-button">
       Login with Pi
     </button>
+
     <div style="margin-top: 40px;">
       <img src="images/logo-powered-by-pi.png" alt="Powered by Pi" style="width: 200px;" />
     </div>
   </div>
 
+  <!-- 🎵 Tap sound effect -->
+  <audio id="tapSound" src="sounds/tap.mp3" preload="auto"></audio>
+
+  <!-- 📜 Logic file -->
   <script src="js/logic-login.js"></script>
 </body>
 </html>
