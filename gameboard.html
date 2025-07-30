@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Game Board - Chess Arena Pi</title>
+  <link rel="stylesheet" href="css/style-game.css" />
+</head>
+<body>
+
+  <div class="board-container">
+    <div class="captured" id="captured-white">♟️</div>
+
+    <div class="chess-board" id="chessBoard"></div>
+
+    <div class="captured" id="captured-black">♙</div>
+  </div>
+
+  <audio id="moveSound" src="sounds/move-tap.ogg" preload="auto"></audio>
+  <audio id="tickSound" src="sounds/timer-tick.ogg" preload="auto"></audio>
+  <audio id="winSound" src="sounds/win-fanfare.ogg" preload="auto"></audio>
+  <audio id="loseSound" src="sounds/lose-defeat.ogg" preload="auto"></audio>
+
+  <script src="js/logic-game.js"></script>
+</body>
+</html>
