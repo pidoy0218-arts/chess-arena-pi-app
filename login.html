@@ -2,30 +2,115 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chess Arena Pi Login</title>
-  <link rel="stylesheet" href="css/style-launch.css" />
-  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chess Arena Pi - Login</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      text-align: center;
+      animation: fadeIn 2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 0.5em;
+    }
+
+    .logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+      animation: bounce 1.2s ease;
+    }
+
+    @keyframes bounce {
+      0% { transform: scale(0.8); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    #loginButton {
+      padding: 12px 24px;
+      background-color: #1e90ff;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      font-size: 1.2em;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    #loginButton:hover {
+      background-color: #00bfff;
+    }
+  </style>
 </head>
 <body>
-  <div class="logo-container">
-    <img src="images/logo-main.png" alt="Chess Arena Pi" class="logo" />
-    <div class="title">Welcome to Chess Arena Pi</div>
-
-    <!-- 🟡 Updated button with class (use CSS to style) -->
-    <button id="loginButton" class="login-button">
-      Login with Pi
-    </button>
-
-    <div style="margin-top: 40px;">
-      <img src="images/logo-powered-by-pi.png" alt="Powered by Pi" style="width: 200px;" />
-    </div>
+  <div class="container">
+    <img src="../assets/logo.png" alt="Chess Arena Logo" class="logo" />
+    <h1>Welcome to Chess Arena Pi</h1>
+    <button id="loginButton">Login with Pi</button>
   </div>
 
-  <!-- 🎵 Tap sound effect -->
-  <audio id="tapSound" src="sounds/tap.mp3" preload="auto"></audio>
+  <audio id="tapSound" src="../assets/sounds/tap.mp3" preload="auto"></audio>
 
-  <!-- 📜 Logic file -->
-  <script src="js/logic-login.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const tapSound = document.getElementById("tapSound");
+
+      if (!window.Pi) {
+        alert("Pi Network SDK not available. Please open this in the Pi Browser.");
+        return;
+      }
+
+      const loginButton = document.getElementById("loginButton");
+      let isLoggingIn = false;
+
+      if (!loginButton) return;
+
+      loginButton.addEventListener("click", async () => {
+        if (isLoggingIn) return;
+        isLoggingIn = true;
+
+        if (tapSound) {
+          tapSound.currentTime = 0;
+          tapSound.play().catch((e) => {
+            console.warn("Sound failed:", e);
+          });
+        }
+
+        try {
+          const scopes = ['username'];
+          const result = await window.Pi.authenticate(scopes);
+          console.log("User authenticated:", result);
+          // Redirect or load the game
+          window.location.href = "game.html"; // or wherever your next page is
+        } catch (error) {
+          console.error("Login error:", error);
+        }
+
+        setTimeout(() => {
+          isLoggingIn = false;
+        }, 2000);
+      });
+    });
+  </script>
 </body>
 </html>
