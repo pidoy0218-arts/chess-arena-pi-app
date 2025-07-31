@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>The Chess Arena Pi - Play vs AI</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --bg:#1f2937;
+    --card:#2d3748;
+    --text:#e2e8f0;
+    --green1:#c8facc;
+    --green2:#f0fff4;
+    --khaki:#b7a97a;
+    --black-piece:#1f1f1f;
+    --radius:12px;
+    --transition:.35s cubic-bezier(.4,.2,.2,1);
+  }
+  [data-theme="light"] {
+    --bg:#f7f9fc;
+    --card:#ffffff;
+    --text:#1f2d3d;
+  }
+  *{box-sizing:border-box;}
+  body {
+    margin:0;
+    font-family: system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+    background:linear-gradient(135deg,#0f172a 0%,#1f2937 80%);
+    color: var(--text);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:1rem;
+    transition: background var(--transition);
+  }
+  .container {
+    max-width:1024px;
+    width:100%;
+    display:grid;
+    gap:1rem;
+    grid-template-columns:1fr;
+  }
+  .topbar {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .logo {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-weight:700;
+    font-size:1.25rem;
+  }
+  .logo img {
+    width:40px;
+    height:40px;
+    object-fit:contain;
+    border-radius:8px;
+    background:rgba(255,255,255,0.1);
+    padding:4px;
+  }
+  .banner {
+    background: #111;
+    padding:14px 22px;
+    border-radius:16px;
+    display:inline-flex;
+    align-items:center;
+    gap:12px;
+    position:relative;
+    overflow:hidden;
+    cursor:pointer;
+    user-select:none;
+    font-weight:600;
+    font-size:1rem;
+    transition: filter .25s;
+  }
+  .banner:hover { filter:brightness(1.1); }
+  .circle {
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    background: #fff;
+    animation: pulse 1.8s infinite;
+    margin-right:6px;
+  }
+  @keyframes pulse {
+    0% { transform: scale(.9); opacity:.6; }
+    50% { transform: scale(1.3); opacity:1; }
+    100% { transform: scale(.9); opacity:.6; }
+  }
+  .panel {
+    display:flex;
+    flex-wrap:wrap;
+    gap:1rem;
+    justify-content:center;
+  }
+  .card {
+    background: var(--card);
+    border-radius:16px;
+    padding:16px;
+    flex:1 1 320px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 25px 60px -10px rgba(0,0,0,0.35);
+    transition: transform .3s;
+  }
+  .card:hover { transform: translateY(-4px); }
+  .section-title {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+    gap:8px;
+  }
+  .btn {
+    background: #10b981;
+    border:none;
+    padding:10px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    font-weight:600;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    transition: filter .2s;
+  }
+  .btn:hover { filter:brightness(1.1); }
+  .toggle {
+    padding:6px 12px;
+    background:rgba(255,255,255,0.08);
+    border-radius:999px;
+    cursor:pointer;
+    font-size:0.8rem;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  .status {
+    margin-top:6px;
+    font-size:0.9rem;
+  }
+  .board {
+    width:100%;
+    max-width:540px;
+    aspect-ratio:1;
+    display:grid;
+    margin:0 auto;
+    border:4px solid #2f3b57;
+    border-radius:16px;
+    position:relative;
+    user-select:none;
+  }
+  .square {
+    position:relative;
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.5rem;
+    cursor:pointer;
+    transition: background .2s;
+  }
+  .light { background: var(--green2); }
+  .dark { background: var(--green1); }
+  .piece {
+    width:60%;
+    height:60%;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:0.9rem;
+    font-weight:700;
+    position:relative;
+    pointer-events:none;
+    user-select:none;
+  }
+  .piece.black { background: var(--black-piece); color:#fff; }
+  .piece.khaki { background: var(--khaki); color:#1f2d3d; }
+  .highlight {
+    box-shadow:0 0 0 3px rgba(255,255,255,0.8) inset;
+  }
+  .timer {
+    font-size:1rem;
+    font-weight:700;
+    margin-top:4px;
+  }
+  .animated-welcome {
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,0.95);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    color:#fff;
+    z-index:99;
+    gap:14px;
+    padding:24px;
+    text-align:center;
+    animation: fadeout 1s ease-out 2.5s forwards;
+  }
+  @keyframes fadeout {
+    to { opacity:0; pointer-events:none; }
+  }
+  .hidden { display:none; }
+</style>
+</head>
+<body data-theme="dark">
+  <div class="animated-welcome" id="welcome">
+    <div style="font-size:2rem; font-weight:700;">The Chess Arena Pi</div>
+    <div>
+      <button class="btn" id="start-btn">Start</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="topbar">
+      <div class="logo">
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA4MDAgODAwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxjaXJjbGUgY3g9IjQwMCIgY3k9IjQwMCIgcj0iMzgwIiBmaWxsPSIjMTBiOTgxIi8+CiAgPHRleHQgeD0iNDAwIiB5PSI0NTAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+PC90ZXh0Pgo8L3N2Zz4=" alt="logo" />
+        <div style="margin-left:6px;">Chess Arena Pi</div>
+      </div>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <div class="banner" id="play-ai">
+          <div class="circle" aria-hidden="true"></div>
+          <div>Play Vs AI</div>
+        </div>
+        <div class="toggle" id="theme-toggle">🌙</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card">
+        <div class="section-title" style="justify-content:space-between;">
+          <div>Game</div>
+          <div class="timer">Time: <span id="timer-display">30</span>s</div>
+        </div>
+        <div class="status" id="turn-indicator">Turn: N/A</div>
+        <div class="board" id="board" role="grid" tabindex="0"></div>
+        <div class="status" id="winner-announcement" style="margin-top:8px; font-weight:700;"></div>
+        <div class="status" id="move-history">Moves: -</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <div>Controls</div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn" id="reset-btn">Reset</button>
+          <button class="btn" id="undo-btn">Undo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio -->
+  <audio id="tick-sound">
+    <source src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" type="audio/wav">
+  </audio>
+  <audio id="move-sound">
+    <source src="data:audio/wav;base64,UklGRhIAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" type="audio/wav">
+  </audio>
+  <audio id="win-sound">
+    <source src="data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" type="audio/wav">
+  </audio>
+  <audio id="lose-sound">
+    <source src="data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" type="audio/wav">
+  </audio>
+
+<script>
+  const boardEl = document.getElementById('board');
+  const turnIndicator = document.getElementById('turn-indicator');
+  const moveHistoryEl = document.getElementById('move-history');
+  const winnerAnn = document.getElementById('winner-announcement');
+  const timerDisplay = document.getElementById('timer-display');
+
+  let game = null;
+  let selected = null;
+  let turn = 'khaki';
+  let history = [];
+  let timer = 30;
+  let timerInterval = null;
+  let gameOver = false;
+
+  const initial = [
+    ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+    ['bP','bP','bP','bP','bP','bP','bP','bP'],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['kP','kP','kP','kP','kP','kP','kP','kP'],
+    ['kR','kN','kB','kQ','kK','kB','kN','kR'],
+  ];
+
+  function inBounds(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
+  function isOwnPiece(r,c,side){
+    const val = game[r][c];
+    if(!val) return false;
+    return side==='khaki' ? val[0]==='k' : val[0]==='b';
+  }
+  function isOppPiece(r,c,side){
+    const val = game[r][c];
+    if(!val) return false;
+    return side==='khaki' ? val[0]==='b' : val[0]==='k';
+  }
+
+  function generateMoves(side){
+    const moves = [];
+    for(let r=0;r<8;r++){
+      for(let c=0;c<8;c++){
+        const cell = game[r][c];
+        if(!cell) continue;
+        if(side==='khaki' && cell[0]!=='k') continue;
+        if(side==='black' && cell[0]!=='b') continue;
+        const type = cell[1];
+        const origin = [r,c];
+        if(type==='P'){
+          const dir = side==='khaki' ? -1 : 1;
+          if(inBounds(r+dir,c) && !game[r+dir][c]){
+            moves.push({from:origin,to:[r+dir,c]});
+          }
+          for(const dc of [-1,1]){
+            if(inBounds(r+dir,c+dc) && isOppPiece(r+dir,c+dc,side)){
+              moves.push({from:origin,to:[r+dir,c+dc]});
+            }
+          }
+        } else if(type==='R' || type==='Q'){
+          const deltas = [[1,0],[-1,0],[0,1],[0,-1]];
+          for(const d of deltas){
+            let nr=r+d[0], nc=c+d[1];
+            while(inBounds(nr,nc)){
+              if(isOwnPiece(nr,nc,side)) break;
+              moves.push({from:origin,to:[nr,nc]});
+              if(isOppPiece(nr,nc,side)) break;
+              nr+=d[0]; nc+=d[1];
+            }
+          }
+        }
+        if(type==='B' || type==='Q'){
+          const deltas = [[1,1],[1,-1],[-1,1],[-1,-1]];
+          for(const d of deltas){
+            let nr=r+d[0], nc=c+d[1];
+            while(inBounds(nr,nc)){
+              if(isOwnPiece(nr,nc,side)) break;
+              moves.push({from:origin,to:[nr,nc]});
+              if(isOppPiece(nr,nc,side)) break;
+              nr+=d[0]; nc+=d[1];
+            }
+          }
+        }
+        if(type==='N'){
+          const knight = [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
+          for(const d of knight){
+            const nr=r+d[0], nc=c+d[1];
+            if(inBounds(nr,nc) && !isOwnPiece(nr,nc,side)){
+              moves.push({from:origin,to:[nr,nc]});
+            }
+          }
+        }
+        if(type==='K'){
+          const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+          for(const d of dirs){
+            const nr=r+d[0], nc=c+d[1];
+            if(inBounds(nr,nc) && !isOwnPiece(nr,nc,side)){
+              moves.push({from:origin,to:[nr,nc]});
+            }
+          }
+        }
+      }
+    }
+    return moves;
+  }
+
+  function applyMove(move){
+    const [fr,fc] = move.from;
+    const [tr,tc] = move.to;
+    game[tr][tc] = game[fr][fc];
+    game[fr][fc] = '';
+    history.push(move);
+  }
+
+  function randomAIMove(){
+    const moves = generateMoves('black');
+    if(moves.length===0) return null;
+    return moves[Math.floor(Math.random()*moves.length)];
+  }
+
+  function checkWin(){
+    let khakiKing=false, blackKing=false;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+      const v=game[r][c];
+      if(v==='kK') khakiKing=true;
+      if(v==='bK') blackKing=true;
+    }
+    if(!khakiKing) return 'AI (Black)';
+    if(!blackKing) return 'You (Khaki)';
+    return null;
+  }
+
+  function coordsToStr(c){
+    const file = String.fromCharCode(97 + c[1]);
+    const rank = 8 - c[0];
+    return `${file}${rank}`;
+  }
+
+  function updateUI(){
+    boardEl.innerHTML='';
+    for(let r=0;r<8;r++){
+      for(let c=0;c<8;c++){
+        const sq = document.createElement('div');
+        sq.classList.add('square');
+        sq.classList.add((r+c)%2===0 ? 'light':'dark');
+        sq.dataset.r = r;
+        sq.dataset.c = c;
+        const pieceCode = game[r][c];
+        if(pieceCode){
+          const pieceDiv = document.createElement('div');
+          pieceDiv.classList.add('piece');
+          const sideClass = pieceCode[0]==='k' ? 'khaki':'black';
+          pieceDiv.classList.add(sideClass);
+          pieceDiv.textContent = pieceCode[1];
+          sq.appendChild(pieceDiv);
+        }
+        sq.addEventListener('click',()=>onSquareClick(r,c));
+        if(selected && selected[0]===r && selected[1]===c){
+          sq.classList.add('highlight');
+        }
+        boardEl.appendChild(sq);
+      }
+    }
+    turnIndicator.textContent = `Turn: ${turn==='khaki'?'You':'AI'}`;
+    moveHistoryEl.textContent = 'Moves: ' + (history.length? history.map((m,i)=>`${i+1}.${coordsToStr(m.from)}${coordsToStr(m.to)}`).join(' '):'-');
+    const winner = checkWin();
+    if(winner){
+      gameOver=true;
+      winnerAnn.textContent = `Winner: ${winner}`;
+      playSound(winner.includes('You') ? 'win' : 'lose');
+      stopTimer();
+    }
+  }
+
+  function onSquareClick(r,c){
+    if(gameOver) return;
+    if(turn !== 'khaki') return;
+    if(selected){
+      const valid = generateMoves('khaki').some(m=>m.from[0]===selected[0] && m.from[1]===selected[1] && m.to[0]===r && m.to[1]===c);
+      if(valid){
+        applyMove({from:[selected[0],selected[1]],to:[r,c]});
+        playSound('move');
+        selected = null;
+        switchTurn();
+      } else {
+        if(isOwnPiece(r,c,'khaki')){
+          selected=[r,c];
+        } else {
+          selected=null;
+        }
+      }
+    } else {
+      if(isOwnPiece(r,c,'khaki')){
+        selected=[r,c];
+      }
+    }
+    updateUI();
+  }
+
+  function switchTurn(){
+    resetTimer();
+    const winner = checkWin();
+    if(winner) return;
+    if(turn==='khaki'){
+      turn='black';
+      setTimeout(()=>{
+        const aiMove = randomAIMove();
+        if(aiMove){
+          applyMove(aiMove);
+          playSound('move');
+        }
+        turn='khaki';
+        updateUI();
+        startTurnTimer();
+      }, 500);
+    }
+    updateUI();
+  }
+
+  function startTurnTimer(){
+    stopTimer();
+    timer = 30;
+    timerDisplay.textContent = timer;
+    timerInterval = setInterval(()=>{
+      timer--;
+      timerDisplay.textContent = timer;
+      if(timer<=10){
+        playSound('tick');
+      }
+      if(timer<=0){
+        clearInterval(timerInterval);
+        if(gameOver) return;
+        if(turn==='khaki'){
+          turn='black';
+          setTimeout(()=>{
+            const aiMove = randomAIMove();
+            if(aiMove){
+              applyMove(aiMove);
+              playSound('move');
+            }
+            turn='khaki';
+            updateUI();
+            startTurnTimer();
+          }, 500);
+        } else {
+          turn='khaki';
+          startTurnTimer();
+        }
+        updateUI();
+      }
+    },1000);
+  }
+
+  function resetTimer(){
+    timer = 30;
+    timerDisplay.textContent = timer;
+  }
+
+  function stopTimer(){
+    if(timerInterval) clearInterval(timerInterval);
+    timerInterval=null;
+  }
+
+  function playSound(type){
+    let el=null;
+    if(type==='tick') el=document.getElementById('tick-sound');
+    if(type==='move') el=document.getElementById('move-sound');
+    if(type==='win') el=document.getElementById('win-sound');
+    if(type==='lose') el=document.getElementById('lose-sound');
+    if(el){
+      try{
+        el.currentTime=0;
+        el.play();
+      }catch(e){}
+    }
+  }
+
+  document.getElementById('play-ai').addEventListener('click', ()=> resetGame());
+  document.getElementById('reset-btn').addEventListener('click', ()=> resetGame());
+  document.getElementById('undo-btn').addEventListener('click', ()=>{
+    if(history.length===0) return;
+    const last = history.pop();
+    const [fr,fc] = last.from;
+    const [tr,tc] = last.to;
+    game[fr][fc] = game[tr][tc];
+    game[tr][tc] = '';
+    turn = (turn==='khaki'?'black':'khaki');
+    updateUI();
+  });
+  document.getElementById('theme-toggle').addEventListener('click', ()=>{
+    const el = document.body;
+    if(el.getAttribute('data-theme')==='dark'){
+      el.setAttribute('data-theme','light');
+    } else {
+      el.setAttribute('data-theme','dark');
+    }
+  });
+  document.getElementById('start-btn').addEventListener('click', ()=>{
+    document.getElementById('welcome').classList.add('hidden');
+    resetGame();
+  });
+
+  function resetGame(){
+    game = initial.map(r=>r.slice());
+    selected = null;
+    turn = 'khaki';
+    history = [];
+    timer = 30;
+    gameOver=false;
+    winnerAnn.textContent='';
+    updateUI();
+    startTurnTimer();
+  }
+
+  resetGame();
+</script>
+</body>
+</html>
