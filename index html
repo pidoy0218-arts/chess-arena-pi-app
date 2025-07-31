@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Chess Arena Pi</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+<!-- Placeholder for Pi SDK integration -->
+<!-- <script src="PATH_TO_PI_SDK.js"></script> -->
+
+<style>
+  :root {
+    --bg:#0f0f14;
+    --font-stack: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --accent:#00c8ff;
+    --piece-size: calc(min(100vmin,600px)/8);
+    --white-piece-color:#f5f5f5;
+    --black-piece-color:#1f1f23;
+    --board-radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: var(--bg);
+    color:#eee;
+    font-family: var(--font-stack);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:8px;
+    min-height:100vh;
+  }
+  .app{
+    width:100%;
+    max-width:640px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:4px 8px;
+    font-weight:600;
+    font-size:1rem;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .board-wrapper{
+    position: relative;
+    width:100%;
+    max-width:600px;
+    aspect-ratio:1/1; /* enforce square */
+    background:#222;
+    border-radius: var(--board-radius);
+    overflow:hidden;
+    box-shadow:0 16px 40px rgba(0,0,0,0.3);
+  }
+  .board{
+    position:absolute;
+    inset:0;
+    display:grid;
+    grid-template: repeat(8,1fr) / repeat(8,1fr);
+    user-select:none;
+  }
+  .square{
+    width:100%;
+    height:100%;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.5rem;
+  }
+  .square.light {
+    background: linear-gradient(135deg, #e7d5be 0%, #d4bfa1 60%);
+  }
+  .square.dark {
+    background: linear-gradient(135deg, #9b7f52 0%, #7f5f38 60%);
+  }
+  .square::after {
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    opacity:0.05;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><filter id="f"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2"/></filter><rect width="100%" height="100%" filter="url(%23f)" fill="none"/></svg>') repeat;
+    mix-blend-mode:multiply;
+  }
+  .piece{
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    position:relative;
+    font-size: calc(var(--piece-size)*0.9);
+    font-weight:700;
+    user-select:none;
+    line-height:1;
+  }
+  .white-piece{
+    color: var(--white-piece-color);
+    text-shadow: 0 0 3px rgba(0,0,0,0.4);
+  }
+  .black-piece{
+    color: var(--black-piece-color);
+  }
+  .highlight{
+    position:absolute;
+    inset:6px;
+    border:2px solid var(--accent);
+    border-radius:8px;
+    pointer-events:none;
+  }
+  .legal-dot{
+    position:absolute;
+    width:12px;
+    height:12px;
+    background: rgba(255,255,255,0.7);
+    border-radius:50%;
+    bottom:8px;
+    right:8px;
+    pointer-events:none;
+  }
+  .clock{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:4px;
+  }
+  .active-clock{
+    border:2px solid var(--accent);
+    border-radius:10px;
+    padding:8px 14px;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    min-width:120px;
+    background:#1e1e25;
+    position:relative;
+    flex:1;
+    gap:4px;
+  }
+  .inactive-clock{
+    opacity:0.7;
+    border:2px solid rgba(255,255,255,0.1);
+    border-radius:10px;
+    padding:8px 14px;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    min-width:120px;
+    background:#1c1c22;
+    position:relative;
+    flex:1;
+    gap:4px;
+  }
+  .controls{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:6px;
+  }
+  button{
+    padding:12px 16px;
+    border:none;
+    border-radius:10px;
+    font-weight:600;
+    cursor:pointer;
+    background:#2f2f33;
+    color:#fff;
+    flex:1;
+    min-width:110px;
+  }
+  button.primary{
+    background: var(--accent);
+    color:#000;
+  }
+  .status{
+    margin-top:4px;
+    font-size:0.9rem;
+  }
+  .warning{
+    color:#ff6961;
+    font-weight:700;
+    margin:6px 0 0 4px;
+  }
+  .leaderboard{
+    background:#1e1e25;
+    padding:10px;
+    border-radius:10px;
+    margin-top:8px;
+  }
+  .badge{
+    background:#222;
+    padding:4px 12px;
+    border-radius:999px;
+    font-size:0.65rem;
+    display:inline-block;
+  }
+  .match-info{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:4px;
+  }
+  .confetti-container{
+    pointer-events:none;
+    position:fixed;
+    inset:0;
+    z-index:9999;
+  }
+  .small{
+    font-size:0.7rem;
+    opacity:0.85;
+  }
+</style>
+</head>
+<body>
+  <div class="app" aria-label="Chess Arena Pi">
+    <header>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <div style="font-size:1.2rem;">♟️ Chess Arena Pi</div>
+        <div class="badge" id="game-type">—</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="btn-leaderboard" style="font-size:0.75rem;">Leaderboard</button>
+        <button id="btn-invite">Invite</button>
+        <button id="btn-random">Random Match</button>
+      </div>
+    </header>
+
+    <div class="match-info">
+      <div id="invite-info" style="flex:1;">No game yet. Invite or join random.</div>
+      <div style="display:flex;gap:6px;">
+        <div class="badge" id="time-control">5+0</div>
+      </div>
+    </div>
+
+    <div class="board-wrapper" aria-label="Chess board">
+      <div class="board" id="board"></div>
+      <div id="check-warning" class="warning" style="position:absolute;top:8px;left:8px;display:none;">CHECK</div>
+    </div>
+
+    <div class="clock" aria-label="Clocks">
+      <div id="white-clock" class="active-clock">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <div>White</div>
+          <div id="white-label" style="margin-left:auto;">●</div>
+        </div>
+        <div id="white-time" style="font-size:1.6rem;">05:00</div>
+      </div>
+      <div id="black-clock" class="inactive-clock">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <div>Black</div>
+          <div id="black-label" style="margin-left:auto;">●</div>
+        </div>
+        <div id="black-time" style="font-size:1.6rem;">05:00</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="btn-resign">Resign</button>
+      <button id="btn-new" class="primary">New Game</button>
+    </div>
+
+    <div class="status" id="status-line">Ready to play. ⏱️ 5+0</div>
+
+    <div class="leaderboard" id="leaderboard-panel" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-weight:600;">Leaderboard (Top)</div>
+        <div class="small">Wins increase rating.</div>
+      </div>
+      <div id="leaderboard-list" style="margin-top:6px;"></div>
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        <button id="btn-close-lb">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confetti-container" id="confetti"></div>
+
+  <!-- Audio -->
+  <audio id="tick-sound" preload="auto">
+    <source src="data:audio/ogg;base64,T2dnUwACAAAAAAAAAABVDuYpAAAAAN+PBfUBHgF2b3JiaXMAAAAAAUSsAAAAAAAUPgBDgP//////////+T4AAAD+/////wAAAEcAAAAAAAEAAABkYXRhAAAA" type="audio/ogg">
+  </audio>
+  <audio id="win-sound" preload="auto">
+    <source src="data:audio/ogg;base64,T2dnUwACAAAAAAAAAABxbuYpAAAAAN+ODfUBHgF2b3JiaXMAAAAAAUSsAAAAAAAB9gBDgP//////////+T4AAAD+/////wAAAEcAAAAAAAEAAABkYXRhAAAA" type="audio/ogg">
+  </audio>
+
+<script>
+/* ======= CONFIG / UPGRADE POINTS =======
+   - Replace localStorage leaderboard with real Pi-auth backend.
+   - Hook Pi SDK login to identify player and persist side.
+   - Swap lightweight move logic for robust engine if needed.
+======================================== */
+
+/* ======= GAME STATE & INITIAL ====== */
+const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+let game = null; // full state
+let activeColor = "w";
+let clocks = { white: 5*60, black: 5*60 }; // seconds
+let intervalId = null;
+let lastTickPlayed = { white:false, black:false };
+let gameOver=false;
+let moveHistory = [];
+let enPassantTarget = null; // square like [r,c]
+let castlingRights = { white: { K:true, Q:true }, black: { K:true, Q:true } };
+let halfmoveClock=0;
+let fullmoveNumber=1;
+let playerSide="w"; // for future invite side assignment
+let matchId=null;
+const lobbyKey="chess-arena-pi-lobby";
+const leaderboardKey="chess-arena-pi-leaderboard";
+
+/* UTIL */
+function pad2(n){return n.toString().padStart(2,"0");}
+function formatTime(sec){ if(sec<0) sec=0; return pad2(Math.floor(sec/60))+":"+pad2(Math.floor(sec%60)); }
+function cloneBoard(b){ return b.map(r=>r.slice()); }
+function opposite(c){ return c==="w"?"b":"w"; }
+
+/* Parse FEN / build */
+function setFromFEN(fen){
+  const [pieces, turn, castling, enpassant, half, full] = fen.split(" ");
+  const rows = pieces.split("/");
+  const board=[];
+  for(let r=0;r<8;r++){
+    const row=[];
+    for(const ch of rows[r]){
+      if(/\d/.test(ch)){
+        const count=parseInt(ch);
+        for(let i=0;i<count;i++) row.push(null);
+      } else row.push(ch);
+    }
+    board.push(row);
+  }
+  game = { board, turn, halfmove: parseInt(half), fullmove: parseInt(full) };
+  activeColor = turn;
+  // castling rights
+  castlingRights.white.K = castling.includes("K");
+  castlingRights.white.Q = castling.includes("Q");
+  castlingRights.black.K = castling.includes("k");
+  castlingRights.black.Q = castling.includes("q");
+  enPassantTarget = enpassant === "-" ? null : algebraicToCoord(enpassant);
+  halfmoveClock = parseInt(half);
+  fullmoveNumber = parseInt(full);
+}
+function buildFEN(){
+  let pieceStr="";
+  for(let r=0;r<8;r++){
+    let empty=0;
+    for(let c=0;c<8;c++){
+      const p=game.board[r][c];
+      if(!p){ empty++; }
+      else {
+        if(empty){ pieceStr+=empty; empty=0; }
+        pieceStr+=p;
+      }
+    }
+    if(empty) pieceStr+=empty;
+    if(r<7) pieceStr+="/";
+  }
+  let castStr="";
+  if(castlingRights.white.K) castStr+="K";
+  if(castlingRights.white.Q) castStr+="Q";
+  if(castlingRights.black.K) castStr+="k";
+  if(castlingRights.black.Q) castStr+="q";
+  if(castStr==="") castStr="-";
+  const ep = enPassantTarget ? coordToAlgebraic(enPassantTarget) : "-";
+  return [pieceStr, activeColor, castStr, ep, halfmoveClock, fullmoveNumber].join(" ");
+}
+
+/* BOARD UTILITIES */
+const deltas = {
+  knight: [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]],
+  bishop: [[-1,-1],[-1,1],[1,-1],[1,1]],
+  rook: [[-1,0],[1,0],[0,-1],[0,1]],
+  queen: [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]],
+  king: [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]
+};
+function inBoard(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
+function isUpper(ch){ return ch && ch === ch.toUpperCase(); }
+function isLower(ch){ return ch && ch === ch.toLowerCase(); }
+function pieceColor(p){ if(!p) return null; return isUpper(p) ? "w" : "b"; }
+
+/* Convert between coordinates and algebraic */
+function coordToAlgebraic([r,c]){
+  const file="abcdefgh"[c];
+  const rank=8-r;
+  return file+rank;
+}
+function algebraicToCoord(str){
+  if(!str || str.length<2) return null;
+  const file="abcdefgh".indexOf(str[0]);
+  const rank=8-parseInt(str[1]);
+  if(file<0||rank<0||rank>7) return null;
+  return [rank,file];
+}
+
+/* Check if square attacked */
+function attackedSquare(stateBoard, r, c, byColor){
+  // pawn attacks
+  if(byColor==="w"){
+    const attacks=[[-1,-1],[-1,1]];
+    for(const d of attacks){
+      const nr=r+d[0], nc=c+d[1];
+      if(inBoard(nr,nc) && stateBoard[nr][nc]==="P") return true;
+    }
+  } else {
+    const attacks=[[1,-1],[1,1]];
+    for(const d of attacks){
+      const nr=r+d[0], nc=c+d[1];
+      if(inBoard(nr,nc) && stateBoard[nr][nc]==="p") return true;
+    }
+  }
+  // knight
+  for(const d of deltas.knight){
+    const nr=r+d[0], nc=c+d[1];
+    if(inBoard(nr,nc)){
+      const p=stateBoard[nr][nc];
+      if(byColor==="w" && p==="N") return true;
+      if(byColor==="b" && p==="n") return true;
+    }
+  }
+  // sliding
+  for(const d of deltas.rook){
+    let nr=r+d[0], nc=c+d[1];
+    while(inBoard(nr,nc)){
+      const p=stateBoard[nr][nc];
+      if(p){
+        if(byColor==="w" && (p==="R"||p==="Q")) return true;
+        if(byColor==="b" && (p==="r"||p==="q")) return true;
+        break;
+      }
+      nr+=d[0]; nc+=d[1];
+    }
+  }
+  for(const d of deltas.bishop){
+    let nr=r+d[0], nc=c+d[1];
+    while(inBoard(nr,nc)){
+      const p=stateBoard[nr][nc];
+      if(p){
+        if(byColor==="w" && (p==="B"||p==="Q")) return true;
+        if(byColor==="b" && (p==="b"||p==="q")) return true;
+        break;
+      }
+      nr+=d[0]; nc+=d[1];
+    }
+  }
+  // king proximity
+  for(const d of deltas.king){
+    const nr=r+d[0], nc=c+d[1];
+    if(inBoard(nr,nc)){
+      const p=stateBoard[nr][nc];
+      if(byColor==="w" && p==="K") return true;
+      if(byColor==="b" && p==="k") return true;
+    }
+  }
+  return false;
+}
+
+/* Generate legal moves with checks, castling, en passant, promotion choices */
+function generateMoves(){
+  const moves=[];
+  const turnColor = activeColor;
+  const enemyColor = opposite(turnColor);
+  const board = game.board;
+
+  // locate king for check detection later
+  let kingPos = null;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p=board[r][c];
+    if(p && ((turnColor==="w" && p==="K") || (turnColor==="b" && p==="k"))){
+      kingPos=[r,c];
+    }
+  }
+
+  // iterate pieces
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p=board[r][c];
+    if(!p) continue;
+    if(pieceColor(p
