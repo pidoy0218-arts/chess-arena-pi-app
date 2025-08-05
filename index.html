@@ -87,7 +87,7 @@
       margin: 5px 0;
     }
 
-    canvas.confetti {
+    canvas#confetti {
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
@@ -116,7 +116,8 @@
   <div class="placeholder">🔒 Pi Login Placeholder</div>
   <div class="placeholder">🏆 Leaderboard Placeholder</div>
 
-  <canvas class="confetti"></canvas>
+  <!-- ✅ Fixed canvas ID for confetti -->
+  <canvas id="confetti"></canvas>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.0.0/chess.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/confetti-js/0.0.18/confetti.min.js"></script>
