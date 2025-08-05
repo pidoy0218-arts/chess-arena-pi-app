@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Chess Arena Pi</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #121212;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .frame {
+      width: 100%;
+      max-width: 500px;
+      padding: 15px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 2em;
+      color: gold;
+      margin-bottom: 5px;
+    }
+
+    #chessboard {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 1 / 1;
+      border: 5px solid #6b4f2e;
+      background-color: #deb887;
+    }
+
+    .square {
+      width: 100%;
+      height: 100%;
+      font-size: 2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .light {
+      background-color: #f0d9b5;
+    }
+
+    .dark {
+      background-color: #b58863;
+    }
+
+    .controls {
+      margin-top: 10px;
+    }
+
+    button {
+      background-color: #ffcc00;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1em;
+      border-radius: 5px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    #confetti {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    #timer {
+      font-size: 1.2em;
+      margin: 10px 0;
+    }
+
+    .placeholder {
+      font-size: 0.9em;
+      opacity: 0.6;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="confetti"></canvas>
+
+  <div class="frame">
+    <div class="logo">♘ The Chess Arena Pi</div>
+    <div id="timer">05:00</div>
+    <div class="controls">
+      <button onclick="startGame()">Play with Smart AI</button>
+    </div>
+    <div id="chessboard"></div>
+    <div class="placeholder">🔐 Pi Login Placeholder</div>
+    <div class="placeholder">🏆 Leaderboard Placeholder</div>
+  </div>
+
+  <audio id="moveSound" src="https://upload.wikimedia.org/wikipedia/commons/8/88/Chess_piece_move.wav"></audio>
+  <audio id="winSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_b3e56da67b.mp3"></audio>
+  <audio id="loseSound" src="https://cdn.pixabay.com/audio/2021/09/02/audio_7b1088c61f.mp3"></audio>
+
+  <script src="https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js"></script>
+  <script>
+    const board = document.getElementById('chessboard');
+    const timerDisplay = document.getElementById('timer');
+    const moveSound = document.getElementById('moveSound');
+    const winSound = document.getElementById('winSound');
+    const loseSound = document.getElementById('loseSound');
+    const confetti = new ConfettiGenerator({ target: 'confetti' });
+
+    let boardState = [];
+    let selected = null;
+    let timer = 300; // 5 minutes
+
+    const pieces = {
+      r: "♜", n: "♞", b: "♝", q: "♛", k: "♚", p: "♟",
+      R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔", P: "♙"
+    };
+
+    const initialPosition = [
+      "rnbqkbnr",
+      "pppppppp",
+      "        ",
+      "        ",
+      "        ",
+      "        ",
+      "PPPPPPPP",
+      "RNBQKBNR"
+    ];
+
+    function drawBoard() {
+      board.innerHTML = "";
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const square = document.createElement("div");
+          square.className = "square " + ((row + col) % 2 === 0 ? "light" : "dark");
+          square.dataset.row = row;
+          square.dataset.col = col;
+          const piece = boardState[row][col];
+          if (piece !== " ") square.innerHTML = pieces[piece];
+          square.onclick = () => handleClick(row, col);
+          board.appendChild(square);
+        }
+      }
+    }
+
+    function initBoard() {
+      boardState = initialPosition.map(row => row.split(''));
+      drawBoard();
+    }
+
+    function handleClick(row, col) {
+      const piece = boardState[row][col];
+      if (selected) {
+        moveSound.play();
+        boardState[row][col] = boardState[selected.row][selected.col];
+        boardState[selected.row][selected.col] = " ";
+        selected = null;
+        drawBoard();
+        setTimeout(aiMove, 500);
+      } else if (piece !== " ") {
+        selected = { row, col };
+      }
+    }
+
+    function aiMove() {
+      // Dummy AI: move first black pawn forward
+      for (let r = 1; r < 7; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (boardState[r][c] === "p" && boardState[r+1][c] === " ") {
+            boardState[r+1][c] = "p";
+            boardState[r][c] = " ";
+            drawBoard();
+            return;
+          }
+        }
+      }
+    }
+
+    function startGame() {
+      initBoard();
+      startTimer();
+    }
+
+    function startTimer() {
+      clearInterval(window.timerInterval);
+      timer = 300;
+      updateTimer();
+      window.timerInterval = setInterval(() => {
+        timer--;
+        updateTimer();
+        if (timer <= 0) {
+          clearInterval(window.timerInterval);
+          endGame("lose");
+        }
+      }, 1000);
+    }
+
+    function updateTimer() {
+      const mins = String(Math.floor(timer / 60)).padStart(2, "0");
+      const secs = String(timer % 60).padStart(2, "0");
+      timerDisplay.textContent = `${mins}:${secs}`;
+    }
+
+    function endGame(result) {
+      if (result === "win") {
+        winSound.play();
+        confetti.render();
+      } else {
+        loseSound.play();
+        alert("You lose! Try again.");
+      }
+    }
+
+    // Auto-load board
+    initBoard();
+  </script>
+</body>
+</html>
