@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Chess Arena Pi</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="chess.min.js"></script>
+  <script src="script.js" defer></script>
+  <audio id="move-sound" src="move.mp3" preload="auto"></audio>
+  <audio id="win-sound" src="win.mp3" preload="auto"></audio>
+  <audio id="lose-sound" src="lose.mp3" preload="auto"></audio>
+</head>
+<body>
+  <div class="welcome">
+    <h1>Welcome to The Chess Arena Pi</h1>
+    <img src="horse-logo.png" class="logo" alt="Chess Arena Logo" />
+    <button onclick="startGame()">Play with Smart AI</button>
+    <button onclick="alert('Pi Login coming soon')">Pi Login</button>
+    <button onclick="alert('Leaderboard coming soon')">Leaderboard 🏆</button>
+  </div>
+
+  <div id="game-container" class="hidden">
+    <div id="game-header">
+      <h2># Your Move!</h2>
+      <div id="timer">05:00</div>
+      <div id="mode">Mode: Smart AI</div>
+    </div>
+    <div id="board"></div>
+    <div id="captured">
+      <div><strong>White Captures:</strong> <span id="white-captures"></span></div>
+      <div><strong>Black Captures:</strong> <span id="black-captures"></span></div>
+    </div>
+    <div id="result" class="hidden"></div>
+  </div>
+
+  <div id="confetti-container"></div>
+</body>
+</html>
