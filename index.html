@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Chess Arena Pi</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #2e2e2e;
+      color: #fff;
+      text-align: center;
+    }
+    #logo {
+      margin-top: 20px;
+    }
+    #logo img {
+      width: 100px;
+    }
+    h1 {
+      font-size: 2em;
+      margin: 10px 0;
+    }
+    #game-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 45px);
+      grid-template-rows: repeat(8, 45px);
+      margin: 20px auto;
+      border: 4px solid #8b4513;
+      background-color: #deb887;
+    }
+    .square {
+      width: 45px;
+      height: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+    .selected { outline: 2px solid yellow; }
+
+    #status, #timer, #mode {
+      margin-top: 10px;
+      font-size: 1em;
+    }
+
+    #captured {
+      display: flex;
+      justify-content: space-around;
+      margin: 10px;
+      font-size: 20px;
+    }
+
+    .button {
+      padding: 10px 20px;
+      margin: 10px;
+      background-color: gold;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    #welcome {
+      display: block;
+      margin-top: 40px;
+    }
+
+    #confetti {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <div id="logo">
+    <img src="https://i.imgur.com/YOUR_YELLOW_HORSE.png" alt="Chess Arena Pi Logo">
+  </div>
+
+  <h1>Welcome to The Chess Arena Pi</h1>
+
+  <div id="welcome">
+    <p># Your Move!</p>
+    <button class="button" onclick="startGame()">Play with Smart AI</button>
+    <p>(Pi Login Placeholder)</p>
+    <p>(Leaderboard Placeholder 🏆)</p>
+  </div>
+
+  <div id="game-container">
+    <div id="mode">Mode: Player vs AI</div>
+    <div id="timer">Timer: 05:00</div>
+    <div id="captured">
+      <div id="captured-white">White Captured: </div>
+      <div id="captured-black">Black Captured: </div>
+    </div>
+    <div id="board"></div>
+    <div id="status">Status: Your Move!</div>
+  </div>
+
+  <canvas id="confetti"></canvas>
+
+  <audio id="tap-sound" src="https://www.soundjay.com/button/sounds/button-29.mp3"></audio>
+  <audio id="win-sound" src="https://www.soundjay.com/human/sounds/applause-8.mp3"></audio>
+
+  <script>
+    let gameStarted = false;
+
+    function startGame() {
+      document.getElementById('welcome').style.display = 'none';
+      document.getElementById('game-container').style.display = 'flex';
+      initChessGame();
+    }
+
+    function initChessGame() {
+      const board = document.getElementById("board");
+      const status = document.getElementById("status");
+      const timer = document.getElementById("timer");
+      const sound = document.getElementById("tap-sound");
+      const winSound = document.getElementById("win-sound");
+
+      const pieces = {
+        r: "♜", n: "♞", b: "♝", q: "♛", k: "♚", p: "♟",
+        R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔", P: "♙"
+      };
+
+      let boardState = [
+        ["r", "n", "b", "q", "k", "b", "n", "r"],
+        ["p", "p", "p", "p", "p", "p", "p", "p"],
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["P", "P", "P", "P", "P", "P", "P", "P"],
+        ["R", "N", "B", "Q", "K", "B", "N", "R"]
+      ];
+
+      board.innerHTML = "";
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const square = document.createElement("div");
+          square.className = "square " + ((row + col) % 2 === 0 ? "light" : "dark");
+          square.dataset.row = row;
+          square.dataset.col = col;
+          square.textContent = pieces[boardState[row][col]] || "";
+          board.appendChild(square);
+        }
+      }
+
+      status.textContent = "Game Started! Your move.";
+      sound.play();
+
+      // TODO: Add real game logic here or link to game.js
+    }
+  </script>
+</body>
+</html>
