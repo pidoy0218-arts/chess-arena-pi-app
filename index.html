@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Chess Arena Pi</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f0e6d6;
+      color: #333;
+      overflow: hidden;
+    }
+    header {
+      background: #8b5e3c;
+      color: white;
+      padding: 1em;
+      text-align: center;
+      font-size: 1.5em;
+    }
+    .frame-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 1em;
+      gap: 1em;
+    }
+    .button {
+      background: #d1b07c;
+      border: none;
+      padding: 1em;
+      font-size: 1.2em;
+      cursor: pointer;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      transition: background 0.3s;
+    }
+    .button:hover {
+      background: #e0c08d;
+    }
+    .leaderboard-popout {
+      position: fixed;
+      right: 0;
+      top: 0;
+      width: 300px;
+      height: 100%;
+      background: white;
+      border-left: 4px solid #8b5e3c;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.3);
+      overflow-y: scroll;
+      transform: translateX(100%);
+      transition: transform 0.3s ease-in-out;
+      z-index: 1000;
+    }
+    .leaderboard-popout.active {
+      transform: translateX(0);
+    }
+    .leaderboard-entry {
+      padding: 0.5em 1em;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      justify-content: space-between;
+    }
+    .gold { color: gold; font-weight: bold; }
+    .silver { color: silver; font-weight: bold; }
+    .bronze { color: #cd7f32; font-weight: bold; }
+    .board-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    canvas {
+      border: 10px solid #8b5e3c;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>♞ THE CHESS ARENA PI ♞</div>
+  </header>  <div class="frame-container">
+    <button class="button" onclick="showLogin()">🔐 Pi Login</button>
+    <button class="button" onclick="toggleLeaderboard()">🏆 Leaderboard</button>
+  </div>  <div class="board-container">
+    <canvas id="chessBoard" width="480" height="480"></canvas>
+  </div>  <div class="leaderboard-popout" id="leaderboard">
+    <div class="leaderboard-entry gold">🥇 User1 <span>1500</span></div>
+    <div class="leaderboard-entry silver">🥈 User2 <span>1450</span></div>
+    <div class="leaderboard-entry bronze">🥉 User3 <span>1400</span></div>
+    <!-- Add up to 100 -->
+    <div class="leaderboard-entry">User4 <span>1350</span></div>
+    <div class="leaderboard-entry">User5 <span>1300</span></div>
+    <!-- ... -->
+  </div>  <script>
+    function toggleLeaderboard() {
+      document.getElementById('leaderboard').classList.toggle('active');
+    }
+
+    function showLogin() {
+      alert("Pi Login Placeholder – Coming Soon!");
+    }
+
+    // Draw Chess Board
+    const canvas = document.getElementById("chessBoard");
+    const ctx = canvas.getContext("2d");
+    const tileSize = 60;
+    const light = "#f0d9b5";
+    const dark = "#b58863";
+
+    function drawBoard() {
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          ctx.fillStyle = (row + col) % 2 === 0 ? light : dark;
+          ctx.fillRect(col * tileSize, row * tileSize, tileSize, tileSize);
+        }
+      }
+    }
+
+    drawBoard();
+  </script></body>
+</html>
