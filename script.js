@@ -1,4 +1,3 @@
-
 // Initialize the board
 const board = document.querySelector('.chess-board');
 
