@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chess Arena Pi - Mode Select</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a1a, #333);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      color: #fcd34d;
+    }
+    .mode-container {
+      display: grid;
+      gap: 20px;
+      width: 80%;
+      max-width: 400px;
+    }
+    .mode-btn {
+      padding: 20px;
+      font-size: 1.2em;
+      font-weight: bold;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .quick {
+      background: #16a34a;
+      color: white;
+    }
+    .classic {
+      background: #2563eb;
+      color: white;
+    }
+    .mode-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255,255,255,0.3);
+    }
+    footer {
+      position: absolute;
+      bottom: 10px;
+      font-size: 0.8em;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <h1>Choose Your Mode</h1>
+  <div class="mode-container">
+    <button class="mode-btn quick" onclick="selectMode('quick')">⚡ Quick Chess (30s)</button>
+    <button class="mode-btn classic" onclick="selectMode('classic')">♟️ Classic Chess</button>
+  </div>
+  <footer>Powered by Pi · Chess Arena Pi</footer>
+
+  <script>
+    function selectMode(mode) {
+      // Temporary redirect (replace with your board pages)
+      if (mode === 'quick') {
+        window.location.href = 'quick-chess.html';
+      } else {
+        window.location.href = 'classic-chess.html';
+      }
+    }
+  </script>
+</body>
+</html>
