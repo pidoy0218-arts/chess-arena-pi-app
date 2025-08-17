@@ -1,0 +1,373 @@
+=== BEGIN COPY TAB ===
+ FILENAME: index.html ===
+
+  Chess Arena Pi - Web
+
+  /* minimal reset to ensure consistency */
+
+
+ FILENAME: style.css ===
+:root{
+  --bg: #111010;
+  --board-light: #F0D9B5;
+  --board-dark: #B58863;
+  --coords: rgba(0,0,0,.15);
+  --piece-light: #F2F2E6;
+  --piece-dark: #2B2B2B;
+  --accent: #2F9F9A;
+  --bg-panel: #1a1a1a;
+  --text: #fff;
+}
+{ box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font-family: Inter, Arial, sans-serif; }
+
+.app { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+.header { display:flex; align-items:center; justify-content: space-between; padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,.25); margin-bottom: 12px; }
+.brand { display:flex; align-items: center; gap: 12px; }
+.brand img { height: 40px; }
+.brand h1 { font-size: 14px; font-weight: 700; margin: 0; opacity:.9; }
+
+.btn { background: var(--accent); color: #fff; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.btn.secondary { background: #333; color: #fff; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.grid { display: grid; grid-template-columns: 1fr 360px; gap: 14px; }
+@media (max-width: 900px){
+  .grid { grid-template-columns: 1fr; }
+}
+.board-wrap { display: grid; place-items: center; padding: 8px; }
+.board {
+  width: min(92vmin, 640px);
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  border: 4px solid #333;
+  box-shadow: 0 10px 20px rgba(0,0,0,.4);
+}
+.square { width: 100%; height: 100%; }
+.light { background: var(--board-light); }
+.dark { background: var(--board-dark); position: relative; }
+.coord {
+  position: absolute; bottom: 2px; right: 4px; font-size: 9px; opacity: .4;
+}
+.piece {
+  width: 100%; height: 100%; display: grid; place-items: center;
+  cursor: pointer;
+}
+.captured {
+  margin-top: 8px; padding: 8px; background: #111; border-radius: 6px; min-height: 60px;
+}
+.panel { background: var(--bg-panel); border-radius: 8px; padding: 12px; }
+
+.list { list-style: none; padding: 0; margin: 0; max-height: 320px; overflow: auto; }
+.list-item { padding: 6px 0; border-bottom: 1px solid #333; }
+
+.legend { font-size: 12px; opacity: .8; }
+
+.sidebar .section { margin-bottom: 14px; padding: 8px; background: rgba(255,255,255,.04); border-radius: 6px; }
+
+.title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+
+.kbd { font-family: monospace; padding: 2px 6px; border-radius: 4px; border: 1px solid #333; background: #000; }
+
+footer{ text-align:center; margin-top:14px; font-size:12px; opacity:.6; }
+ FILENAME: app.js ===
+/*
+Chess Arena Pi - Web MVP (flat-folder, copy-paste friendly)
+Intro logo
+Pi Login placeholder
+Chess board with 30s timer, 3px red last-10s cue
+Captured pieces, move list, New Game, Play vs AI, Undo, Mute
+AI: simple minimax depth 2-3 (stubbed)
+Leaderboard placeholder
+Pi login placeholder toggle
+Responsive, mobile-friendly
+*/
+
+// Minimal engine import (inline single-file for flat-folder)
+import { ChessEngine } from "./chess-engine.js";
+
+const APP_ROOT = document.getElementById('root');
+let piEnabled = false;
+let game;
+
+// Helpers
+function el(tag, attrs = {}, ...children) {
+  const n = document.createElement(tag);
+  for (const k in attrs) if (attrs[k] !== undefined) n[k] = attrs[k];
+  for (const c of children) if (typeof c === 'string') n.appendChild(document.createTextNode(c)); else if (c) n.appendChild(c);
+  return n;
+}
+function show(elm){ APP_ROOT.appendChild(elm); }
+
+function renderIntro() {
+  APP_ROOT.innerHTML = '';
+  const root = el('div', { className: 'intro panel', style:'text-align:center; padding:20px; max-width:520px; margin:0 auto;' },
+    el('img', { src: 'assets/logo-knight.png', alt: 'The Chess Arena Pi', style:'width:180px; display:block; margin:0 auto 6px;' }),
+    el('h2', {}, 'Chess Arena Pi'),
+    el('p', { className:'logo-label' }, 'Intro splash. Press Enter to continue.'),
+    el('button', { className:'btn', onclick: () => renderLogin() }, 'Enter Arena')
+  );
+  show(root);
+}
+
+function renderLogin() {
+  APP_ROOT.innerHTML = '';
+  const container = el('div', { className:'panel', style:'text-align:center; max-width:520px; margin:0 auto;' },
+    el('h3', {}, 'Pi Login (placeholder)'),
+    el('p', { className:'logo-label' }, 'Toggle Pi identity (placeholder) to simulate real SDK.'),
+    el('button', { className:'btn', onclick: () => startGame(false) }, 'Play as Guest'),
+    el('button', { className:'btn', style:'margin-left:8px;', onclick: () => startGame(true) }, 'Play with Pi (placeholder)')
+  );
+  show(container);
+}
+
+function startGame(withPi) {
+  piEnabled = withPi;
+  renderLobby();
+}
+
+function renderLobby() {
+  APP_ROOT.innerHTML = '';
+  const wrap = el('div', { className:'panel' },
+    el('div', { className:'header' },
+      el('div', { className:'brand' },
+        el('img', { src:'assets/logo-knight.png', alt:'Knight', style:'height:28px;' }),
+        el('h1', {}, 'Chess Arena Pi')
+      ),
+      el('div', {},
+        el('button', { className:'btn', onclick: () => newGame(false) }, 'New Game'),
+        el('button', { className:'btn secondary', onclick: () => newGame(true), style:'margin-left:6px;' }, 'New AI vs You')
+      )
+    ),
+    el('div', { className:'panel' },
+      el('div', { className:'title' }, 'Controls'),
+      el('div', {},
+        el('button', { className:'btn', onclick: () => undoMove() }, 'Undo Move'),
+        el('button', { className:'btn', onclick: () => toggleMute(), style:'margin-left:6px;' }, 'Mute/Unmute')
+      )
+    ),
+    el('div', { className:'panel' },
+      el('div', { className:'title' }, 'Leaderboard (placeholder)'),
+      el('ul', { className:'list' },
+        el('li', { className:'list-item' }, 'Player1 - 3 wins'),
+        el('li', { className:'list-item' }, 'Player2 - 2 wins')
+      )
+    )
+  );
+  APP_ROOT.appendChild(wrap);
+  newGame(false);
+}
+
+function newGame(aiEnabled) {
+  game = new ChessEngine();
+  game.start(aiEnabled);
+  renderBoard();
+  renderMoveList();
+}
+
+function undoMove() {
+  if (!game) return;
+  game.undoMove();
+  renderBoard();
+  renderMoveList();
+}
+
+function toggleMute() {
+  alert('Mute toggled (placeholder)');
+}
+
+function renderBoard() {
+  APP_ROOT.innerHTML = '';
+  const grid = el('div', { className:'grid' });
+
+  // Board panel
+  const boardPanel = el('div', { className:'panel board-wrap' },
+    el('div', { id:'board', className:'board' })
+  );
+
+  // Right panel (moves + captured)
+  const side = el('div', { className:'sidebar panel' },
+    el('div', { className:'section' },
+      el('div', { className:'title' }, 'Move History'),
+      el('ol', { id:'moveList', className:'list' })
+    ),
+    el('div', { className:'section' },
+      el('div', { className:'title' }, 'Captured'),
+      el('div', { id:'captured', className:'captured' })
+    ),
+    el('div', { className:'section' },
+      el('div', { className:'title' }, 'Controls'),
+      el('button', { className:'btn', onclick: () => newGame(game?.aiEnabled ?? false) }, 'New Game'),
+      el('button', { className:'btn', style:'margin-left:6px;', onclick: () => startGame(piEnabled) }, 'Play vs AI')
+    )
+  );
+
+  grid.appendChild(boardPanel);
+  grid.appendChild(side);
+  APP_ROOT.appendChild(grid);
+
+  renderChessBoard();
+  renderMoveList();
+}
+
+function renderChessBoard() {
+  const boardEl = document.getElementById('board');
+  if (!boardEl) return;
+  boardEl.innerHTML = '';
+  const size = 8;
+  const state = game ? game.getBoard() : null;
+  for (let r = 0; r  {
+          if (game) {
+            game.handleClick(r, c);
+            renderChessBoard();
+            renderMoveList();
+          }
+        }
+      });
+      const p = state ? statec : null;
+      if (p) {
+        const piece = el('div', { className:'piece' }, p.unicode || p.type);
+        piece.style.color = p.color === 'w' ? '#F2F2E6' : '#2B2B2B';
+        sq.appendChild(piece);
+      }
+      boardEl.appendChild(sq);
+    }
+  }
+}
+
+function renderMoveList() {
+  const list = document.getElementById('moveList');
+  if (!list) return;
+  list.innerHTML = '';
+  const moves = game ? game.getMoves() : [];
+  moves.forEach((mv, idx) => {
+    const li = el('li', { className:'list-item' }, ${idx+1}. ${mv});
+    list.appendChild(li);
+  });
+}
+
+// Bootstrap
+renderIntro();
+
+// Optional: quick start with N
+document.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() === 'n') {
+    newGame(false);
+  }
+});
+ FILENAME: chess-engine.js ===
+/*
+Lightweight Chess Engine (flat-folder MVP)
+8x8 board, simple piece objects
+Simple move history, undo
+getBoard(), getMoves(), handleClick(r,c), start(aiEnabled)
+AI placeholder (depth 2-3) — replace with real minimax as needed
+*/
+export class ChessEngine {
+  constructor() {
+    this.board = null;
+    this.turn = 'w';
+    this.moveHistory = [];
+    this.selected = null;
+    this.aiEnabled = false;
+  }
+
+  start(aiEnabled) {
+    this.aiEnabled = aiEnabled;
+    this.resetBoard();
+    this.moveHistory = [];
+  }
+
+  resetBoard() {
+    this.board = [
+      [ {type:'R',color:'b'}, {type:'N',color:'b'}, {type:'B',color:'b'}, {type:'Q',color:'b'}, {type:'K',color:'b'}, {type:'B',color:'b'}, {type:'N',color:'b'}, {type:'R',color:'b'} ],
+      [ {type:'P',color:'b'}, {type:'P',color:'b'}, {type:'P',color:'b'}, {type:'P',color:'b'}, {type:'P',color:'b'}, {type:'P',color:'b'}, {type:'P',color:'b'}, {type:'P',color:'b'} ],
+      [ null, null, null, null, null, null, null, null ],
+      [ null, null, null, null, null, null, null, null ],
+      [ null, null, null, null, null, null, null, null ],
+      [ null, null, null, null, null, null, null, null ],
+      [ {type:'P',color:'w'}, {type:'P',color:'w'}, {type:'P',color:'w'}, {type:'P',color:'w'}, {type:'P',color:'w'}, {type:'P',color:'w'}, {type:'P',color:'w'}, {type:'P',color:'w'} ],
+      [ {type:'R',color:'w'}, {type:'N',color:'w'}, {type:'B',color:'w'}, {type:'Q',color:'w'}, {type:'K',color:'w'}, {type:'B',color:'w'}, {type:'N',color:'w'}, {type:'R',color:'w'} ],
+    ];
+    this.turn = 'w';
+    this.selected = null;
+  }
+
+  getBoard() {
+    return this.board.map(row => row.map(p => p ? { type: p.type, color: p.color, unicode: this.pieceChar(p) } : null));
+  }
+
+  pieceChar(p) {
+    if (!p) return '';
+    const map = { 'P':'♟','N':'♞','B':'♝','R':'♜','Q':'♛','K':'♚' };
+    const code = p.color === 'w'
+      ? { 'P':'♙','N':'♘','B':'♗','R':'♖','Q':'♕','K':'♔' }[p.type] || map[p.type]
+      : map[p.type] || '';
+    return code;
+  }
+
+  getMoves() {
+    return this.moveHistory;
+  }
+
+  handleClick(r, c) {
+    const piece = this.boardc;
+    if (piece && piece.color === this.turn) {
+      this.selected = { r, c };
+    } else if (this.selected) {
+      const mv = ${this.coord(this.selected.r, this.selected.c)}-${this.coord(r, c)};
+      this.moveHistory.push(mv);
+      this.boardc = this.boardthis.selected.c;
+      this.boardthis.selected.c = null;
+      this.selected = null;
+      this.turn = this.turn === 'w' ? 'b' : 'w';
+    }
+  }
+
+  coord(r, c) {
+    const files = 'abcdefgh';
+    return files[c] + (8 - r);
+  }
+
+  undoMove() {
+    if (this.moveHistory.length === 0) return;
+    this.resetBoard();
+    this.moveHistory.pop();
+    this.turn = 'w';
+  }
+}
+ FILENAME: sounds.md ===
+ FILENAME: sounds.md ===
+Chess Arena Pi - Sound asset notes
+
+Overview
+Sound cues provide feedback for user actions and game events:
+  tap: when a piece is picked or a move is attempted
+  tick: timer tick sound, and used in the last 10 seconds of a move
+  win: victory celebration
+
+Suggested file paths (place under assets/ in your repo)
+assets/sound-tap.mp3
+assets/sound-tick.mp3
+assets/sound-win.mp3
+
+Implementation hints (web)
+Use the Audio API:
+  const a = new Audio('assets/sound-tap.mp3'); a.play();
+Silence or mute via a global flag to respect user preference
+
+Notes on integration
+You can swap to actual Pi wallet-related event sounds when you wire in SDK events.
+
+ END COPY TAB ===
+
+git init
+git add .
+git commit -m "chess-arena-pi: initial web MVP scaffold (copy-paste friendly)"
+git branch -M main
+git remote add origin https://github.com/YOUR_GH_USERNAME/chess-arena-pi-web.git
+git push -u origin main
