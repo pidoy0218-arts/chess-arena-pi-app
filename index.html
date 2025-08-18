@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #1a1a1a;
+      color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .frame {
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+      margin: 10px 0;
+      padding: 10px;
+    }
+
+    .intro-frame {
+      font-size: 2rem;
+      animation: bounce 1.5s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .sub-intro-frame {
+      background: #222;
+      border-radius: 12px;
+      padding: 15px;
+    }
+
+    .logo {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .toggles {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .toggles button {
+      background: #333;
+      color: #f5f5f5;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .toggles button:hover {
+      background: #555;
+    }
+
+    .game-frame {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 10px;
+      display: none;
+    }
+
+    .board {
+      width: 320px;
+      height: 320px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      border: 4px solid #654321;
+    }
+    .square {
+      width: 40px;
+      height: 40px;
+    }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+
+    .timer-captured {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 1rem;
+    }
+
+    .controls-history {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+    .controls button {
+      margin: 0 2px;
+      padding: 5px 8px;
+      border: none;
+      border-radius: 6px;
+      background: #444;
+      color: white;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .controls button:disabled {
+      background: #222;
+      cursor: not-allowed;
+    }
+
+    .endgame {
+      margin-top: 15px;
+      font-size: 1.4rem;
+      font-weight: bold;
+      display: none;
+    }
+
+    /* Confetti placeholder */
+    .confetti {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Frame 1: Intro -->
+  <div class="frame intro-frame">
+    ♞
+  </div>
+
+  <!-- Frame 2: Sub Intro (Logo + Toggles) -->
+  <div class="frame sub-intro-frame">
+    <div class="logo">Chess Arena Pi</div>
+    <div class="toggles">
+      <button onclick="startGame('classic')">Classic Chess</button>
+      <button onclick="startGame('quick')">Quick Chess</button>
+      <button onclick="startGame('ai')">Versus AI</button>
+      <button onclick="openLeaderboard()">Leaderboard</button>
+    </div>
+    <div style="margin-top:10px; font-size:0.8rem;">Powered by Pi</div>
+  </div>
+
+  <!-- Frame 3: Game -->
+  <div class="frame game-frame" id="gameFrame">
+    <div class="board" id="board"></div>
+
+    <div class="timer-captured">
+      <div id="timer">30s</div>
+      <div id="captured">Captured: –</div>
+    </div>
+
+    <div class="controls-history">
+      <div class="controls">
+        <button onclick="resignGame()">Resign</button>
+        <button onclick="offerDraw()">Draw</button>
+        <button id="rematchBtn" onclick="rematchGame()" disabled>Rematch</button>
+      </div>
+      <div id="history">Moves: –</div>
+    </div>
+
+    <div class="endgame" id="endgameMsg"></div>
+  </div>
+
+  <canvas class="confetti" id="confettiCanvas"></canvas>
+
+  <script>
+    function startGame(mode) {
+      document.querySelector('.sub-intro-frame').style.display = 'none';
+      document.getElementById('gameFrame').style.display = 'block';
+      document.getElementById('endgameMsg').style.display = 'none';
+      document.getElementById('rematchBtn').disabled = true;
+      console.log("Starting game mode:", mode);
+      buildBoard();
+    }
+
+    function buildBoard() {
+      let board = document.getElementById('board');
+      board.innerHTML = '';
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          let sq = document.createElement('div');
+          sq.className = 'square ' + ((r+c)%2===0 ? 'light' : 'dark');
+          board.appendChild(sq);
+        }
+      }
+    }
+
+    function openLeaderboard() {
+      alert("Leaderboard placeholder.");
+    }
+
+    function resignGame() { endGame("lose"); }
+    function offerDraw() { endGame("draw"); }
+
+    function endGame(result) {
+      let msg = document.getElementById('endgameMsg');
+      let confetti = document.getElementById('confettiCanvas');
+      msg.style.display = 'block';
+
+      if (result === "win") {
+        msg.textContent = "🎉 Victory!";
+        confetti.style.display = 'block';
+        // TODO: trigger confetti animation
+      } else if (result === "lose") {
+        msg.textContent = "😅 Better luck next time!";
+      } else if (result === "draw") {
+        msg.textContent = "🤝 Game Drawn. Rematch?";
+      }
+
+      document.getElementById('rematchBtn').disabled = false;
+    }
+
+    function rematchGame() {
+      startGame('rematch');
+    }
+
+    buildBoard(); // initial board render
+  </script>
+</body>
+</html>
