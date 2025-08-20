@@ -1,0 +1,131 @@
+
+!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Chess Arena Interface</title>
+  <style>
+    :root{
+      --bg: #0f1116;
+      --panel: #1a1d22;
+      --green: #28a745;
+      --blue: #3b82f6;
+      --orange: #f59e0b;
+      --purple: #8b5cf6;
+      --text: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      display: grid;
+      place-items: center;
+    }
+
+    /* Centered card stack */
+    .center-stack {
+      width: min(420px, 92vw);
+      text-align: center;
+      padding: 24px;
+      border-radius: 20px;
+      background: #111418;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    }
+
+    /* Logo area (simple horse silhouette) */
+    .logo {
+      width: 110px; height: 110px; margin: 0 auto 14px;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff 0 40%, #ffd26a 40% 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    /* Simple SVG horse silhouette inside the circle for a clean look */
+    .logo svg { width: 72px; height: 72px; display:block; }
+
+    .title {
+      font-weight: 800;
+      font-size: 28px;
+      letter-spacing: .5px;
+      margin: 6px 0 4px;
+    }
+    .subtitle {
+      color: #a5a9b4;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    /* Button styles (rounded pills) */
+    .btn {
+      width: 100%;
+      padding: 14px 16px;
+      border: 0;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      color: #06140c;
+      margin: 8px 0;
+      transition: transform .15s ease;
+    }
+    .btn:focus { outline: 2px solid #fff; outline-offset: 2px; }
+    .btn:hover { transform: translateY(-1px); }
+
+    .green { background: var(--green); color: #fff; }
+    .blue { background: var(--blue); color: #fff; }
+    .orange { background: var(--orange); color: #1a1a1a; }
+    .purple { background: var(--purple); color: #fff; }
+
+    /* Small screens: ensure comfortable touch targets */
+    @media (max-width: 420px){
+      .title { font-size: 24px; }
+      .btn { padding: 12px 14px; }
+      .center-stack { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="center-stack" role="main" aria-label="Chess Arena Interface">
+    <!-- Logo (horse) -->
+    <div class="logo" aria-label="Chess Knight Logo">
+      <!-- Simple horse silhouette as inline SVG for a crisp look -->
+      <svg viewBox="0 0 64 64" width="72" height="72" aria-label="Knight">
+        <path d="M8 46c6-2 10-4 12-8 4-6 12-8 18-6 6 2 14 2 20-4-2-6-4-12-6-18-2-4-6-6-10-6-8 0-14 6-18 8-6 3-12 2-18 8-2 2-2 8 2 12 2 2 0 0 0 0-2 4-8 10-6 18 0 4 4 8 6 12 8" fill="#ffd36b"/>
+      </svg>
+    </div>
+
+    <div class="title" aria-label="The Chess Arena Interface">
+      The Chess Arena
+    </div>
+    <div class="subtitle" aria-label="For Pi">for PI</div>
+
+    <!-- Buttons stack -->
+    <button class="btn green" id="btnClassic" aria-label="Classic Chess">Classic Chess</button>
+    <button class="btn blue" id="btnQuick" aria-label="Quick Chess">Quick Chess</button>
+    <button class="btn orange" id="btnAIVersus" aria-label="Versus AI">Versus AI</button>
+    <button class="btn purple" id="btnLeaderboard" aria-label="Leaderboard">Leaderboard</button>
+  </main>
+
+  <script>
+    // Optional: quick click handlers to demo navigation
+    const routes = {
+      classic: ()=> alert("Classic Chess selected"),
+      quick: ()=> alert("Quick Chess selected"),
+      ai: ()=> alert("Versus AI selected"),
+      leaderboard: ()=> alert("Leaderboard selected"),
+    };
+
+    document.getElementById('btnClassic').addEventListener('click', routes.classic);
+    document.getElementById('btnQuick').addEventListener('click', routes.quick);
+    document.getElementById('btnAIVersus').addEventListener('click', routes.ai);
+    document.getElementById('btnLeaderboard').addEventListener('click', routes.leaderboard);
+  </script>
+</body>
+</html>
