@@ -1,131 +1,342 @@
-
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Chess Arena Interface</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Chess Arena for Pi</title>
+  <meta name="color-scheme" content="dark">
   <style>
     :root{
-      --bg: #0f1116;
-      --panel: #1a1d22;
-      --green: #28a745;
-      --blue: #3b82f6;
-      --orange: #f59e0b;
-      --purple: #8b5cf6;
-      --text: #ffffff;
+      --bg:#0f1116;
+      --panel:#151922;
+      --panel-2:#1a1f2b;
+      --ring:#2a3142;
+      --accent:#f4b400; /* gold */
+      --accent-2:#8bd450; /* lime for success state */
+      --white:#ffffff;
+      --muted:#9aa0a6;
+      --badge-classic:#6aa9ff;
+      --badge-quick:#ff6aa9;
+      --badge-ai:#a78bfa;
+      --badge-board:#4ade80;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Inter,Arial;
+      background:radial-gradient(1200px 800px at 70% -10%, #1a2030 0%, #0f1116 55%) fixed;
+      color:var(--white);
+    }
+    .wrap{min-height:100%;display:grid;place-items:center;padding:20px}
+    .card{
+      width:min(980px, calc(100% - 24px));
+      background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+      border:1px solid var(--ring);
+      border-radius:22px;
+      box-shadow:0 30px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
+      overflow:hidden;
+    }
+    /* --- FRAME SYSTEM --- */
+    .frame{display:none;padding:28px}
+    .frame.active{display:block}
+
+    /* --- INTRO FRAME --- */
+    .intro{
+      display:grid; place-items:center; padding:64px 28px;
+    }
+    .intro-logo{
+      width:160px; height:160px; border-radius:50%; display:grid; place-items:center;
+      background:#111; position:relative; isolation:isolate;
+      box-shadow:0 10px 40px rgba(0,0,0,.45), 0 0 0 8px rgba(244,180,0,.1);
+      animation:pop 900ms cubic-bezier(.2,1.4,.42,1) 120ms both;
+    }
+    .intro-logo svg{width:112px; height:112px; display:block; filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
+    .intro-title{
+      margin-top:26px; text-align:center; line-height:1.04;
+      font-weight:800; letter-spacing:.3px;
+      text-shadow:0 2px 0 rgba(0,0,0,.35);
+    }
+    .intro-title .line{font-size:38px}
+    .intro-sub{margin-top:10px; font-size:12px; color:#e9e9e9; opacity:.92}
+    .skip-btn{
+      margin-top:28px; background:transparent; border:1px solid var(--ring);
+      color:var(--muted); border-radius:999px; padding:10px 16px; cursor:pointer;
+    }
+    @keyframes pop{
+      0%{transform:scale(.6);opacity:0}
+      55%{transform:scale(1.07);opacity:1}
+      100%{transform:scale(1)}
     }
 
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      display: grid;
-      place-items: center;
+    /* --- MAIN FRAME --- */
+    .topbar{
+      display:flex; align-items:center; gap:18px; padding:8px; border-bottom:1px solid var(--ring);
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+    }
+    .brand{
+      display:flex; align-items:center; gap:16px;
+    }
+    .brand-badge{
+      width:72px;height:72px;min-width:72px;border-radius:50%;display:grid;place-items:center;background:#111;
+      box-shadow:0 8px 28px rgba(0,0,0,.4);
+    }
+    .brand-badge svg{width:48px;height:48px}
+    .brand-text{display:flex;flex-direction:column}
+    .brand-title{font-weight:800; font-size:22px; line-height:1.05; letter-spacing:.3px}
+    .brand-for{font-size:12px; font-weight:700; color:#fff; opacity:.95} /* bright white per your request */
+
+    .spacer{flex:1}
+    .signin{
+      display:flex; align-items:center; gap:10px;
+    }
+    .btn{
+      border:0; border-radius:999px; padding:10px 16px; font-weight:700; cursor:pointer;
+      background:var(--accent); color:#111; box-shadow:0 10px 26px rgba(244,180,0,.25);
+    }
+    .btn:active{transform:translateY(1px)}
+    .user-pill{
+      border:1px solid var(--ring); color:var(--white); padding:8px 14px; border-radius:999px; font-size:14px;
+      background:rgba(255,255,255,.03);
     }
 
-    /* Centered card stack */
-    .center-stack {
-      width: min(420px, 92vw);
-      text-align: center;
-      padding: 24px;
-      border-radius: 20px;
-      background: #111418;
-      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    .body{
+      display:grid; gap:18px; grid-template-columns: 1fr;
+      padding:20px;
     }
 
-    /* Logo area (simple horse silhouette) */
-    .logo {
-      width: 110px; height: 110px; margin: 0 auto 14px;
-      display: grid; place-items: center;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #fff 0 40%, #ffd26a 40% 100%);
-      position: relative;
-      overflow: hidden;
+    /* Toggle stack */
+    .toggle-panel{
+      border:1px solid var(--ring); border-radius:18px; padding:16px;
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.08));
     }
-    /* Simple SVG horse silhouette inside the circle for a clean look */
-    .logo svg { width: 72px; height: 72px; display:block; }
-
-    .title {
-      font-weight: 800;
-      font-size: 28px;
-      letter-spacing: .5px;
-      margin: 6px 0 4px;
+    .toggle-title{font-size:14px; color:var(--muted); margin-bottom:12px}
+    .toggle-grid{
+      display:grid; gap:12px;
     }
-    .subtitle {
-      color: #a5a9b4;
-      font-size: 12px;
-      margin-bottom: 12px;
+    .toggle{
+      display:flex; align-items:center; justify-content:space-between; gap:14px;
+      padding:12px 14px; border-radius:14px; border:1px solid var(--ring);
+      background:#111; cursor:pointer; user-select:none;
+      transition:transform .08s ease;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.02);
+    }
+    .toggle:active{transform:translateY(1px)}
+    .tog-left{display:flex; align-items:center; gap:12px}
+    .dot{
+      width:12px;height:12px;border-radius:999px;background:var(--ring); box-shadow:0 0 0 3px rgba(255,255,255,.02) inset;
+      transition: all .2s ease;
+    }
+    .label{font-weight:800; letter-spacing:.2px}
+    .badge{
+      font-size:11px; font-weight:800; padding:6px 8px; border-radius:999px;
+      color:#111; background:var(--white);
+      box-shadow:0 6px 16px rgba(0,0,0,.25);
+    }
+    .toggle[data-mode="classic"] .badge{ background:var(--badge-classic) }
+    .toggle[data-mode="quick"]   .badge{ background:var(--badge-quick) }
+    .toggle[data-mode="ai"]      .badge{ background:var(--badge-ai) }
+    .toggle[data-mode="board"]   .badge{ background:var(--badge-board) }
+
+    .toggle.active .dot{ background:var(--accent-2); box-shadow:0 0 12px 2px rgba(139,212,80,.35) }
+
+    /* Footer note */
+    .powered{
+      text-align:center; font-size:12px; color:#e9e9e9; opacity:.95; padding:8px 0 4px;
     }
 
-    /* Button styles (rounded pills) */
-    .btn {
-      width: 100%;
-      padding: 14px 16px;
-      border: 0;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: 15px;
-      cursor: pointer;
-      color: #06140c;
-      margin: 8px 0;
-      transition: transform .15s ease;
-    }
-    .btn:focus { outline: 2px solid #fff; outline-offset: 2px; }
-    .btn:hover { transform: translateY(-1px); }
-
-    .green { background: var(--green); color: #fff; }
-    .blue { background: var(--blue); color: #fff; }
-    .orange { background: var(--orange); color: #1a1a1a; }
-    .purple { background: var(--purple); color: #fff; }
-
-    /* Small screens: ensure comfortable touch targets */
-    @media (max-width: 420px){
-      .title { font-size: 24px; }
-      .btn { padding: 12px 14px; }
-      .center-stack { padding: 18px; }
+    @media(min-width:860px){
+      .body{
+        grid-template-columns: 1fr 1fr;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <div class="card">
 
-  <main class="center-stack" role="main" aria-label="Chess Arena Interface">
-    <!-- Logo (horse) -->
-    <div class="logo" aria-label="Chess Knight Logo">
-      <!-- Simple horse silhouette as inline SVG for a crisp look -->
-      <svg viewBox="0 0 64 64" width="72" height="72" aria-label="Knight">
-        <path d="M8 46c6-2 10-4 12-8 4-6 12-8 18-6 6 2 14 2 20-4-2-6-4-12-6-18-2-4-6-6-10-6-8 0-14 6-18 8-6 3-12 2-18 8-2 2-2 8 2 12 2 2 0 0 0 0-2 4-8 10-6 18 0 4 4 8 6 12 8" fill="#ffd36b"/>
-      </svg>
+      <!-- FRAME 1: INTRO -->
+      <section id="frame-intro" class="frame intro active" aria-label="Intro">
+        <div class="intro-logo" aria-label="Knight logo">
+          <svg viewBox="0 0 100 100" role="img" aria-label="Knight inside yellow circle">
+            <circle cx="50" cy="50" r="45" fill="#f4b400"/>
+            <path d="M28 62c6-12 26-16 34-6 6 6 12 8 18 6 6-2 10-4 14-2 4 2 2 8-2 12-4 4-10 6-14 6-6 0-10-2-16-6-6-4-8-8-18-6-6 1-12-2-16-10-2-4-1-8-0-10z" fill="#fff" stroke="#000" stroke-width="1"/>
+            <path d="M40 40c4-6 12-8 18-4" stroke="#000" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+        <div class="intro-title">
+          <div class="line">THE CHESS ARENA</div>
+          <div class="line">PI</div>
+        </div>
+        <div class="intro-sub">for Pi</div>
+        <button class="skip-btn" id="skipIntro" aria-label="Skip intro">Skip</button>
+      </section>
+
+      <!-- FRAME 2: MAIN INTERFACE -->
+      <section id="frame-main" class="frame" aria-label="Main interface">
+        <div class="topbar">
+          <div class="brand">
+            <div class="brand-badge" aria-hidden="true">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="#f4b400"/>
+                <path d="M28 62c6-12 26-16 34-6 6 6 12 8 18 6 6-2 10-4 14-2 4 2 2 8-2 12-4 4-10 6-14 6-6 0-10-2-16-6-6-4-8-8-18-6-6 1-12-2-16-10-2-4-1-8-0-10z" fill="#fff" stroke="#000" stroke-width="1"/>
+                <path d="M40 40c4-6 12-8 18-4" stroke="#000" stroke-width="2" fill="none"/>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <div class="brand-title">THE CHESS ARENA PI</div>
+              <div class="brand-for">for Pi</div>
+            </div>
+          </div>
+          <div class="spacer"></div>
+          <div class="signin">
+            <span id="userPill" class="user-pill" style="display:none;"></span>
+            <button id="loginBtn" class="btn">Sign in with Pi</button>
+          </div>
+        </div>
+
+        <div class="body">
+          <!-- Left column: mode toggles -->
+          <div class="toggle-panel" aria-label="Game modes">
+            <div class="toggle-title">Modes & Tools</div>
+            <div class="toggle-grid">
+              <div class="toggle" data-mode="classic" role="button" tabindex="0" aria-pressed="false">
+                <div class="tog-left">
+                  <div class="dot"></div>
+                  <div class="label">Classic Chess</div>
+                </div>
+                <span class="badge">40/20</span>
+              </div>
+
+              <div class="toggle" data-mode="quick" role="button" tabindex="0" aria-pressed="true">
+                <div class="tog-left">
+                  <div class="dot"></div>
+                  <div class="label">Quick Chess</div>
+                </div>
+                <span class="badge">3|0</span>
+              </div>
+
+              <div class="toggle" data-mode="ai" role="button" tabindex="0" aria-pressed="false">
+                <div class="tog-left">
+                  <div class="dot"></div>
+                  <div class="label">Versus AI</div>
+                </div>
+                <span class="badge">Beta</span>
+              </div>
+
+              <div class="toggle" data-mode="board" role="button" tabindex="0" aria-pressed="false">
+                <div class="tog-left">
+                  <div class="dot"></div>
+                  <div class="label">Leaderboard</div>
+                </div>
+                <span class="badge">Live</span>
+              </div>
+            </div>
+
+            <div class="powered">Powered by Pi</div>
+          </div>
+
+          <!-- Right column: empty canvas placeholder for next step (board/timer etc.) -->
+          <div class="toggle-panel" aria-label="Next step panel">
+            <div class="toggle-title">Next: Board & Timer (loads after mode)</div>
+            <div id="status" style="font-size:14px; color:var(--muted);">
+              Select a mode above. After sign-in, multiplayer and sandbox tests unlock.
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
+  </div>
 
-    <div class="title" aria-label="The Chess Arena Interface">
-      The Chess Arena
-    </div>
-    <div class="subtitle" aria-label="For Pi">for PI</div>
-
-    <!-- Buttons stack -->
-    <button class="btn green" id="btnClassic" aria-label="Classic Chess">Classic Chess</button>
-    <button class="btn blue" id="btnQuick" aria-label="Quick Chess">Quick Chess</button>
-    <button class="btn orange" id="btnAIVersus" aria-label="Versus AI">Versus AI</button>
-    <button class="btn purple" id="btnLeaderboard" aria-label="Leaderboard">Leaderboard</button>
-  </main>
-
+  <!-- Pi SDK injected automatically by Pi Browser; we only call window.Pi.* when available -->
   <script>
-    // Optional: quick click handlers to demo navigation
-    const routes = {
-      classic: ()=> alert("Classic Chess selected"),
-      quick: ()=> alert("Quick Chess selected"),
-      ai: ()=> alert("Versus AI selected"),
-      leaderboard: ()=> alert("Leaderboard selected"),
-    };
+    // ---------- Intro: auto-advance + trumpet fanfare (WebAudio) ----------
+    const intro = document.getElementById('frame-intro');
+    const main = document.getElementById('frame-main');
+    const skipBtn = document.getElementById('skipIntro');
 
-    document.getElementById('btnClassic').addEventListener('click', routes.classic);
-    document.getElementById('btnQuick').addEventListener('click', routes.quick);
-    document.getElementById('btnAIVersus').addEventListener('click', routes.ai);
-    document.getElementById('btnLeaderboard').addEventListener('click', routes.leaderboard);
+    function goMain(){
+      intro.classList.remove('active');
+      main.classList.add('active');
+    }
+
+    function playTrumpet(){
+      try{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [ 587.33, 739.99, 880.00, 1174.66 ]; // D5, F#5, A5, D6
+        notes.forEach((freq, i)=>{
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'triangle';
+          o.frequency.value = freq;
+          o.connect(g); g.connect(ctx.destination);
+          const t = ctx.currentTime + i*0.12;
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.15, t+0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t+0.36);
+          o.start(t); o.stop(t+0.4);
+        });
+      }catch(e){}
+    }
+
+    let introTimer = setTimeout(()=>{ goMain(); }, 2600);
+    window.addEventListener('load', ()=>{ playTrumpet(); });
+    skipBtn.addEventListener('click', ()=>{ clearTimeout(introTimer); goMain(); });
+
+    // ---------- Toggle interactions (small, tidy, colorful) ----------
+    const toggles = Array.from(document.querySelectorAll('.toggle'));
+    toggles.forEach(t=>{
+      t.addEventListener('click', ()=>{
+        // make single-select active style (only one active at a time)
+        toggles.forEach(x=>x.classList.remove('active'));
+        t.classList.add('active');
+        const mode = t.dataset.mode;
+        document.getElementById('status').textContent =
+          (mode==='classic' ? 'Classic selected. After sign-in, start standard match.'
+          : mode==='quick' ? 'Quick 3|0 selected. After sign-in, start blitz pairing.'
+          : mode==='ai' ? 'AI mode selected. Local engine will play after sign-in.'
+          : 'Leaderboard selected. View ranks after sign-in.');
+      });
+    });
+
+    // ---------- Pi SDK sign-in ----------
+    const loginBtn = document.getElementById('loginBtn');
+    const userPill = document.getElementById('userPill');
+
+    async function signInWithPi(){
+      if(!window.Pi || !window.Pi.authenticate){
+        alert('Open in Pi Browser (Sandbox) to sign in with Pi.');
+        return;
+      }
+      try{
+        // request username + payments scopes; connect incomplete payments handler
+        const scopes = ['username','payments'];
+        const onIncompletePaymentFound = (payment)=> {
+          console.log('incomplete payment found', payment);
+        };
+        const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+        // Show user in UI:
+        const username = auth?.user?.username || 'pioneer';
+        userPill.style.display = 'inline-flex';
+        userPill.textContent = '@'+username;
+        loginBtn.style.display = 'none';
+
+        // (Optional) send to backend to verify /v2/me — your backend endpoints are ready for this.
+        // await fetch('/user/signin', {
+        //   method:'POST',
+        //   headers:{'Content-Type':'application/json'},
+        //   credentials:'include',
+        //   body: JSON.stringify({ authResult: auth })
+        // });
+
+        document.getElementById('status').textContent =
+          'Signed in as @'+username+' — multiplayer and sandbox testing unlocked.';
+      }catch(err){
+        console.error(err);
+        alert('Pi sign-in failed.');
+      }
+    }
+    loginBtn.addEventListener('click', signInWithPi);
   </script>
 </body>
 </html>
