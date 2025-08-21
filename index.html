@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Chess Arena — for Pi</title>
+  <meta name="color-scheme" content="dark">
+  <style>
+    :root{
+      --bg:#0f1116;
+      --panel:#14171f;
+      --panel2:#1a2030;
+      --ring:#2a3142;
+      --accent:#f4b400; /* gold */
+      --accent-2:#8bd450;
+      --txt:#ffffff;
+      --muted:#aeb4bc;
+
+      --wood-light:#d2a679;
+      --wood-dark:#8a5a2b;
+      --square-light:#e0c39a;
+      --square-dark:#a5733b;
+
+      --green:#22c55e;
+      --red:#ef4444;
+      --blue:#60a5fa;
+
+      --shadow: 0 30px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, Arial;
+      background:
+        radial-gradient(1200px 800px at 70% -10%, #1a2030 0%, #0f1116 55%) fixed;
+      color:var(--txt);
+    }
+    .wrap{min-height:100%;display:grid;place-items:center;padding:18px}
+    .card{
+      width:min(1100px, calc(100% - 24px));
+      background:linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border:1px solid var(--ring);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    /* Top bar */
+    .topbar{
+      display:flex;align-items:center;gap:16px;
+      padding:12px 16px;border-bottom:1px solid var(--ring);
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+    }
+    .brand{display:flex;align-items:center;gap:14px}
+    .badge{
+      width:68px;height:68px;min-width:68px;border-radius:50%;
+      display:grid;place-items:center;background:#111;
+      box-shadow:0 8px 26px rgba(0,0,0,.4);
+    }
+    .badge svg{width:44px;height:44px;display:block}
+    .btext{display:flex;flex-direction:column;line-height:1.06}
+    .title{font-weight:800; letter-spacing:.3px; font-size:22px}
+    .forpi{font-size:12px;font-weight:700;color:#fff;opacity:.95}
+    .spacer{flex:1}
+    .pill{border:1px solid var(--ring); padding:10px 14px; border-radius:999px;
+      background:#2a2f36; color:#fff; font-weight:800; cursor:pointer;}
+    .pill.primary{ background:var(--accent); color:#1a1a1a; border:0; }
+    .pill.secondary{ background:#2a2f36; color:#fff; border:1px solid #3a414b; }
+
+    /* Toggles row (below header) */
+    .toggles{ display:flex; flex-wrap:wrap; gap:12px; padding:16px; }
+    .toggle{ display:flex; align-items:center; gap:12px;
+      padding:12px 14px; border-radius:999px; border:1px solid var(--ring);
+      background:#22272e; color:#fff; font-weight:800; cursor:pointer;
+    }
+    .toggle.active{ outline:2px solid var(--accent); }
+
+    /* Theme helpers for the rest of the page (optional) */
+    .content{ padding:20px; display:grid; grid-template-columns: 1fr; gap:16px; }
+    @media (min-width: 900px){
+      .content{ grid-template-columns: 1fr 1fr; }
+    }
+
+    /* Subtle footer note if needed */
+    .note{ font-size:12px; color:var(--muted); text-align:center; }
+  </style>
+</head>
+<body>
+  <main class="card" aria-label="Chess Arena main shell">
+    <!-- Top bar with Knight logo + brand title -->
+    <section class="topbar" aria-label="Brand header">
+      <div class="badge" aria-label="Knight logo badge">
+        <!-- Knight in yellow circle SVG (exact look you described) -->
+        <svg viewBox="0 0 100 100" width="44" height="44" role="img" aria-label="Knight in yellow circle">
+          <circle cx="50" cy="50" r="40" fill="#f4b400"/>
+          <!-- Simple knight silhouette (stylized) -->
+          <path d="M28 60c6-12 22-18 34-8 6 4 12 6 18 4 6-2 12-4 14-2 4 2 2 8-2 12-4 4-10 6-14 6-6 0-10-2-16-6-6-4-8-10-18-6-6 2-12 0-18-6z" fill="#fff" stroke="#000" stroke-width="1"/>
+          <path d="M40 40c4-6 12-8 18-4" stroke="#000" stroke-width="2" fill="none"/>
+        </svg>
+      </div>
+      <div class="btext" aria-label="Brand text">
+        <div class="title" style="line-height:1.05;">THE CHESS ARENA</div>
+        <div class="title" style="line-height:1.05;">PI</div>
+        <div class="forpi" aria-label="for Pi" style="margin-top:4px;">for Pi</div>
+      </div>
+      <div class="spacer" aria-hidden="true"></div>
+      <!-- Optional login button or status you can wire later -->
+      <button class="pill secondary" aria-label="Login with Pi button" style="margin-left:auto;">Login</button>
+    </section>
+
+    <!-- Toggles (four rounded colored options) -->
+    <section class="toggles" aria-label="Mode toggles">
+      <button class="toggle" data-mode="classic" aria-label="Classic Chess">
+        Classic Chess
+        <span class="badge" aria-label="Classic badge">Classic</span>
+      </button>
+      <button class="toggle" data-mode="quick" aria-label="Quick Chess">
+        Quick Chess
+        <span class="badge" aria-label="Quick badge" style="background:#fff;color:#111;border-radius:999px;padding:4px 8px;">Q</span>
+      </button>
+      <button class="toggle" data-mode="ai" aria-label="Versus AI">
+        Versus AI
+        <span class="badge" aria-label="AI badge" style="background:#fff;color:#111;border-radius:999px;padding:4px 8px;">AI</span>
+      </button>
+      <button class="toggle" data-mode="leaderboard" aria-label="Leaderboard">
+        Leaderboard
+        <span class="badge" aria-label="Leaderboard badge" style="background:#fff;color:#111;border-radius:999px;padding:4px 8px;">LB</span>
+      </button>
+    </section>
+
+    <!-- Optional content area (board, timer, etc. can be added later) -->
+    <section class="content" aria-label="Starter content area">
+      <div class="note" style="text-align:center; padding:6px 0;">
+        This is a starting UI. wire the board, timer, and Pi login next.
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Tiny toggle logic: mark active
+    document.querySelectorAll('.toggle').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.toggle').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = btn.dataset.mode;
+        console.log('Selected mode:', mode);
+        // Hook into your app logic here (join/create match, etc.)
+      });
+    });
+  </script>
+</body>
+</html>
