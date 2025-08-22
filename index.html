@@ -1,0 +1,256 @@
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chess Arena Pi — Foundation 8x8</title>
+<style>
+  :root{
+    --bg: #efe9df;
+    --board-light: #f0d9b5;
+    --board-dark: #8b4a2a;
+    --panel: #fff;
+    --accent: #d09a2b;
+    --text: #2b2b2b;
+  }
+  *{box-sizing:border-box}
+  html, body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto; background:var(--bg); color:var(--text); }
+  header { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:#3b2a1a; color:white; position:sticky; top:0; z-index:5; border-bottom:1px solid #5a3b1a; }
+  .brand { display:flex; align-items:center; gap:12px; font-weight:800; }
+  .logo { width:52px; height:52px; border-radius:10px; background:#2b1e11; display:grid; place-items:center; color:#fff; font-weight:900; font-size:28px; }
+  .btn { background:var(--accent); border:0; padding:10px 14px; border-radius:999px; font-weight:800; cursor:pointer; color:#1a0f0a; }
+  main { display:flex; flex-direction:column; align-items:center; gap:14px; padding:12px; }
+  .frame{ width:100%; max-width: 980px; display:flex; flex-wrap:wrap; gap:14px; }
+  /* 8x8 board card */
+  .boardCard { background:#fff; border-radius:12px; padding:12px; box-shadow:0 6px 20px rgba(0,0,0,.08); border:1px solid #e5d9c8; flex:1 1 420px; min-width: 320px; }
+  #board { width:100%; aspect-ratio:1; display:grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); border-radius:8px; overflow:hidden; border:2px solid #6b4221; }
+  .sq { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  .light{ background:#f0d9b5; }
+  .dark{ background:#8b4a2a; }
+  .piece{ width:78%; height:78%; display:block; }
+  .highlight { outline:3px solid rgba(255,255,0,.9); outline-offset:-3px; }
+
+  /* Controls panel */
+  .panel{ background:var(--panel); padding:12px; border-radius:12px; border:1px solid #eee; box-shadow:0 6px 20px rgba(0,0,0,.04); flex:1 1 260px; min-width: 260px; }
+  .moves{ max-height:180px; overflow:auto; border:1px solid #ddd; padding:6px; border-radius:6px; background:#f9f9f9; }
+  .moveItem{ font-family:monospace; font-size:.85rem; padding:4px 6px; border-bottom:1px solid #eee; }
+  @media (max-width: 900px){
+    .frame { flex-direction:column; }
+    #board { max-width: 92vw; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo" aria-label="Logo">KA</div>
+    <div>The Chess Arena for Pi</div>
+  </div>
+  <div class="hdrRight" aria-label="Pi login">
+    <span id="piStatus" style="font-weight:700;background:#000;padding:6px 12px;border-radius:999px;color:#0f0;">Pi Sandbox: Ready</span>
+    <button class="btn" id="signInBtn" style="margin-left:8px;background:#f6a623;">Sign In</button>
+  </div>
+</header>
+
+<main class="frame" aria-label="Foundation frame layout">
+  <!-- Frame: Board -->
+  <section class="boardCard" id="frameBoard" aria-label="Chess board area">
+    <div id="board" aria-label="Chess board grid"></div>
+  </section>
+
+  <!-- Frame: Controls -->
+  <section class="panel" id="frameControls" aria-label="Controls">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn" id="frameClassic">Classic</button>
+      <button class="btn" id="frameQuick">Quick 30s</button>
+      <button class="btn" id="frameAi">Versus AI</button>
+    </div>
+    <div style="margin-top:8px; display:flex; gap:8px;">
+      <button class="btn" id="newGameBtn">New Game</button>
+      <button class="btn" id="undoBtn" style="margin-left:6px;">Undo</button>
+      <button class="btn" id="rematchBtn" style="margin-left:6px;">Rematch: Auto</button>
+    </div>
+    <div style="margin-top:8px;">
+      <strong>Move History</strong>
+      <div class="moves" id="movesPanel"></div>
+    </div>
+  </section>
+</main>
+
+<canvas id="confetti" aria-label="celebration" style="pointer-events:none;position:fixed;left:0;top:0;width:100%;height:100%;"></canvas>
+
+<script>
+/* Fully self-contained 8x8 2D foundation (no external libs) */
+const boardEl = document.getElementById("board");
+const movesPanel = document.getElementById("movesPanel");
+const piStatus = document.getElementById("piStatus");
+
+let boardState =  [], selected = null;
+let movesLog = [];
+let frameMode = "Classic"; // Classic, Quick, AI
+let rematchPref = localStorage.getItem("rematchPref") || "Auto";
+
+// Init 8x8 state
+function initBoardState() {
+  boardState = Array.from({length:8}, ()=> Array(8).fill(null));
+  // black back rank
+  const back = ["R","N","B","Q","K","B","N","R"];
+  for(let i=0;i<8;i++){ boardState[0][i] = "b"+back[i]; boardState[1][i] = "bP"; }
+  // white back rank
+  for(let i=0;i<8;i++){ boardState[6][i] = "wP"; boardState[7][i] = "w"+back[i]; }
+}
+
+// SVG piece (basic Staunton-like silhouettes)
+function pieceSVG(code){
+  const t = code[1];
+  const color = code[0] === "w" ? "#fff" : "#000";
+  const fill = code[0] === "w" ? "#f3f3f3" : "#555";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("width","60"); svg.setAttribute("height","60"); svg.setAttribute("viewBox","0 0 64 64");
+  const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("fill", fill);
+  switch(t){
+    case "P": path.setAttribute("d","M32 50 L28 40 L36 40 Z"); break;
+    case "R": path.setAttribute("d","M20 50 L44 50 L40 34 L24 34 Z"); break;
+    case "N": path.setAttribute("d","M20 40 L28 30 L36 40 L28 44 Z"); break;
+    case "B": path.setAttribute("d","M24 50 L40 50 L32 34 Z"); break;
+    case "Q": path.setAttribute("d","M20 50 L44 50 L32 26 Z"); break;
+    case "K": path.setAttribute("d","M32 18 L28 28 L36 28 Z"); break;
+    default: path.setAttribute("d","M28 28 L36 28 L40 32 L24 32 Z");
+  }
+  svg.appendChild(path);
+  return svg;
+}
+
+// Render 8x8 grid with 64 squares
+function renderBoard(){
+  boardEl.innerHTML = "";
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const sq = document.createElement("div");
+      sq.style.width = "12.5%";
+      sq.style.height = "12.5%";
+      sq.className = ((r+c)%2===0) ? "sq light" : "sq dark";
+      if(selected && selected.r===r && selected.c===c) sq.classList.add("highlight");
+      const piece = boardState[r][c];
+      if(piece){
+        const svg = pieceSVG(piece);
+        const holder = document.createElement("div");
+        holder.style.width="100%"; holder.style.height="100%";
+        holder.style.display="flex"; holder.style.alignItems="center"; holder.style.justifyContent="center";
+        holder.appendChild(svg);
+        sq.appendChild(holder);
+      }
+      sq.addEventListener("click", ()=> onSquareClick(r,c));
+      boardEl.appendChild(sq);
+    }
+  }
+}
+
+// Simple click handler: select white piece then move anywhere (placeholder)
+function onSquareClick(r,c){
+  const piece = boardState[r][c];
+  if(!selected){
+    if(piece && piece[0] === "w"){ selected = {r,c}; renderBoard(); }
+    return;
+  }
+  // naive move: move to target
+  const fr = selected.r, fc = selected.c;
+  if(boardState[fr][fc]){
+    boardState[c-r?0:0][c]? null; // no-op, just placeholder to show move
+  }
+  // execute simple move
+  boardState[r][c] = boardState[fr][fc];
+  boardState[fr][fc] = null;
+  movesLog.unshift({from:[fr,fc], to:[r,c], piece: boardState[r][c], captured:null});
+  selected = null;
+  renderBoard();
+  renderMoves();
+}
+
+// Render move history
+function renderMoves(){
+  movesPanel.innerHTML = "";
+  movesLog.forEach((m, i) => {
+    const el = document.createElement("div");
+    const f = "abcdefgh"[m.from[1]] + (8 - m.from[0]);
+    const t = "abcdefgh"[m.to[1]] + (8 - m.to[0]);
+    el.textContent = (i+1) + ". " + m.piece.substring(1) + ":" + f + "→" + t;
+    el.className = "moveItem";
+    movesPanel.appendChild(el);
+  });
+}
+
+// Initialize
+function init(){
+  initBoardState();
+  renderBoard();
+  document.getElementById("signInBtn").addEventListener("click", ()=> {
+    localStorage.setItem("pi_user", JSON.stringify({uid:"demo", username:"Demo"}));
+    piStatus.textContent = "Signed in as Demo";
+  });
+}
+function renderBoard(){ renderBoardUI(); } // alias to avoid confusion
+function renderBoardUI(){
+  // Re-create the board with current state
+  boardEl.innerHTML = "";
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const sq = document.createElement("div");
+      sq.style.width = "12.5%";
+      sq.style.height = "12.5%";
+      sq.className = ((r+c)%2===0) ? "sq light" : "sq dark";
+      if(selected && selected.r===r && selected.c===c) sq.classList.add("highlight");
+      const p = boardState[r][c];
+      if(p){
+        const svg = pieceSVG(p);
+        const holder = document.createElement("div");
+        holder.style.width="100%"; holder.style.height="100%";
+        holder.style.display="flex"; holder.style.alignItems="center"; holder.style.justifyContent="center";
+        holder.appendChild(svg);
+        sq.appendChild(holder);
+      }
+      sq.addEventListener("click", ()=> onSquareClick(r,c));
+      boardEl.appendChild(sq);
+    }
+  }
+}
+function initBoard(){
+  // reset to initial 8x8
+  boardState = Array.from({length:8}, ()=> Array(8).fill(null));
+  const back = ["R","N","B","Q","K","B","N","R"];
+  for(let i=0;i<8;i++){ boardState[0][i] = "b"+back[i]; boardState[1][i] = "bP"; }
+  for(let i=0;i<8;i++){ boardState[6][i] = "wP"; boardState[7][i] = "w"+back[i]; }
+  movesLog.length = 0;
+}
+window.addEventListener("load", ()=>{
+  initBoard();
+  renderBoardUI();
+  // frame wiring
+  document.getElementById("frameClassic").addEventListener("click", ()=> { frameMode = "Classic"; });
+  document.getElementById("frameQuick").addEventListener("click", ()=> { frameMode = "Quick"; });
+  document.getElementById("frameAi").addEventListener("click", ()=> { frameMode = "AI"; });
+  document.getElementById("newGameBtn").addEventListener("click", ()=>{
+    initBoard(); renderBoardUI();
+  });
+  document.getElementById("undoBtn").addEventListener("click", ()=>{
+    // naive: reset to initial
+    initBoard(); renderBoardUI(); renderMoves();
+  });
+  document.getElementById("rematchBtn").addEventListener("click", ()=>{
+    const opts = ["Auto","Ask","Never"]; const cur = rematchPref; const idx = (opts.indexOf(cur)+1)%opts.length; rematchPref = opts[idx];
+    localStorage.setItem("rematchPref", rematchPref);
+    document.getElementById("rematchBtn").textContent = "Rematch: " + rematchPref;
+  });
+});
+
+function renderBoardAndUI(){
+  renderBoardUI(); renderMoves();
+}
+function renderMovesOnly(){ renderMoves(); }
+
+// End of 8x8 foundation
+</script>
+
+</body>
+</html>
