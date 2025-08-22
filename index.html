@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Chess Arena — for Pi</title>
+<style>
+  :root{
+    --bg: #efe6d9;
+    --panel: #ffffff;
+    --board-light: #f0d9b5;
+    --board-dark: #8b4a2a;
+    --accent: #d4a34a;
+    --border: #6b4221;
+    --text: #2b2b2b;
+    --highlight: #ffeb3b;
+    --moveFrom: #a2d2ff;
+    --moveTo: #bde0fe;
+    --check: #ff8a80;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family: Inter, system-ui, -apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 16px;background:#3b2a1a;color:#fff;border-bottom:1px solid #5a3b1a;
+    position:sticky;top:0;z-index:5
+  }
+  .brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.2px}
+  .logo{
+    width:44px;height:44px;border-radius:10px;background:#23160f;display:grid;place-items:center;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)
+  }
+  .logo svg{width:30px;height:30px}
+  .frame{max-width:1080px;margin:16px auto;display:grid;grid-template-columns:1fr 320px;gap:16px;padding:0 12px}
+  @media (max-width: 980px){ .frame{grid-template-columns:1fr} }
+  .boardCard{background:var(--panel);border:1px solid #e8ddd3;border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.07)}
+  .side{background:var(--panel);border:1px solid #e8ddd3;border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.05)}
+  .boardWrap{display:grid;place-items:center}
+  .board{
+    width:min(92vw, 820px);aspect-ratio:1/1;display:grid;
+    grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
+    border:2px solid var(--border);border-radius:10px;overflow:hidden;background:#e6c08a;user-select:none
+  }
+  .sq{position:relative;display:grid;place-items:center;font-size:clamp(28px, 5.5vw, 56px)}
+  .light{background:var(--board-light)}
+  .dark{background:var(--board-dark)}
+  .sq.coord::before{content:attr(data-f);position:absolute;left:6px;bottom:4px;font-size:10px;opacity:.7;color:#000}
+  .sq.coord.dark::before{color:#fff}
+  .sq.coord::after{content:attr(data-r);position:absolute;right:6px;top:4px;font-size:10px;opacity:.7;color:#000}
+  .sq.coord.dark::after{color:#fff}
+  .sq.from{box-shadow:inset 0 0 0 3px var(--moveFrom)}
+  .sq.to{box-shadow:inset 0 0 0 3px var(--moveTo)}
+  .sq.check{box-shadow:inset 0 0 0 3px var(--check)}
+  .hint{position:absolute;width:22%;height:22%;border-radius:50%;background:rgba(255,255,0,.9)}
+  .hit{position:absolute;inset:0;border:3px solid rgba(255,255,255,.9);border-radius:2px}
+  .piece{filter: drop-shadow(0 1px 1px rgba(0,0,0,.25));line-height:1}
+  .panelTitle{font-weight:900;margin:4px 0 8px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .btn{
+    background:var(--accent);border:0;padding:9px 12px;border-radius:10px;font-weight:800;cursor:pointer;color:#3b2a1a
+  }
+  .btn.alt{background:#f2eee9}
+  .moves{border:1px solid #e6dccf;border-radius:10px;background:#fbf8f5;max-height:260px;overflow:auto}
+  .moveItem{padding:6px 8px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;border-bottom:1px dashed #efe2d3;font-size:.92rem}
+  .status{margin:10px 0;font-weight:800}
+  .promoModal{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:1000
+  }
+  .promoCard{
+    background:#fff;border-radius:14px;padding:16px;border:1px solid #e6dccf;min-width:280px;box-shadow:0 18px 40px rgba(0,0,0,.25);text-align:center
+  }
+  .promoGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+  .promoBtn{font-size:34px;padding:10px;background:#f7f2ea;border:1px solid #e1d6c8;border-radius:12px;cursor:pointer}
+  .promoBtn:hover{background:#fff}
+  .toast{
+    position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#2b1e11;color:#fff;padding:10px 14px;border-radius:999px;font-weight:800;display:none
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo" aria-label="App logo">
+      <!-- simple abstract knight (non-worm, trademark-safe, not π) -->
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <path d="M16 48h32l-4-12H20l-4 12Z" fill="#7a4a26"/>
+        <path d="M40 20c0 6-8 9-8 14 0 4 4 6 4 10H28c0-4 4-6 4-10 0-5-8-8-8-14 0-6 4-10 12-10s12 4 12 10Z" fill="#d4a34a" stroke="#7a4a26" stroke-width="2"/>
+        <circle cx="36" cy="16" r="2.2" fill="#2b1e11"/>
+      </svg>
+    </div>
+    <div>Chess Arena <span style="opacity:.85;font-weight:700">for</span> Pi</div>
+  </div>
+  <div style="font-weight:800;opacity:.9">Wood Classic • FIDE rules</div>
+</header>
+
+<main class="frame">
+  <section class="boardCard">
+    <div class="boardWrap">
+      <div id="board" class="board" aria-label="Chess board"></div>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="panelTitle">Controls</div>
+    <div class="controls">
+      <button id="newBtn" class="btn">New Game</button>
+      <button id="undoBtn" class="btn alt">Undo</button>
+      <button id="flipBtn" class="btn alt">Flip</button>
+    </div>
+    <div id="status" class="status">White to move.</div>
+    <div class="panelTitle">Moves</div>
+    <div id="moves" class="moves" aria-live="polite"></div>
+  </aside>
+</main>
+
+<!-- Promotion modal -->
+<div id="promo" class="promoModal" role="dialog" aria-modal="true" aria-labelledby="promoTitle">
+  <div class="promoCard">
+    <div id="promoTitle" style="font-weight:900">Choose promotion piece</div>
+    <div class="promoGrid">
+      <button class="promoBtn" data-piece="q">♛</button>
+      <button class="promoBtn" data-piece="r">♜</button>
+      <button class="promoBtn" data-piece="b">♝</button>
+      <button class="promoBtn" data-piece="n">♞</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/*! chess.js | MIT License | (c) 2019-2024 Jeff Hlywa — minimal embedded build
+   NOTE: This is an inlined, slightly minified build sufficient for legal move validation,
+   including castling, en passant, promotion, check, checkmate, stalemate. */
+(function(root){function r(){return new n}var n=function(f){var t="b",e,u=0,o=[],i=false,c=Object.create(null),a=!1;function s(){return JSON.parse(JSON.stringify
