@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Chess Arena Pi - 2D</title>
+<style>
+  :root{
+    --bg: #efe6d9;        /* warm board background */
+    --board-light: #f0d9b5;
+    --board-dark: #8b4a2a;
+    --panel: #ffffff;
+    --accent: #d09a2b;
+    --text: #2b2b2b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto; background:var(--bg); color:var(--text)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#3b2a1a;color:white;border-bottom:1px solid #5a3b1a;position:sticky;top:0;z-index:5}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800}
+  .brand .logo{width:48px;height:48px;border-radius:8px;background:#2b1e11;display:grid;place-items:center}
+  .brand .logo svg{width:40px;height:40px}
+  .btn{background: var(--accent);border:0;padding:10px 14px;border-radius:999px;font-weight:800;cursor:pointer;color:#1a0f0a}
+  .frame{width:100%;max-width:980px;margin:12px auto;padding:12px;display:flex;gap:12px}
+  .boardCard{flex:2;background:#fff;border-radius:12px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.08);border:1px solid #e9e0d9}
+  .board{width:100%;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:8px;overflow:hidden;border:2px solid #6b4221;background: #e6c08a}
+  .sq{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative}
+  .light{background:var(--board-light)}
+  .dark{background:var(--board-dark)}
+  .piece{width:78%;height:78%}
+  .hint{position:absolute;width:20px;height:20px;border-radius:50%;background:rgba(255,255,0,.9);bottom:6px;right:6px}
+  .panel{flex:1;background:#fff;border-radius:12px;padding:12px;border:1px solid #eee;min-width:240px;max-width:420px;box-shadow:0 6px 20px rgba(0,0,0,.05)}
+  .section{margin-bottom:8px}
+  .section h4{margin:6px 0 8px}
+  .moves{max-height:180px;overflow:auto;border:1px solid #ddd;background:#f9f9f9;padding:6px;border-radius:6px}
+  .moveItem{font-family:monospace;font-size:.85rem;padding:4px 6px;border-bottom:1px solid #eee}
+  @media (max-width: 900px){
+    .frame{flex-direction:column}
+    .panel{width:100%}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo" aria-label="Logo">
+      <!-- Inline simple logo (can replace with a richer SVG later) -->
+      <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="32" cy="22" r="12" fill="#d4a34a"/>
+        <path d="M16 50h32l-4-12H20l-4 12z" fill="#7a3f0f"/>
+        <rect x="28" y="28" width="8" height="8" fill="#ffffff" opacity=".8"/>
+      </svg>
+    </div>
+    <div>The Chess Arena for Pi</div>
+  </div>
+  <div class="frame-actions" style="display:flex;gap:8px;align-items:center;">
+    <span id="piStatus" style="font-weight:700;background:#000;padding:6px 10px;border-radius:999px;color:#0f0;">Pi Sandbox: Connecting…</span>
+    <button class="btn" id="signInBtn" style="padding:10px 14px;">Sign In</button>
+  </div>
+</header>
+
+<div class="frame" aria-label="Frames">
+  <!-- Frame 1: Logo/Login -->
+  <section class="boardCard" id="frame1" style="flex:1;">
+    <div style="display:flex;gap:12px;align-items:center;">
+      <!-- header already shown in page header; this is an optional extra block -->
+      <div style="flex:1;">
+        <div style="font-weight:800;font-size:1.1rem;">Chess Arena</div>
+        <div style="font-size:.9rem;color:#555;">for Pi</div>
+      </div>
+      <button class="btn" id="frame1SignIn" style="background:#f6a623;color:#1b1b1b;">Sign In</button>
+    </div>
+  </section>
+
+  <!-- Frame 2: Board -->
+  <section class="boardCard" id="frame2" style="flex:2;">
+    <div class="board" id="board">
+      <!-- squares filled by script -->
+    </div>
+  </section>
+
+  <!-- Frame 3: Controls -->
+  <section class="panel" id="frame3" aria-label="Controls">
+    <div class="section" id="modeRow">
+      <h4>Mode</h4>
+      <button class="btn" id="classicBtn">Classic</button>
+      <button class="btn" id="quickBtn" style="margin-left:6px;">Quick 30s</button>
+      <button class="btn" id="aiBtn" style="margin-left:6px;">Versus AI</button>
+    </div>
+    <div class="section" id="rematchRow">
+      <h4>Rematch</h4>
+      <button class="btn" id="rematchBtn" style="background:#6b4221;">Auto</button>
+    </div>
+    <div class="section" id="historyRow">
+      <h4>Move History</h4>
+      <div class="moves" id="movesPanel"></div>
+    </div>
+  </section>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<script>
+// Minimal 2D chess: using chess.js for legality
+const boardEl = document.getElementById("board");
+const movesPanel = document.getElementById("movesPanel");
+const piStatus = document.getElementById("piStatus");
+const signInBtn = document.getElementById("signInBtn");
+
+let game = new Chess();
+let selected = null;
+let squareSize;
+const movesLog = [];
+
+// Build the board as 8x8 grid, fill with squares and inline SVG pieces
+function renderBoard(){
+  boardEl.innerHTML = "";
+  const files = ["a","b","c","d","e","f","g","h"];
+  const grid = [];
+  // create squares with standard colors
+  for(let r=0; r<8; r++){
+    for(let c=0; c<8; c++){
+      const sq = document.createElement("div");
+      sq.style.width = "12.5%";
+      sq.style.height = "12.5%";
+      sq.style.boxSizing = "border-box";
+      sq.className = ((r+c)%2===0) ? "square light" : "square dark";
+      sq.dataset.r = r; sq.dataset.c = c;
+      sq.addEventListener("click", ()=> onSquareClick(r,c));
+      // place piece if any
+      const board = game.board();
+      const piece = board[r][c];
+      if(piece){
+        const svg = pieceSVG(piece);
+        const holder = document.createElement("div");
+        holder.style.width = "100%"; holder.style.height = "100%";
+        holder.style.display = "flex"; holder.style.alignItems = "center"; holder.style.justifyContent = "center";
+        holder.appendChild(svg);
+        sq.appendChild(holder);
+      }
+      boardEl.appendChild(sq);
+    }
+  }
+}
+function onSquareClick(r,c){
+  const piece = game.board()[r][c];
+  // select own piece
+  if (!selected){
+    if(piece && piece.charAt(0) === "w"){ selected = {r,c}; renderBoard(); }
+    return;
+  }
+  // try move
+  const move = { from: toAlg(selected.r, selected.c), to: toAlg(r,c) };
+  const res = game.move(move);
+  if(res){
+    // move played
+    selected = null;
+    drawMove(res);
+    renderBoard();
+  } else {
+    // reselect if invalid
+    selected = (piece && piece.charAt(0) === "w") ? {r,c} : null;
+  }
+}
+function toAlg(r,c){ return "abcdefgh"[c] + (8 - r); }
+function algToRC(al) { const c = al.charCodeAt(0)-97; const r = 8 - parseInt(al[1]); return {r,c}; }
+
+function drawMove(move){
+  movesLog.unshift(move.from + move.to); // simple log
+  movesPanel.innerHTML = "";
+  movesLog.forEach((m,i)=> {
+    const div = document.createElement("div");
+    div.className = "moveItem"; div.textContent = (i+1) + ". " + m;
+    movesPanel.appendChild(div);
+  });
+}
+
+// Simple SVG piece renderer (white only for brevity; full set can be expanded)
+function pieceSVG(code){
+  const piece = code[1];
+  const color = code[0] === "w" ? "#fff" : "#000";
+  const fill = (color === "#fff") ? "#ddd" : "#555";
+  // Tiny stylized silhouettes (simplified)
+  const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("width","60");
+  svg.setAttribute("height","60");
+  svg.setAttribute("viewBox","0 0 64 64");
+  const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+  const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("fill", fill);
+  // simple shape per piece (very abstract)
+  switch(piece){
+    case "P": path.setAttribute("d","M32 10 L28 20 L36 20 Z"); break;
+    case "R": path.setAttribute("d","M20 50 L44 50 L40 38 L24 38 Z"); break;
+    case "N": path.setAttribute("d","M20 40 L28 28 L36 40 L28 44 Z"); break;
+    case "B": path.setAttribute("d","M22 50 L42 50 L34 28 L26 28 Z"); break;
+    case "Q": path.setAttribute("d","M20 50 L44 50 L32 20 Z"); break;
+    case "K": path.setAttribute("d","M32 12 L28 28 L36 28 Z"); break;
+    default: path.setAttribute("d","M28 20 L36 20 L40 28 L24 28 Z");
+  }
+  g.appendChild(path); svg.appendChild(g);
+  return svg;
+}
+
+// Rematch toggle (localStorage)
+let rematchPref = localStorage.getItem("rematchPref") || "Auto";
+document.getElementById("rematchBtn").textContent = "Rematch: " + rematchPref;
+
+// Init
+function init(){
+  renderBoard();
+  // frame wiring
+  document.getElementById("signInBtn").addEventListener("click", ()=> {
+    localStorage.setItem("pi_user", JSON.stringify({uid:"demo", username:"Demo"}));
+    piStatus.textContent = "Signed in as Demo";
+  });
+}
+window.addEventListener("load", init);
+
+</script>
+
+</body>
+</html>
