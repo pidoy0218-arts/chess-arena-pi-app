@@ -8,137 +8,183 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #1e1e1e;
-      color: #f5f5f5;
+      background: #f5f5dc;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
     }
-
-    header {
-      text-align: center;
-      padding: 10px;
+    h1 {
+      margin: 10px;
+      color: #333;
     }
-    header h1 {
-      margin: 5px 0;
-      font-size: 24px;
-      color: gold;
-    }
-    .logo {
-      font-size: 40px;
-    }
-
-    .modes {
-      display: flex;
-      gap: 10px;
-      margin: 10px 0;
-    }
-    .modes button, .controls button {
-      padding: 8px 14px;
-      border: none;
-      border-radius: 8px;
-      background: #333;
-      color: #fff;
-      cursor: pointer;
-    }
-    .modes button:hover, .controls button:hover {
-      background: #555;
-    }
-
-    .board-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 15px 0;
+    #controls {
+      margin: 10px;
     }
     #board {
-      width: 320px;
-      height: 320px;
-      background: burlywood;
       display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      grid-template-rows: repeat(8, 1fr);
+      grid-template-columns: repeat(8, 60px);
+      grid-template-rows: repeat(8, 60px);
+      border: 4px solid #5a3e1b;
     }
     .square {
-      width: 100%;
-      height: 100%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
     }
     .light { background: #f0d9b5; }
-    .dark { background: #b58863; }
-
-    .game-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 320px;
-      margin: 10px 0;
-    }
-    .captures {
-      font-size: 14px;
-    }
-    .timer {
-      font-size: 18px;
+    .dark  { background: #b58863; }
+    #timers {
+      margin: 10px;
+      font-size: 20px;
       font-weight: bold;
-      color: lightgreen;
     }
-
-    .controls {
-      display: flex;
-      gap: 12px;
-      margin: 10px 0 20px 0;
+    #gameButtons {
+      margin: 15px;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #5a3e1b;
+      color: #fff;
+    }
+    select {
+      padding: 6px;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
-  <!-- Top Frame -->
-  <header>
-    <div class="logo">♞</div>
-    <h1>CHESS ARENA for PI</h1>
-    <button>Pi Login</button>
-  </header>
+  <h1>♟ Chess Arena Pi</h1>
 
-  <!-- Mode Selection -->
-  <div class="modes">
-    <button>Classic</button>
-    <button>Quick</button>
-    <button>AI</button>
-    <button>Leaderboard</button>
+  <div id="controls">
+    <label for="mode">Game Mode: </label>
+    <select id="mode">
+      <option value="classic">Classic (10 min each)</option>
+      <option value="quick">Quick (30s per move)</option>
+    </select>
+    <button onclick="startGame()">Start Game</button>
   </div>
 
-  <!-- Board -->
-  <div class="board-container">
-    <div id="board"></div>
+  <div id="timers">White: 10:00 | Black: 10:00</div>
+
+  <div id="board"></div>
+
+  <div id="gameButtons">
+    <button onclick="resign()">Resign</button>
+    <button onclick="offerDraw()">Offer Draw</button>
+    <button onclick="rematch()">Rematch</button>
   </div>
 
-  <!-- Game Info -->
-  <div class="game-info">
-    <div class="captures">⚔️ Captured</div>
-    <div class="timer">10:00</div>
-    <div class="captures">Captured ⚔️</div>
-  </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<script>
+  const board = document.getElementById("board");
+  const timers = document.getElementById("timers");
+  const game = new Chess();
+  let mode = "classic";
+  let turn = "w";
+  let timerInterval;
+  let whiteTime, blackTime, perMoveTime;
 
-  <!-- Game Controls -->
-  <div class="controls">
-    <button>Draw</button>
-    <button>Resign</button>
-    <button>Rematch</button>
-  </div>
-
-  <script>
-    // Build static chessboard
-    const board = document.getElementById("board");
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
+  function createBoard() {
+    board.innerHTML = "";
+    for (let r = 7; r >= 0; r--) {
+      for (let f = 0; f < 8; f++) {
         const square = document.createElement("div");
-        square.classList.add("square");
-        if ((row + col) % 2 === 0) {
-          square.classList.add("light");
-        } else {
-          square.classList.add("dark");
-        }
+        square.className = "square " + ((r + f) % 2 === 0 ? "light" : "dark");
+        square.dataset.square = "abcdefgh"[f] + (r + 1);
         board.appendChild(square);
       }
     }
-  </script>
+    renderPieces();
+  }
+
+  function renderPieces() {
+    document.querySelectorAll(".square").forEach(sq => sq.textContent = "");
+    game.board().forEach((row, r) => {
+      row.forEach((piece, f) => {
+        if (piece) {
+          const square = document.querySelector(`[data-square="${"abcdefgh"[f]}${8 - r}"]`);
+          square.textContent = piece.type.toUpperCase();
+          square.style.color = piece.color === "w" ? "ivory" : "black";
+        }
+      });
+    });
+  }
+
+  function startGame() {
+    game.reset();
+    mode = document.getElementById("mode").value;
+    whiteTime = 600; // 10 min
+    blackTime = 600;
+    perMoveTime = 30;
+    turn = "w";
+    updateTimers();
+    clearInterval(timerInterval);
+    timerInterval = setInterval(runTimer, 1000);
+    createBoard();
+  }
+
+  function runTimer() {
+    if (mode === "classic") {
+      if (turn === "w") whiteTime--;
+      else blackTime--;
+      if (whiteTime <= 0) endGame("Black wins on time");
+      if (blackTime <= 0) endGame("White wins on time");
+    } else {
+      perMoveTime--;
+      if (perMoveTime <= 0) {
+        if (turn === "w") endGame("Black wins (White ran out of move time)");
+        else endGame("White wins (Black ran out of move time)");
+      }
+    }
+    updateTimers();
+  }
+
+  function updateTimers() {
+    let wt = formatTime(mode === "classic" ? whiteTime : perMoveTime);
+    let bt = formatTime(mode === "classic" ? blackTime : perMoveTime);
+    timers.textContent = `White: ${wt} | Black: ${bt}`;
+  }
+
+  function formatTime(seconds) {
+    let m = Math.floor(seconds / 60);
+    let s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  function switchTurn() {
+    turn = turn === "w" ? "b" : "w";
+    if (mode === "quick") perMoveTime = 30;
+    updateTimers();
+  }
+
+  function resign() {
+    endGame(turn === "w" ? "Black wins by resignation" : "White wins by resignation");
+  }
+
+  function offerDraw() {
+    endGame("Game drawn by agreement");
+  }
+
+  function rematch() {
+    startGame();
+  }
+
+  function endGame(message) {
+    clearInterval(timerInterval);
+    alert(message);
+  }
+
+  createBoard();
+</script>
 </body>
 </html>
