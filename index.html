@@ -1,190 +1,552 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f5f5dc;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CHESS ARENA for PI</title>
+<style>
+  :root{
+    --bg: #efe6d9;
+    --panel: #ffffff;
+    --board-light: #f0d9b5;
+    --board-dark: #8b4a2a;
+    --wood-border: #6b4221;
+    --accent: #d09a2b;
+    --text: #2b2b2b;
+    --ivory: #f7f3ea;   /* white piece */
+    --ebony: #2b1e11;   /* black piece */
+    --shadow: rgba(0,0,0,.12);
+    --danger: #d64242;
+    --muted: #7a6b5c;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto;background:var(--bg);color:var(--text)}
+
+  /* Intro overlay */
+  #intro{
+    position:fixed; inset:0; display:grid; place-items:center; background: radial-gradient(1200px 600px at 50% 20%, #f7efe3, #e4d4bf);
+    z-index:1000;
+    animation: introFade 1s ease 2.2s forwards;
+  }
+  @keyframes introFade { to { opacity:0; visibility:hidden; } }
+  .intro-wrap{
+    display:grid; place-items:center; gap:16px;
+    transform: translateY(0);
+    animation: floatUp 1.2s ease-out;
+  }
+  @keyframes floatUp { from { transform: translateY(18px); opacity:.0 } to { transform: translateY(0); opacity:1 } }
+  .logo3d{
+    width:120px;height:120px;border-radius:24px;background:#2b1e11;display:grid;place-items:center;box-shadow:0 14px 30px var(--shadow), inset 0 0 0 2px #432d1a;
+    animation: tilt 2.2s ease-in-out infinite;
+  }
+  @keyframes tilt { 0%,100%{ transform: rotateX(0) rotateY(0) } 50%{ transform: rotateX(8deg) rotateY(-8deg) } }
+  .logo3d svg{width:86px;height:86px}
+  .title{
+    font-weight:900; font-size:clamp(22px, 4vw, 36px); letter-spacing:.6px; text-align:center;
+  }
+  .subtitle{font-size:.95rem;color:var(--muted);text-align:center}
+
+  /* Global header (top center for mode frame) */
+  header{
+    display:flex; align-items:center; justify-content:center;
+    padding:10px 14px; position:sticky; top:0; z-index:10;
+    background:linear-gradient(180deg,#3b2a1a 0%, #2f2216 100%); color:#fff;
+    border-bottom:1px solid #5a3b1a; box-shadow:0 2px 8px rgba(0,0,0,.25);
+  }
+  .brand{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .brand .smalllogo{
+    width:52px; height:52px; border-radius:12px; background:#1f160f; display:grid; place-items:center;
+    box-shadow: inset 0 0 0 2px #4a331f;
+  }
+  .brand .smalllogo svg{width:40px;height:40px}
+  .brand .name{ font-weight:900; letter-spacing:.5px; }
+
+  /* Frame containers */
+  .container{ width:100%; max-width:1100px; margin:14px auto; padding:0 12px; }
+
+  /* Frame 1 (Login) */
+  .card{ background:#fff; border:1px solid #e9e0d9; border-radius:14px; padding:16px; box-shadow:0 8px 20px var(--shadow); }
+  .center{ display:grid; place-items:center; gap:10px; }
+  .btn{
+    background: var(--accent); border:0; padding:10px 16px; border-radius:999px; font-weight:800; cursor:pointer; color:#23170f;
+    box-shadow: 0 6px 14px rgba(208,154,43,.25);
+  }
+  .btn.secondary{ background:#6b4221; color:#fff; box-shadow:0 6px 14px rgba(107,66,33,.25) }
+  .btn.ghost{ background:#eee2d4; color:#2b2b2b }
+
+  /* Frame 2 (Mode select) */
+  .modebar{
+    display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:8px;
+  }
+  .chip{ padding:10px 14px; border-radius:999px; font-weight:800; cursor:pointer; border:1px solid #d8c6b3; background:#fff; }
+  .chip.active{ background:#f0e6d9; border-color:#bfa78b }
+  .fog{ opacity:.45; pointer-events:auto; }
+
+  /* Main Game Board Frame */
+  .layout{
+    display:grid; gap:12px;
+    grid-template-columns: 1fr minmax(320px, 620px) 1fr;
+    grid-template-areas:
+      "top top top"
+      ". board ."
+      "bottom bottom bottom"
+      "history history history";
+  }
+  .topbar{ grid-area: top; display:flex; align-items:center; justify-content:center; gap:16px; }
+  .timer{
+    min-width:120px; text-align:center; padding:8px 12px; border-radius:10px; font-weight:900; letter-spacing:.5px; background:#fff; border:1px solid #e2d6c9;
+  }
+  .timer.red{ background:#ffe9e9; color:var(--danger); border-color:#f5c2c2 }
+  .idtag{ background:#fff; border:1px solid #e2d6c9; padding:8px 12px; border-radius:10px; font-weight:800; }
+  .captures{ display:flex; gap:6px; align-items:center; padding:6px 10px; border-radius:10px; background:#fff; border:1px solid #e2d6c9; min-height:44px }
+  .cap{ width:20px; height:20px; border-radius:4px; display:grid; place-items:center; font-size:14px }
+
+  .boardwrap{
+    grid-area: board; background:#fff; border-radius:14px; padding:12px; border:1px solid #e9e0d9; box-shadow:0 8px 20px var(--shadow);
+  }
+  .board{
+    width:100%; aspect-ratio:1; display:grid;
+    grid-template-columns: repeat(8,1fr); grid-template-rows: repeat(8,1fr);
+    border-radius:10px; overflow:hidden; border:3px solid var(--wood-border);
+    background: #e6c08a;
+  }
+  .sq{ position:relative; display:flex; align-items:center; justify-content:center; user-select:none }
+  .light{ background: var(--board-light); }
+  .dark{ background: var(--board-dark); }
+  .sq::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(0,0,0,.05));
+  }
+  .piece{ width:84%; height:84%; display:flex; align-items:center; justify-content:center; }
+  .piece svg{ width:100%; height:100% }
+  .sq.sel{ outline:3px solid #ffdf6b; outline-offset:-3px }
+
+  .bottombar{ grid-area: bottom; display:flex; align-items:center; justify-content:center; gap:16px; }
+  .history{ grid-area: history; background:#fff; border:1px solid #e9e0d9; border-radius:12px; padding:10px; box-shadow:0 6px 14px var(--shadow); max-width:900px; margin:0 auto; }
+  .moves{ max-height:160px; overflow:auto; border:1px solid #eee; background:#f9f9f9; border-radius:8px; padding:6px }
+  .move{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:.9rem; padding:4px 6px; border-bottom:1px solid #eee }
+
+  @media (max-width: 900px){
+    .layout{ grid-template-columns: 1fr; grid-template-areas:
+      "top" "board" "bottom" "history";
     }
-    h1 {
-      margin: 10px;
-      color: #333;
-    }
-    #controls {
-      margin: 10px;
-    }
-    #board {
-      display: grid;
-      grid-template-columns: repeat(8, 60px);
-      grid-template-rows: repeat(8, 60px);
-      border: 4px solid #5a3e1b;
-    }
-    .square {
-      width: 60px;
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
-    }
-    .light { background: #f0d9b5; }
-    .dark  { background: #b58863; }
-    #timers {
-      margin: 10px;
-      font-size: 20px;
-      font-weight: bold;
-    }
-    #gameButtons {
-      margin: 15px;
-    }
-    button {
-      margin: 5px;
-      padding: 8px 12px;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #5a3e1b;
-      color: #fff;
-    }
-    select {
-      padding: 6px;
-      font-size: 16px;
-    }
-  </style>
+  }
+
+  /* Confetti canvas */
+  #confetti{ position:fixed; inset:0; pointer-events:none; z-index:999 }
+
+  /* Hide/show frames */
+  .hidden{ display:none !important; }
+</style>
 </head>
 <body>
-  <h1>♟ Chess Arena Pi</h1>
 
-  <div id="controls">
-    <label for="mode">Game Mode: </label>
-    <select id="mode">
-      <option value="classic">Classic (10 min each)</option>
-      <option value="quick">Quick (30s per move)</option>
-    </select>
-    <button onclick="startGame()">Start Game</button>
+<!-- Intro -->
+<div id="intro" role="dialog" aria-label="Intro animation">
+  <div class="intro-wrap">
+    <div class="logo3d" aria-hidden="true">
+      <!-- Safe, abstract knight crest (no π symbol) -->
+      <svg viewBox="0 0 64 64" fill="none">
+        <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f5d2a6"/><stop offset="1" stop-color="#c07a2e"/></linearGradient></defs>
+        <circle cx="32" cy="20" r="14" fill="url(#g)" stroke="#7b4a14" stroke-width="2"/>
+        <path d="M22 48h20v6H22z" fill="#7a3f0f"/>
+        <path d="M14 54h36l6-6H8l6 6z" fill="#5b2c11"/>
+      </svg>
+    </div>
+    <div class="title">CHESS ARENA <span style="opacity:.8">for</span> PI</div>
+    <div class="subtitle">Enter the arena</div>
   </div>
+  <audio id="introSound" preload="auto">
+    <source src="" type="audio/mpeg" />
+  </audio>
+</div>
 
-  <div id="timers">White: 10:00 | Black: 10:00</div>
-
-  <div id="board"></div>
-
-  <div id="gameButtons">
-    <button onclick="resign()">Resign</button>
-    <button onclick="offerDraw()">Offer Draw</button>
-    <button onclick="rematch()">Rematch</button>
+<header>
+  <div class="brand">
+    <div class="smalllogo" aria-label="Logo">
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <circle cx="32" cy="22" r="12" fill="#d4a34a"/>
+        <path d="M16 50h32l-4-12H20l-4 12z" fill="#7a3f0f"/>
+      </svg>
+    </div>
+    <div class="name">CHESS ARENA <span style="opacity:.85">for</span> PI</div>
   </div>
+</header>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<div class="container">
+  <!-- Frame 1: Login -->
+  <section id="frame-login" class="card center">
+    <div style="font-weight:900;font-size:1.2rem;">Welcome</div>
+    <div style="color:var(--muted);">Sign in to continue</div>
+    <button class="btn" id="signInBtn">Login</button>
+  </section>
+
+  <!-- Frame 2: Mode Select (top center row) -->
+  <section id="frame-modes" class="card">
+    <div class="center" style="gap:8px;">
+      <div style="font-weight:900;">Choose Mode</div>
+      <div class="modebar" role="tablist" aria-label="Modes">
+        <button class="chip" id="btnPuzzle" aria-selected="false">PUZZLE</button>
+        <button class="chip active" id="btnClassic" aria-selected="true">CLASSIC</button>
+        <button class="chip" id="btnQuick" aria-selected="false">QUICK</button>
+        <button class="chip fog" id="btnLeaderboard" aria-selected="false" title="Coming soon">LEADERBOARD</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Frame 3: Main Game Board -->
+  <section id="frame-game" class="layout">
+    <!-- TOP: opponent id + timer + captured -->
+    <div class="topbar">
+      <div class="idtag" id="oppId">Opponent: Guest-B</div>
+      <div class="timer" id="oppTimer">15:00</div>
+      <div class="captures" id="oppCaps" aria-label="Opponent captured"></div>
+    </div>
+
+    <!-- BOARD -->
+    <div class="boardwrap">
+      <div id="board" class="board" aria-label="Wooden chessboard"></div>
+    </div>
+
+    <!-- BOTTOM: player id + timer + captured -->
+    <div class="bottombar">
+      <div class="captures" id="meCaps" aria-label="Your captured"></div>
+      <div class="timer" id="meTimer">15:00</div>
+      <div class="idtag" id="meId">You: Guest-A</div>
+    </div>
+
+    <!-- History -->
+    <div class="history">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="font-weight:900;">Move History</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn ghost" id="btnResign">Resign</button>
+          <button class="btn ghost" id="btnDraw">Offer Draw</button>
+          <button class="btn secondary" id="btnRematch">Rematch</button>
+        </div>
+      </div>
+      <div id="moves" class="moves" aria-live="polite"></div>
+    </div>
+  </section>
+</div>
+
+<canvas id="confetti"></canvas>
+
 <script>
-  const board = document.getElementById("board");
-  const timers = document.getElementById("timers");
-  const game = new Chess();
-  let mode = "classic";
-  let turn = "w";
-  let timerInterval;
-  let whiteTime, blackTime, perMoveTime;
+/* ------------------------------
+   SIMPLE, MODULAR GAME CORE
+   (Layout + Timers + Click-to-move)
+   ------------------------------ */
+const $ = (s)=>document.querySelector(s);
+const $$ = (s)=>document.querySelectorAll(s);
 
-  function createBoard() {
-    board.innerHTML = "";
-    for (let r = 7; r >= 0; r--) {
-      for (let f = 0; f < 8; f++) {
-        const square = document.createElement("div");
-        square.className = "square " + ((r + f) % 2 === 0 ? "light" : "dark");
-        square.dataset.square = "abcdefgh"[f] + (r + 1);
-        board.appendChild(square);
+/* Frames */
+const fLogin = $("#frame-login");
+const fModes = $("#frame-modes");
+const fGame  = $("#frame-game");
+
+/* Buttons / Mode chips */
+const btnClassic = $("#btnClassic");
+const btnQuick   = $("#btnQuick");
+const btnPuzzle  = $("#btnPuzzle");
+const btnLeaderboard = $("#btnLeaderboard");
+const signInBtn  = $("#signInBtn");
+
+/* Timers & displays */
+const meTimerEl  = $("#meTimer");
+const oppTimerEl = $("#oppTimer");
+const meCapsEl   = $("#meCaps");
+const oppCapsEl  = $("#oppCaps");
+const movesEl    = $("#moves");
+
+/* Constants */
+const CLASSIC_TIME = 15 * 60; // seconds per player
+const QUICK_TIME_PER_MOVE = 30; // seconds per move (per side)
+
+/* Game State */
+let mode = "CLASSIC"; // CLASSIC | QUICK | PUZZLE (PUZZLE UI only for now)
+let boardState = [];  // 8x8 with piece codes like "wP","bK", etc.
+let selectedSq = null;
+let turn = "w";       // w or b
+let meSide = "w";
+let timers = { w: CLASSIC_TIME, b: CLASSIC_TIME };
+let perMove = QUICK_TIME_PER_MOVE; // for quick
+let activeCountdown = null;        // setInterval id
+let running = false;
+let gameOver = false;
+
+/* UTIL */
+function fmt(sec){
+  sec = Math.max(0, sec|0);
+  const m = String((sec/60|0)).padStart(2,"0");
+  const s = String(sec%60).padStart(2,"0");
+  return `${m}:${s}`;
+}
+function setChipActive(btn){
+  $$(".chip").forEach(c=>c.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+/* Layout show/hide helpers */
+function showLogin(){ fLogin.classList.remove("hidden"); fModes.classList.add("hidden"); fGame.classList.add("hidden"); }
+function showModes(){ fLogin.classList.add("hidden"); fModes.classList.remove("hidden"); fGame.classList.add("hidden"); }
+function showGame(){  fLogin.classList.add("hidden"); fModes.classList.add("hidden"); fGame.classList.remove("hidden"); }
+
+/* INTRO */
+window.addEventListener("load", ()=>{
+  // Optional: play a tiny blip (kept empty source to avoid autoplay issues)
+  setTimeout(()=> { $("#intro").style.display = "none"; }, 2400);
+  showLogin();
+});
+
+/* LOGIN -> MODES */
+signInBtn.addEventListener("click", ()=>{
+  showModes();
+});
+
+/* MODE switching */
+btnClassic.addEventListener("click", ()=>{
+  mode = "CLASSIC"; setChipActive(btnClassic);
+  resetClassic();
+});
+btnQuick.addEventListener("click", ()=>{
+  mode = "QUICK"; setChipActive(btnQuick);
+  resetQuick();
+});
+btnPuzzle.addEventListener("click", ()=>{
+  mode = "PUZZLE"; setChipActive(btnPuzzle);
+  // For now, just inform & keep UI; puzzle logic can be slotted later
+  alert("PUZZLE mode coming soon. Classic/Quick are playable timers now.");
+});
+
+/* LEADERBOARD fog */
+btnLeaderboard.addEventListener("click", ()=> {
+  alert("Leaderboard will unlock later.");
+});
+
+/* BOARD RENDER */
+const boardEl = $("#board");
+function initBoard(){
+  boardState = [
+    ["bR","bN","bB","bQ","bK","bB","bN","bR"],
+    ["bP","bP","bP","bP","bP","bP","bP","bP"],
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["wP","wP","wP","wP","wP","wP","wP","wP"],
+    ["wR","wN","wB","wQ","wK","wB","wN","wR"]
+  ];
+}
+function drawBoard(){
+  boardEl.innerHTML = "";
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const sq = document.createElement("div");
+      sq.className = "sq " + (((r+c)&1)===0 ? "light":"dark");
+      sq.dataset.r = r; sq.dataset.c = c;
+      if(selectedSq && selectedSq.r===r && selectedSq.c===c) sq.classList.add("sel");
+      const code = boardState[r][c];
+      if(code){
+        sq.appendChild(pieceSVG(code));
       }
+      sq.addEventListener("click", ()=> onSquare(r,c));
+      boardEl.appendChild(sq);
     }
-    renderPieces();
+  }
+}
+function pieceSVG(code){
+  const color = code[0]==="w" ? "white" : "black";
+  const kind  = code[1];
+  const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("viewBox","0 0 64 64");
+  svg.innerHTML = iconPath(kind, color);
+  return svg;
+}
+/* Minimal stylized silhouettes (Ebony/Ivory) */
+function iconPath(k, color){
+  const fill = (color==="white") ? "var(--ivory)" : "var(--ebony)";
+  const stroke = (color==="white") ? "#c9c1af" : "#000";
+  const base = `<g fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round">`;
+  const end  = `</g>`;
+  switch(k){
+    case "P": return `${base}<path d="M28 26a4 4 0 1 1 8 0v4h-8v-4z"/><path d="M24 34h16l-4 12H28z"/><rect x="22" y="48" width="20" height="6" rx="2"/></g>`;
+    case "R": return `${base}<rect x="22" y="18" width="20" height="12"/><path d="M24 30h16l-3 12H27z"/><rect x="20" y="48" width="24" height="6" rx="2"/></g>`;
+    case "N": return `${base}<path d="M20 40c6-10 10-14 18-14l6 6-6 6-6 4z"/><rect x="22" y="48" width="20" height="6" rx="2"/></g>`;
+    case "B": return `${base}<path d="M32 16c6 0 10 6 8 12s-8 8-8 12-4 8-8 8"/><rect x="22" y="48" width="20" height="6" rx="2"/></g>`;
+    case "Q": return `${base}<path d="M18 34l6-10 6 6 6-6 6 10z"/><path d="M24 36h16l-4 10H28z"/><rect x="22" y="48" width="20" height="6" rx="2"/></g>`;
+    case "K": return `${base}<path d="M30 14h4v8h-4z"/><path d="M24 34h16l-4 10H28z"/><rect x="22" y="48" width="20" height="6" rx="2"/></g>`;
+    case "R": default: return `${base}<rect x="20" y="20" width="24" height="24" rx="3"/><rect x="20" y="48" width="24" height="6" rx="2"/></g>`;
+  }
+}
+
+/* CLICK-TO-MOVE (no legality yet; triggers timers correctly) */
+function onSquare(r,c){
+  if(gameOver) return;
+  if(!selectedSq){
+    // select own side piece
+    const code = boardState[r][c];
+    if(!code) return;
+    const side = code[0];
+    if(side !== turn) return;
+    selectedSq = {r,c};
+    drawBoard();
+    return;
+  }
+  // if selecting same side again -> reselect
+  const codeHere = boardState[r][c];
+  if(codeHere && codeHere[0]===turn){
+    selectedSq = {r,c};
+    drawBoard();
+    return;
+  }
+  // move piece (no rule check)
+  const from = selectedSq;
+  const moving = boardState[from.r][from.c];
+  const captured = boardState[r][c] ? boardState[r][c] : "";
+  boardState[r][c] = moving;
+  boardState[from.r][from.c] = "";
+  selectedSq = null;
+
+  // log move in algebraic-lite
+  const moveTxt = `${moving} ${String.fromCharCode(97+from.c)}${8-from.r} → ${String.fromCharCode(97+c)}${8-r}` + (captured?` (x ${captured})`:"");
+  addMove(moveTxt);
+  if(captured){
+    // update captured UI
+    const pill = document.createElement("div");
+    pill.className = "cap";
+    pill.textContent = pieceLetter(captured[1]);
+    if(captured[0]==="w") oppCapsEl.appendChild(pill); else meCapsEl.appendChild(pill);
   }
 
-  function renderPieces() {
-    document.querySelectorAll(".square").forEach(sq => sq.textContent = "");
-    game.board().forEach((row, r) => {
-      row.forEach((piece, f) => {
-        if (piece) {
-          const square = document.querySelector(`[data-square="${"abcdefgh"[f]}${8 - r}"]`);
-          square.textContent = piece.type.toUpperCase();
-          square.style.color = piece.color === "w" ? "ivory" : "black";
-        }
-      });
+  // switch turn & timers
+  switchTurn();
+  drawBoard();
+}
+
+/* Moves UI */
+function addMove(t){
+  const div = document.createElement("div");
+  div.className = "move";
+  div.textContent = t;
+  movesEl.appendChild(div);
+  movesEl.scrollTop = movesEl.scrollHeight;
+}
+function pieceLetter(k){
+  return ({P:"♙",R:"♖",N:"♘",B:"♗",Q:"♕",K:"♔"}[k]||"●");
+}
+
+/* TIMERS */
+function resetClassic(){
+  clearInterval(activeCountdown);
+  timers = { w: CLASSIC_TIME, b: CLASSIC_TIME };
+  meTimerEl.textContent  = fmt(meSide==="w"?timers.w:timers.b);
+  oppTimerEl.textContent = fmt(meSide==="w"?timers.b:timers.w);
+  meTimerEl.classList.remove("red"); oppTimerEl.classList.remove("red");
+  turn = "w"; running = false; gameOver=false;
+  initBoard(); drawBoard(); showGame();
+  startTurnClock(); // white to move
+}
+function resetQuick(){
+  clearInterval(activeCountdown);
+  timers = { w: QUICK_TIME_PER_MOVE, b: QUICK_TIME_PER_MOVE };
+  meTimerEl.textContent  = fmt(meSide==="w"?timers.w:timers.b);
+  oppTimerEl.textContent = fmt(meSide==="w"?timers.b:timers.w);
+  meTimerEl.classList.remove("red"); oppTimerEl.classList.remove("red");
+  turn = "w"; running = false; gameOver=false;
+  initBoard(); drawBoard(); showGame();
+  startTurnClock(); // white to move
+}
+function startTurnClock(){
+  running = true;
+  clearInterval(activeCountdown);
+  activeCountdown = setInterval(tick, 1000);
+  renderTimers();
+}
+function tick(){
+  if(!running || gameOver) return;
+  const side = turn;
+  timers[side]--;
+  if(timers[side] <= 10) setTimerRed(side, true);
+  renderTimers();
+  if(timers[side] <= 0){
+    timers[side] = 0;
+    renderTimers();
+    endOnTimeout(side);
+  }
+}
+function setTimerRed(side, on){
+  const meIs = (meSide===side);
+  const el = meIs ? meTimerEl : oppTimerEl;
+  if(on) el.classList.add("red"); else el.classList.remove("red");
+}
+function renderTimers(){
+  const wT = timers.w, bT = timers.b;
+  const my = (meSide==="w") ? wT : bT;
+  const op = (meSide==="w") ? bT : wT;
+  meTimerEl.textContent = fmt(my);
+  oppTimerEl.textContent = fmt(op);
+}
+function switchTurn(){
+  // QUICK mode: reset next player's move time to 30s
+  turn = (turn==="w") ? "b" : "w";
+  if(mode==="QUICK"){
+    timers[turn] = QUICK_TIME_PER_MOVE;
+    setTimerRed("w", false); setTimerRed("b", false);
+  }
+  renderTimers();
+}
+
+/* ENDGAME */
+function endOnTimeout(sideWhoLost){
+  gameOver = true; running = false; clearInterval(activeCountdown);
+  addMove(`${sideWhoLost==="w"?"White":"Black"} flagged. ${sideWhoLost==="w"?"Black":"White"} wins.`);
+  celebrate(sideWhoLost==="w" ? "b" : "w");
+}
+function celebrate(winnerSide){
+  confettiBurst();
+  // sound stubs; you can plug trumpet sounds here
+  // high pitch for winner, low pitch for loser
+  // (left empty to avoid autoplay blocking)
+}
+
+/* ACTIONS */
+$("#btnResign").addEventListener("click", ()=>{
+  if(gameOver) return;
+  gameOver = true; running=false; clearInterval(activeCountdown);
+  const loser = meSide;
+  addMove(`${loser==="w"?"White":"Black"} resigns.`);
+});
+$("#btnDraw").addEventListener("click", ()=> alert("Draw offer sent (mock)."));
+$("#btnRematch").addEventListener("click", ()=>{
+  if(mode==="CLASSIC") resetClassic(); else resetQuick();
+});
+
+/* CONFETTI (minimal) */
+function confettiBurst(){
+  const c = $("#confetti"), ctx = c.getContext("2d");
+  c.width = innerWidth; c.height = innerHeight;
+  const n=60, drops=Array.from({length:n}).map(()=>({
+    x: Math.random()*c.width, y: -20, vy: Math.random()*3+2, r: Math.random()*4+2,
+    a: Math.random()*Math.PI*2
+  }));
+  let t=0;
+  (function step(){
+    ctx.clearRect(0,0,c.width,c.height);
+    drops.forEach(d=>{
+      d.y += d.vy; d.x += Math.sin(d.a+=.1);
+      ctx.fillStyle = `hsl(${(d.a*50)%360},90%,60%)`;
+      ctx.fillRect(d.x, d.y, d.r, d.r);
     });
-  }
+    if(++t<120) requestAnimationFrame(step);
+  })();
+}
 
-  function startGame() {
-    game.reset();
-    mode = document.getElementById("mode").value;
-    whiteTime = 600; // 10 min
-    blackTime = 600;
-    perMoveTime = 30;
-    turn = "w";
-    updateTimers();
-    clearInterval(timerInterval);
-    timerInterval = setInterval(runTimer, 1000);
-    createBoard();
-  }
-
-  function runTimer() {
-    if (mode === "classic") {
-      if (turn === "w") whiteTime--;
-      else blackTime--;
-      if (whiteTime <= 0) endGame("Black wins on time");
-      if (blackTime <= 0) endGame("White wins on time");
-    } else {
-      perMoveTime--;
-      if (perMoveTime <= 0) {
-        if (turn === "w") endGame("Black wins (White ran out of move time)");
-        else endGame("White wins (Black ran out of move time)");
-      }
-    }
-    updateTimers();
-  }
-
-  function updateTimers() {
-    let wt = formatTime(mode === "classic" ? whiteTime : perMoveTime);
-    let bt = formatTime(mode === "classic" ? blackTime : perMoveTime);
-    timers.textContent = `White: ${wt} | Black: ${bt}`;
-  }
-
-  function formatTime(seconds) {
-    let m = Math.floor(seconds / 60);
-    let s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  }
-
-  function switchTurn() {
-    turn = turn === "w" ? "b" : "w";
-    if (mode === "quick") perMoveTime = 30;
-    updateTimers();
-  }
-
-  function resign() {
-    endGame(turn === "w" ? "Black wins by resignation" : "White wins by resignation");
-  }
-
-  function offerDraw() {
-    endGame("Game drawn by agreement");
-  }
-
-  function rematch() {
-    startGame();
-  }
-
-  function endGame(message) {
-    clearInterval(timerInterval);
-    alert(message);
-  }
-
-  createBoard();
+/* BOOT: default classic */
+initBoard(); drawBoard();
 </script>
 </body>
 </html>
