@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi</title>
+  <title>THE CHESS ARENA PI</title>
   <style>
     body {
       margin: 0;
-      padding: 0;
       font-family: Arial, sans-serif;
-      background: #181818;
-      color: #fff;
+      background: #1a1a1a;
+      color: #f5f5f5;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -19,136 +18,154 @@
     }
     header {
       text-align: center;
-      margin: 15px 0;
+      margin-top: 10px;
     }
     header h1 {
-      font-size: 2em;
-      color: #ffd700;
-      text-shadow: 2px 2px 5px #000;
-      margin: 0;
+      font-size: 28px;
+      font-weight: bold;
+      color: #ffcc00;
+      margin: 5px 0;
     }
     #timer {
-      font-size: 1.5em;
-      font-weight: bold;
-      margin: 10px 0 20px;
-      color: #ff4c4c;
+      font-size: 22px;
+      margin: 10px 0;
+      background: #333;
+      padding: 6px 14px;
+      border-radius: 10px;
     }
     #board {
+      width: 95vmin;
+      max-width: 450px;
+      aspect-ratio: 1/1;
       display: grid;
-      grid-template-columns: repeat(8, 60px);
-      grid-template-rows: repeat(8, 60px);
-      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      border: 6px solid #5a3a1a;
+      margin: 12px 0;
     }
     .square {
-      width: 60px;
-      height: 60px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 42px; /* Enlarged pieces */
-      cursor: pointer;
+      font-size: 42px;
+      font-weight: bold;
     }
-    .light { background: #d2a679; }  /* lighter wood */
-    .dark { background: #8b5e3c; }   /* darker wood */
+    .light { background: #deb887; }       /* burlywood wood tone */
+    .dark  { background: #a0522d; }       /* darker shade for contrast */
     #status {
-      margin-top: 20px;
-      font-size: 1.2em;
-      color: #00ff9c;
-      text-align: center;
+      font-size: 18px;
+      margin: 10px 0;
+    }
+    footer {
+      margin-top: auto;
+      padding: 8px;
+      font-size: 14px;
+      color: #aaa;
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>♟ Chess Arena Pi ♞</h1>
+    <div id="logo">♘</div>
+    <h1>THE CHESS ARENA PI</h1>
   </header>
 
-  <div id="timer">05:00</div>
+  <div id="timer">5:00</div>
 
   <div id="board"></div>
 
-  <div id="status">Game in progress...</div>
+  <div id="status">Game in progress…</div>
 
+  <footer>
+    <p>Powered by Pi | © Chess Arena Pi</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
   <script>
     const boardEl = document.getElementById("board");
     const statusEl = document.getElementById("status");
     const timerEl = document.getElementById("timer");
     const game = new Chess();
 
-    const unicodePieces = {
+    // Unicode ebony/ivory pieces
+    const PIECES = {
       p: "♟", r: "♜", n: "♞", b: "♝", q: "♛", k: "♚",
       P: "♙", R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔"
     };
 
-    let selectedSquare = null;
-
-    function renderBoard() {
+    // build board
+    function drawBoard() {
       boardEl.innerHTML = "";
-      const board = game.board();
-      for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-          const squareColor = (row + col) % 2 === 0 ? "light" : "dark";
-          const squareEl = document.createElement("div");
-          squareEl.className = `square ${squareColor}`;
-          const piece = board[row][col];
-          if (piece) {
-            squareEl.textContent = unicodePieces[piece.type.toUpperCase() === piece.type ? piece.type : piece.type];
-            squareEl.style.color = piece.color === "w" ? "#f8f8f0" : "#2e2e2e"; // ivory vs ebony
-          }
-          squareEl.dataset.square = "abcdefgh"[col] + (8 - row);
-          squareEl.addEventListener("click", onSquareClick);
-          boardEl.appendChild(squareEl);
-        }
-      }
+      const squares = game.board();
+      squares.forEach((row, r) => {
+        row.forEach((sq, c) => {
+          const square = document.createElement("div");
+          square.className = "square " + ((r+c)%2 ? "dark" : "light");
+          if (sq) square.textContent = PIECES[sq.type * (sq.color==="w"?1:-1)] || PIECES[sq.type.toUpperCase()];
+          boardEl.appendChild(square);
+        });
+      });
     }
 
-    function onSquareClick(e) {
-      const square = e.currentTarget.dataset.square;
-      if (!selectedSquare) {
-        const moves = game.moves({ square, verbose: true });
-        if (moves.length === 0) return;
-        selectedSquare = square;
+    // click moves
+    let selected = null;
+    boardEl.addEventListener("click", e => {
+      if (!e.target.classList.contains("square")) return;
+      const index = [...boardEl.children].indexOf(e.target);
+      const row = Math.floor(index/8);
+      const col = index%8;
+      const file = "abcdefgh"[col];
+      const rank = 8-row;
+      const square = file+rank;
+
+      if (!selected) {
+        selected = square;
+        e.target.style.outline = "3px solid yellow";
       } else {
-        const move = game.move({ from: selectedSquare, to: square, promotion: "q" });
+        const move = game.move({ from: selected, to: square, promotion: "q" });
+        [...boardEl.children].forEach(sq => sq.style.outline="");
+        selected = null;
         if (move) {
-          // 🔊 Placeholder for move sound
-          renderBoard();
+          // play sound hooks here
+          if (move.flags.includes("c")) {
+            // capture sound
+          } else {
+            // move sound
+          }
           updateStatus();
+          drawBoard();
         }
-        selectedSquare = null;
       }
-    }
+    });
 
     function updateStatus() {
-      if (game.in_checkmate()) {
-        statusEl.textContent = "Checkmate! " + (game.turn() === "w" ? "Black" : "White") + " wins!";
-        // 🔊 Placeholder win/lose sound
-      } else if (game.in_stalemate() || game.in_draw()) {
+      if (game.isCheckmate()) {
+        statusEl.textContent = "Checkmate! " + (game.turn()==="w"?"Black":"White") + " wins.";
+        // win/lose sound
+      } else if (game.isDraw()) {
         statusEl.textContent = "Game drawn.";
-      } else if (game.in_check()) {
-        statusEl.textContent = (game.turn() === "w" ? "White" : "Black") + " is in check!";
+      } else if (game.isCheck()) {
+        statusEl.textContent = (game.turn()==="w"?"White":"Black") + " to move — in Check!";
+        // check sound
       } else {
-        statusEl.textContent = (game.turn() === "w" ? "White" : "Black") + " to move.";
+        statusEl.textContent = (game.turn()==="w"?"White":"Black") + " to move.";
       }
     }
 
-    // Timer 5 minutes countdown
-    let time = 300;
-    const timer = setInterval(() => {
-      if (time <= 0) {
-        clearInterval(timer);
-        statusEl.textContent = "Time over!";
-        return;
-      }
-      time--;
-      const minutes = String(Math.floor(time / 60)).padStart(2, "0");
-      const seconds = String(time % 60).padStart(2, "0");
-      timerEl.textContent = `${minutes}:${seconds}`;
-    }, 1000);
-
-    renderBoard();
+    drawBoard();
     updateStatus();
+
+    // simple countdown timer
+    let time = 300; // 5 min
+    setInterval(() => {
+      if (time>0) {
+        time--;
+        const m = Math.floor(time/60);
+        const s = String(time%60).padStart(2,"0");
+        timerEl.textContent = `${m}:${s}`;
+      }
+    }, 1000);
   </script>
 </body>
 </html>
