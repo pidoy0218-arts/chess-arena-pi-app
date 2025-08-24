@@ -3,117 +3,157 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi</title>
+  <title>Chess Arena Pi - Frames</title>
   <style>
     body {
+      margin: 0;
       font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      text-align: center;
-      padding: 20px;
-    }
-    .menu button {
-      margin: 5px;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      background: #444;
+      background: #1a1a1a;
       color: #fff;
-    }
-    .menu button:hover {
-      background: #666;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
     .frame {
       display: none;
-      margin-top: 30px;
-      font-size: 20px;
+      text-align: center;
     }
+    .active {
+      display: block;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #444;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #666;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 40px);
+      grid-template-rows: repeat(8, 40px);
+      margin: 20px auto;
+      width: 320px;
+      border: 2px solid #fff;
+    }
+    .square {
+      width: 40px;
+      height: 40px;
+    }
+    .light { background: #eee; }
+    .dark { background: #555; }
     .timer {
-      font-size: 40px;
-      margin-top: 20px;
+      font-size: 1.5em;
+      margin-top: 10px;
     }
-    .red {
+    .warning {
       color: red;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 
-  <h1>Chess Arena Pi</h1>
-
-  <div class="menu">
+  <!-- Main Menu -->
+  <div id="menu" class="frame active">
+    <h1>Main Menu</h1>
     <button onclick="showFrame('quick')">Quick Game</button>
-    <button onclick="showFrame('puzzle')">Puzzle</button>
-    <button onclick="showFrame('invite')">Invite</button>
+    <button onclick="showFrame('puzzle')">Puzzle Mode</button>
     <button onclick="showFrame('classic')">Classic</button>
+    <button onclick="showFrame('invite')">Invite</button>
   </div>
 
-  <!-- Quick Frame -->
+  <!-- Quick Game -->
   <div id="quick" class="frame">
-    <p>Quick Game — 30s Timer</p>
-    <div id="quickTimer" class="timer">30</div>
+    <h2>Quick Game</h2>
+    <div class="board" id="board-quick"></div>
+    <div class="timer" id="timer-quick">30</div>
+    <button onclick="backToMenu()">Back</button>
   </div>
 
-  <!-- Puzzle Frame -->
+  <!-- Puzzle Mode -->
   <div id="puzzle" class="frame">
-    <p>Puzzle — 60s Timer</p>
-    <div id="puzzleTimer" class="timer">60</div>
+    <h2>Puzzle Mode</h2>
+    <div class="board" id="board-puzzle"></div>
+    <div class="timer" id="timer-puzzle">60</div>
+    <button onclick="backToMenu()">Back</button>
   </div>
 
-  <!-- Invite Frame -->
-  <div id="invite" class="frame">
-    <p>Invite Mode — Coming Soon</p>
-  </div>
-
-  <!-- Classic Frame -->
+  <!-- Classic -->
   <div id="classic" class="frame">
-    <p>Classic Mode — Coming Soon</p>
+    <h2>Classic Game</h2>
+    <div class="board" id="board-classic"></div>
+    <p>No Timer</p>
+    <button onclick="backToMenu()">Back</button>
   </div>
 
-  <script>
-    let timers = {}; // store timer intervals
+  <!-- Invite -->
+  <div id="invite" class="frame">
+    <h2>Invite Mode</h2>
+    <div class="board" id="board-invite"></div>
+    <p>No Timer</p>
+    <button onclick="backToMenu()">Back</button>
+  </div>
 
-    function showFrame(frameId) {
-      // hide all frames
-      document.querySelectorAll('.frame').forEach(f => f.style.display = 'none');
-      // clear existing timers
-      Object.values(timers).forEach(interval => clearInterval(interval));
-      timers = {};
+<script>
+  let timerInterval;
 
-      // show selected frame
-      document.getElementById(frameId).style.display = 'block';
-
-      // start timer logic for quick and puzzle
-      if (frameId === 'quick') {
-        startTimer('quickTimer', 30, 10, "https://github.com/");
-      } else if (frameId === 'puzzle') {
-        startTimer('puzzleTimer', 60, 15, "https://github.com/");
+  function buildBoard(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const square = document.createElement('div');
+        square.classList.add('square', (row + col) % 2 === 0 ? 'light' : 'dark');
+        container.appendChild(square);
       }
     }
+  }
 
-    function startTimer(elementId, seconds, warningAt, redirectUrl) {
-      let timeLeft = seconds;
-      const timerEl = document.getElementById(elementId);
+  // Build all 4 boards
+  ['board-quick','board-puzzle','board-classic','board-invite'].forEach(id => buildBoard(id));
+
+  function showFrame(frameId) {
+    clearInterval(timerInterval);
+    document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+    document.getElementById(frameId).classList.add('active');
+
+    if (frameId === 'quick') startTimer('timer-quick', 30, 10);
+    if (frameId === 'puzzle') startTimer('timer-puzzle', 60, 15);
+  }
+
+  function backToMenu() {
+    clearInterval(timerInterval);
+    document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+    document.getElementById('menu').classList.add('active');
+  }
+
+  function startTimer(timerId, duration, warningAt) {
+    let timeLeft = duration;
+    const timerEl = document.getElementById(timerId);
+    timerEl.classList.remove('warning');
+    timerEl.textContent = timeLeft;
+
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      if (timeLeft <= warningAt) {
+        timerEl.classList.add('warning');
+      }
       timerEl.textContent = timeLeft;
-      timerEl.classList.remove('red');
-
-      timers[elementId] = setInterval(() => {
-        timeLeft--;
-        timerEl.textContent = timeLeft;
-
-        if (timeLeft <= warningAt) {
-          timerEl.classList.add('red');
-        }
-
-        if (timeLeft <= 0) {
-          clearInterval(timers[elementId]);
-          window.location.href = redirectUrl;
-        }
-      }, 1000);
-    }
-  </script>
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        window.location.href = "https://github.com/pidoy0218-arts/chess-arena-pi-app/";
+      }
+    }, 1000);
+  }
+</script>
 
 </body>
 </html>
