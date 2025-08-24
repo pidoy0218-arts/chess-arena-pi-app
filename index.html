@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi - Frames</title>
+  <title>Chess Arena Pi — Multi Mode</title>
   <style>
     body {
       margin: 0;
@@ -11,149 +11,169 @@
       background: #1a1a1a;
       color: #fff;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      height: 100vh;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 20px;
     }
+
+    h1 { margin-bottom: 10px; }
+
+    .toggle-buttons {
+      margin-bottom: 15px;
+    }
+
+    .toggle-buttons button {
+      margin: 5px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #444;
+      color: #fff;
+    }
+
+    .toggle-buttons button.active {
+      background: #ff9800;
+    }
+
     .frame {
       display: none;
       text-align: center;
     }
-    .active {
+
+    .frame.active {
       display: block;
     }
-    button {
-      margin: 10px;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      background: #444;
-      color: #fff;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #666;
-    }
+
     .board {
       display: grid;
-      grid-template-columns: repeat(8, 40px);
-      grid-template-rows: repeat(8, 40px);
-      margin: 20px auto;
-      width: 320px;
-      border: 2px solid #fff;
+      grid-template-columns: repeat(8, 50px);
+      grid-template-rows: repeat(8, 50px);
+      margin: 15px auto;
+      border: 3px solid #333;
     }
-    .square {
-      width: 40px;
-      height: 40px;
+
+    /* Classic Wooden Board */
+    .classic-board div {
+      width: 50px;
+      height: 50px;
     }
-    .light { background: #eee; }
-    .dark { background: #555; }
+    .classic-board div:nth-child(odd) { background: #f0d9b5; }
+    .classic-board div:nth-child(even) { background: #b58863; }
+
+    /* Quick Mode Board */
+    .quick-board div:nth-child(odd) { background: #e1e1e1; }
+    .quick-board div:nth-child(even) { background: #4b7f52; }
+
+    /* Puzzle Mode Board */
+    .puzzle-board div:nth-child(odd) { background: #fffacd; }
+    .puzzle-board div:nth-child(even) { background: #6b4226; }
+
+    /* Invite Mode Board (same as classic for now) */
+    .invite-board div:nth-child(odd) { background: #f0d9b5; }
+    .invite-board div:nth-child(even) { background: #b58863; }
+
     .timer {
       font-size: 1.5em;
-      margin-top: 10px;
+      margin: 10px 0;
     }
-    .warning {
-      color: red;
-      font-weight: bold;
+    .red { color: red; }
+
+    .pieces {
+      margin-top: 8px;
+      font-size: 1.2em;
     }
   </style>
 </head>
 <body>
-
-  <!-- Main Menu -->
-  <div id="menu" class="frame active">
-    <h1>Main Menu</h1>
-    <button onclick="showFrame('quick')">Quick Game</button>
-    <button onclick="showFrame('puzzle')">Puzzle Mode</button>
+  <h1>Chess Arena Pi</h1>
+  <div class="toggle-buttons">
     <button onclick="showFrame('classic')">Classic</button>
+    <button onclick="showFrame('quick')">Quick</button>
+    <button onclick="showFrame('puzzle')">Puzzle</button>
     <button onclick="showFrame('invite')">Invite</button>
-  </div>
-
-  <!-- Quick Game -->
-  <div id="quick" class="frame">
-    <h2>Quick Game</h2>
-    <div class="board" id="board-quick"></div>
-    <div class="timer" id="timer-quick">30</div>
-    <button onclick="backToMenu()">Back</button>
-  </div>
-
-  <!-- Puzzle Mode -->
-  <div id="puzzle" class="frame">
-    <h2>Puzzle Mode</h2>
-    <div class="board" id="board-puzzle"></div>
-    <div class="timer" id="timer-puzzle">60</div>
-    <button onclick="backToMenu()">Back</button>
   </div>
 
   <!-- Classic -->
   <div id="classic" class="frame">
-    <h2>Classic Game</h2>
-    <div class="board" id="board-classic"></div>
-    <p>No Timer</p>
-    <button onclick="backToMenu()">Back</button>
+    <h2>Classic Mode</h2>
+    <div class="board classic-board">
+      <script>for(let i=0;i<64;i++)document.write("<div></div>");</script>
+    </div>
+    <div class="timer" id="classicTimer">Ready</div>
+    <div class="pieces">♜♞♝♛♚♝♞♜<br>♟♟♟♟♟♟♟♟</div>
+  </div>
+
+  <!-- Quick -->
+  <div id="quick" class="frame">
+    <h2>Quick Mode</h2>
+    <div class="board quick-board">
+      <script>for(let i=0;i<64;i++)document.write("<div></div>");</script>
+    </div>
+    <div class="timer" id="quickTimer">Ready</div>
+    <div class="pieces">♜♞♝♛♚♝♞♜<br>♟♟♟♟♟♟♟♟</div>
+  </div>
+
+  <!-- Puzzle -->
+  <div id="puzzle" class="frame">
+    <h2>Puzzle Mode</h2>
+    <div class="board puzzle-board">
+      <script>for(let i=0;i<64;i++)document.write("<div></div>");</script>
+    </div>
+    <div class="timer" id="puzzleTimer">Ready</div>
+    <div class="pieces">♔ Puzzle Task Pieces ♕</div>
   </div>
 
   <!-- Invite -->
   <div id="invite" class="frame">
     <h2>Invite Mode</h2>
-    <div class="board" id="board-invite"></div>
-    <p>No Timer</p>
-    <button onclick="backToMenu()">Back</button>
+    <div class="board invite-board">
+      <script>for(let i=0;i<64;i++)document.write("<div></div>");</script>
+    </div>
+    <div class="timer" id="inviteTimer">Ready</div>
+    <div class="pieces">♚ Invite Player Setup ♔</div>
   </div>
 
-<script>
-  let timerInterval;
+  <script>
+    let activeTimer = null;
+    function showFrame(id) {
+      document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+      document.querySelectorAll('.toggle-buttons button').forEach(b => b.classList.remove('active'));
 
-  function buildBoard(containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    container.innerHTML = '';
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        const square = document.createElement('div');
-        square.classList.add('square', (row + col) % 2 === 0 ? 'light' : 'dark');
-        container.appendChild(square);
+      document.getElementById(id).classList.add('active');
+      document.querySelector(`.toggle-buttons button[onclick="showFrame('${id}')"]`).classList.add('active');
+
+      if(activeTimer) clearInterval(activeTimer);
+      let seconds;
+      let display = document.getElementById(id + 'Timer');
+
+      if(id === 'classic') { seconds = 300; } // 5m
+      else if(id === 'quick') { seconds = 30; }
+      else if(id === 'puzzle') { seconds = 60; }
+      else if(id === 'invite') { seconds = 120; }
+
+      function tick() {
+        let m = Math.floor(seconds / 60);
+        let s = seconds % 60;
+        display.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+        if((id==='quick' && seconds <= 10) || (id==='puzzle' && seconds <= 15)) {
+          display.classList.add('red');
+        } else {
+          display.classList.remove('red');
+        }
+        if(seconds <= 0) {
+          clearInterval(activeTimer);
+          window.location.href="https://github.com/pidoy0218-arts/chess-world-pi";
+        }
+        seconds--;
       }
+      tick();
+      activeTimer = setInterval(tick, 1000);
     }
-  }
 
-  // Build all 4 boards
-  ['board-quick','board-puzzle','board-classic','board-invite'].forEach(id => buildBoard(id));
-
-  function showFrame(frameId) {
-    clearInterval(timerInterval);
-    document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
-    document.getElementById(frameId).classList.add('active');
-
-    if (frameId === 'quick') startTimer('timer-quick', 30, 10);
-    if (frameId === 'puzzle') startTimer('timer-puzzle', 60, 15);
-  }
-
-  function backToMenu() {
-    clearInterval(timerInterval);
-    document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
-    document.getElementById('menu').classList.add('active');
-  }
-
-  function startTimer(timerId, duration, warningAt) {
-    let timeLeft = duration;
-    const timerEl = document.getElementById(timerId);
-    timerEl.classList.remove('warning');
-    timerEl.textContent = timeLeft;
-
-    timerInterval = setInterval(() => {
-      timeLeft--;
-      if (timeLeft <= warningAt) {
-        timerEl.classList.add('warning');
-      }
-      timerEl.textContent = timeLeft;
-      if (timeLeft <= 0) {
-        clearInterval(timerInterval);
-        window.location.href = "https://github.com/pidoy0218-arts/chess-arena-pi-app/";
-      }
-    }, 1000);
-  }
-</script>
-
+    showFrame('classic'); // default
+  </script>
 </body>
 </html>
