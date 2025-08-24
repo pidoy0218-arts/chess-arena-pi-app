@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CHESS ARENA for PI</title>
+<style>
+  :root{
+    --bg: #efe6d9;                /* app background */
+    --panel: #ffffff;
+    --accent: #d4a34a;            /* brand gold */
+    --text: #1d1a17;
+
+    /* board (one shade darker for contrast) */
+    --light: #e8c79a;
+    --dark:  #7a4a2a;
+
+    /* piece colors */
+    --ivory: #f4f1e7;
+    --ebony: #2e2b29;
+
+    --ring: rgba(255,215,0,.8);
+    --warn: #c21d1d;
+    --ok:   #1f8f3a;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;background:var(--bg);color:var(--text)}
+  button{cursor:pointer}
+
+  /* Layout: vertical screens centered */
+  .screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:20px}
+  .hidden{display:none}
+
+  /* Brand header (top center) */
+  .brand-top{position:fixed;top:12px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:5;text-align:center}
+  .brand-logo{width:72px;height:72px;border-radius:18px;background:#2b1e11;display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+  .brand-title{font-weight:900;letter-spacing:.6px}
+  .brand-sub{font-weight:700;color:#5d4b3b;font-size:.9rem}
+
+  /* cards */
+  .card{background:var(--panel);border:1px solid #e8dfd6;border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.08);padding:18px}
+
+  /* big CTA buttons */
+  .btn{border:0;border-radius:999px;padding:12px 18px;font-weight:800;background:var(--accent);color:#1b130a}
+  .btn.ghost{background:#2f261f;color:#fff}
+  .btn.flat{background:#eee;color:#222}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
+
+  /* Mode tiles */
+  .modes{display:grid;grid-template-columns:1fr;gap:10px;width:min(520px,90vw)}
+  .mode-btn{padding:14px 16px;border-radius:12px;border:2px solid #e2d6c9;background:#fff;font-weight:900}
+  .mode-btn.active{border-color:var(--accent);box-shadow:0 6px 14px rgba(0,0,0,.08)}
+  .fog{opacity:.45;pointer-events:none;filter:grayscale(.2)}
+  .hint{font-size:.9rem;color:#6b5a4b;text-align:center}
+
+  /* Game layout */
+  .game-wrap{display:flex;flex-direction:column;gap:12px;align-items:center}
+  .topbar,.bottombar{display:flex;align-items:center;justify-content:space-between;gap:12px;width:min(980px,94vw)}
+  .idpill{padding:8px 12px;border-radius:999px;background:#2b1e11;color:#fff;font-weight:800}
+  .timer{min-width:110px;text-align:center;padding:8px 12px;border-radius:10px;border:2px solid #e5d8c8;font-weight:900;font-variant-numeric:tabular-nums}
+  .timer.ok{color:var(--ok)}
+  .timer.warn{color:var(--warn)}
+  .capt-strip{display:flex;gap:4px;min-height:30px;align-items:center;flex-wrap:wrap}
+
+  .board{width:min(90vw,680px);aspect-ratio:1;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:14px;overflow:hidden;border:3px solid #5f3b1f;box-shadow:0 14px 32px rgba(0,0,0,.2);background:linear-gradient(#d4b28b,#c79a6a)}
+  .sq{position:relative}
+  .sq.light{background:var(--light)}
+  .sq.dark{ background:var(--dark)}
+  .sq.mark::after{content:"";position:absolute;inset:6px;border:3px solid var(--ring);border-radius:8px;pointer-events:none}
+
+  .piece{width:92%;height:92%;display:flex;align-items:center;justify-content:center;margin:auto;user-select:none;touch-action:none}
+  .piece svg{width:100%;height:100%}
+
+  /* move history */
+  .history{width:min(980px,94vw);background:#fff;border:1px solid #eadfce;border-radius:12px;padding:12px;box-shadow:0 8px 18px rgba(0,0,0,.06)}
+  .history h3{margin:0 0 8px}
+  .moves{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:160px;overflow:auto}
+  .mv{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;background:#f7efe3;border:1px dashed #e1cfba;border-radius:8px;padding:6px}
+
+  /* Intro tiny animation */
+  @keyframes float {
+    0%{transform:translateY(0)}
+    50%{transform:translateY(-6px)}
+    100%{transform:translateY(0)}
+  }
+  .brand-logo svg{animation: float 2.4s ease-in-out infinite}
+
+  /* Confetti canvas */
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:9}
+</style>
+</head>
+<body>
+
+<!-- Top center brand -->
+<div class="brand-top">
+  <div class="brand-logo">
+    <!-- simple knight badge -->
+    <svg viewBox="0 0 64 64">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#f8d49a"/><stop offset="1" stop-color="#c38434"/>
+      </linearGradient></defs>
+      <circle cx="32" cy="32" r="28" fill="url(#g)" stroke="#7b4a14" stroke-width="2"/>
+      <path d="M22 42l6-14 8 6-4 8z" fill="#fff" opacity=".85"/>
+    </svg>
+  </div>
+  <div class="brand-title">CHESS ARENA for PI</div>
+  <div class="brand-sub">practice • classic • quick</div>
+</div>
+
+<!-- Intro Screen -->
+<section id="intro" class="screen">
+  <div class="card" style="text-align:center">
+    <h1 style="margin:6px 0 2px">Welcome</h1>
+    <div class="hint">Animated logo + subtle sound on start</div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="introStart">Enter</button>
+    </div>
+  </div>
+</section>
+
+<!-- Frame 1: Logo + Login -->
+<section id="login" class="screen hidden">
+  <div class="card" style="text-align:center;min-width:min(420px,92
