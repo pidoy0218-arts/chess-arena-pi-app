@@ -1,102 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chess Arena Pi</title>
-<style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #222;
-    color: #f5f5f5;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  .frame {
-    display: none;
-    text-align: center;
-  }
-  .frame.active {
-    display: block;
-  }
-  button {
-    background: #00b894;
-    border: none;
-    color: white;
-    padding: 12px 20px;
-    margin: 10px;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-  }
-  button:hover {
-    background: #019875;
-  }
-  #timer {
-    font-size: 22px;
-    font-weight: bold;
-    margin-top: 20px;
-    color: #ff7675;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Game - Chess Arena Pi</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #1a1a1a;
+      color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    h1 { margin-bottom: 20px; }
+    #timer {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #ffcc00;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover { background: #555; }
+  </style>
 </head>
 <body>
-
-<!-- Frame 1: Intro -->
-<div id="frame1" class="frame active">
-  <h1>Welcome to Chess Arena Pi</h1>
-  <p>Tap to continue</p>
-  <button onclick="goToFrame(2)">Continue</button>
-</div>
-
-<!-- Frame 2: Mode Selection -->
-<div id="frame2" class="frame">
-  <h2>Select Mode</h2>
-  <button onclick="goToFrame(3)">Puzzle Mode</button>
-  <button onclick="startQuickGame()">Quick Game (30s)</button>
-</div>
-
-<!-- Frame 3: Puzzle Mode -->
-<div id="frame3" class="frame">
-  <h2>Puzzle Mode</h2>
-  <p>[ Puzzle board placeholder here ]</p>
-  <button onclick="goToFrame(2)">⬅ Back</button>
-</div>
-
-<!-- Frame 4: Quick Game -->
-<div id="frame4" class="frame">
-  <h2>Quick Game</h2>
+  <h1>Quick Game</h1>
   <div id="timer">30</div>
-  <p>[ Main chess board placeholder here ]</p>
-  <button onclick="goToFrame(2)">⬅ Quit</button>
-</div>
+  <button onclick="startTimer()">Start Game</button>
 
-<script>
-  let countdown;
-  function goToFrame(n) {
-    document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
-    document.getElementById('frame'+n).classList.add('active');
-    if(n !== 4) clearInterval(countdown);
-  }
+  <script>
+    let timeLeft = 30;
+    let timerId;
 
-  function startQuickGame() {
-    goToFrame(4);
-    let time = 30;
-    document.getElementById('timer').textContent = time;
-    countdown = setInterval(() => {
-      time--;
-      document.getElementById('timer').textContent = time;
-      if(time <= 0){
-        clearInterval(countdown);
-        alert("⏰ Time’s up!");
-        goToFrame(2);
-      }
-    }, 1000);
-  }
-</script>
+    function startTimer() {
+      clearInterval(timerId); 
+      timeLeft = 30; 
+      document.getElementById("timer").textContent = timeLeft;
 
+      timerId = setInterval(() => {
+        timeLeft--;
+        document.getElementById("timer").textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          clearInterval(timerId);
+          alert("⏱ Time's up!");
+        }
+      }, 1000);
+    }
+  </script>
 </body>
 </html>
