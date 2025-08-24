@@ -3,75 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi</title>
+  <title>Chess Arena Pi - Timer Test</title>
   <style>
     body {
-      margin: 0;
+      background: #111;
+      color: #fff;
       font-family: Arial, sans-serif;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background: #111;
-      color: #fff;
       text-align: center;
     }
-    .screen { display: none; }
-    .active { display: block; }
-    button {
+    .btn {
+      background: #444;
+      padding: 12px 24px;
       margin: 10px;
-      padding: 12px 20px;
-      border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 16px;
-      background: #4caf50;
-      color: #fff;
+    }
+    .btn:hover {
+      background: #666;
     }
     #timer {
-      font-size: 2rem;
+      font-size: 2em;
       margin-top: 20px;
+      color: #ffcc00;
     }
   </style>
 </head>
 <body>
-
-  <!-- Main Menu -->
-  <div id="menu" class="screen active">
-    <h1>Chess Arena Pi</h1>
-    <button onclick="startMode('puzzle')">Puzzle Mode</button>
-    <button onclick="startMode('quick')">Quick Game</button>
-  </div>
-
-  <!-- Timer Screen -->
-  <div id="game" class="screen">
-    <h2 id="modeTitle"></h2>
-    <div id="timer">30</div>
-  </div>
+  <h1>Chess Arena Pi</h1>
+  <div class="btn" onclick="startTimer()">Quick Game (30s)</div>
+  <div class="btn" onclick="startTimer()">Puzzle (30s)</div>
+  <div id="timer">Ready...</div>
 
   <script>
     let countdown;
-
-    function startMode(mode) {
-      document.getElementById("menu").classList.remove("active");
-      document.getElementById("game").classList.add("active");
-
-      // Mode text
-      document.getElementById("modeTitle").innerText = 
-        mode === "puzzle" ? "Puzzle Mode" : "Quick Game";
-
-      // Reset timer
-      let timeLeft = 30;
-      document.getElementById("timer").innerText = timeLeft;
-
+    function startTimer() {
       clearInterval(countdown);
+      let timeLeft = 30;
+      document.getElementById("timer").innerText = `⏳ ${timeLeft}s`;
       countdown = setInterval(() => {
         timeLeft--;
-        document.getElementById("timer").innerText = timeLeft;
-
+        document.getElementById("timer").innerText = `⏳ ${timeLeft}s`;
         if (timeLeft <= 0) {
           clearInterval(countdown);
-          window.location.href = "https://github.com/pidoy0218-arts/chess-arena-pi-app";
+          document.getElementById("timer").innerText = "⏰ Time's up!";
+          setTimeout(() => {
+            window.location.href = "https://github.com/pidoy0218-arts/chess-arena-pi-app";
+          }, 1000);
         }
       }, 1000);
     }
