@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2.5em;
+      margin: 20px 0;
+      color: #ffd700;
+    }
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+      max-width: 500px;
+    }
+    #board {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border: 5px solid #654321;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+    }
+    .square {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5em;
+    }
+    .light { background: #deb887; }
+    .dark { background: #8b5a2b; }
+    #status {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #00ffcc;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #ffd700;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #ffcc00; }
+  </style>
+  <!-- chess.js rules engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+</head>
+<body>
+  <h1>♟️ Chess Arena Pi ♟️</h1>
+  <div id="game-container">
+    <div id="board"></div>
+    <div id="status">Game in progress...</div>
+    <button onclick="resetGame()">Restart Game</button>
+  </div>
+
+  <audio id="moveSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_35c51dbb71.mp3?filename=click-124467.mp3"></audio>
+  <audio id="winSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_d80ad84aaf.mp3?filename=success-1-6297.mp3"></audio>
+  <audio id="loseSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_45b7afcb4f.mp3?filename=negative_beeps-6008.mp3"></audio>
+
+  <script>
+    const boardElement = document.getElementById("board");
+    const statusElement = document.getElementById("status");
+    const moveSound = document.getElementById("moveSound");
+    const winSound = document.getElementById("winSound");
+    const loseSound = document.getElementById("loseSound");
+
+    const game = new Chess();
+
+    const pieceSymbols = {
+      p: "♟", r: "♜", n: "♞", b: "♝", q: "♛", k: "♚",
+      P: "♙", R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔"
+    };
+
+    function renderBoard() {
+      boardElement.innerHTML = "";
+      const board = game.board();
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const squareColor = (row + col) % 2 === 0 ? "light" : "dark";
+          const square = document.createElement("div");
+          square.classList.add("square", squareColor);
+          const piece = board[row][col];
+          if (piece) {
+            square.textContent = pieceSymbols[piece.type.toUpperCase() === piece.type ? piece.type : piece.type.toLowerCase()];
+            square.style.color = piece.color === "w" ? "#fff" : "#000";
+          }
+          square.onclick = () => onSquareClick(row, col);
+          boardElement.appendChild(square);
+        }
+      }
+      updateStatus();
+    }
+
+    let selected = null;
+    function onSquareClick(row, col) {
+      const square = "abcdefgh"[col] + (8 - row);
+      if (selected) {
+        const move = game.move({ from: selected, to: square, promotion: "q" });
+        if (move) {
+          moveSound.play();
+          renderBoard();
+        }
+        selected = null;
+      } else {
+        selected = square;
+      }
+    }
+
+    function updateStatus() {
+      if (game.isCheckmate()) {
+        statusElement.textContent = `Checkmate! ${game.turn() === "w" ? "Black" : "White"} wins.`;
+        winSound.play();
+      } else if (game.isStalemate() || game.isDraw()) {
+        statusElement.textContent = "Draw!";
+        loseSound.play();
+      } else {
+        statusElement.textContent = `Turn: ${game.turn() === "w" ? "White" : "Black"}`;
+      }
+    }
+
+    function resetGame() {
+      game.reset();
+      renderBoard();
+    }
+
+    renderBoard();
+  </script>
+</body>
+</html>
