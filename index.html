@@ -74,8 +74,8 @@
   clearInterval(timerInterval); // reset previous timer
 
   // set duration + warning threshold by mode
-  let duration = (mode === "quick") ? 60 : 30;
-  let warningThreshold = (mode === "quick") ? 15 : 10;
+  let duration = (mode === "quick") ? 30 : 30;
+  let warningThreshold = (mode === "quick") ? 10 : 15;
 
   let timerEl = document.getElementById("timer");
   let timeLeft = duration;
