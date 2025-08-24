@@ -71,29 +71,36 @@
 
     function startFrame(frameId) {
       // Hide all frames
-      document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
-      // Show selected frame
-      document.getElementById(frameId).classList.add('active');
+  clearInterval(timerInterval); // reset previous timer
 
-      // Start the timer
-      startTimer(frameId + "Timer", 30);
+  // set duration + warning threshold by mode
+  let duration = (mode === "quick") ? 30 : 60;
+  let warningThreshold = (mode === "quick") ? 10 : 15;
+
+  let timerEl = document.getElementById("timer");
+  let timeLeft = duration;
+
+  // initial render
+  timerEl.textContent = timeLeft;
+  timerEl.style.color = "white";
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timerEl.textContent = timeLeft;
+
+    // turn red when near end
+    if (timeLeft <= warningThreshold) {
+      timerEl.style.color = "red";
     }
 
-    function startTimer(timerId, seconds) {
-      clearInterval(countdown);
-      let timeLeft = seconds;
-      document.getElementById(timerId).innerText = timeLeft;
-
-      countdown = setInterval(() => {
-        timeLeft--;
-        document.getElementById(timerId).innerText = timeLeft;
-
-        if (timeLeft <= 0) {
-          clearInterval(countdown);
-          window.location.href = "https://github.com/pidoy0218-arts/chess-arena-pi-app";
-        }
-      }, 1000);
+    // when time runs out
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      alert("Time's up!");
+      window.location.href = "https://github.com/pidoy0218-arts/chess-arena-pi-app";
     }
-  </script>
+  }, 1000);
+}
+</script>
 </body>
 </html>
