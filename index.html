@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Chess Arena Pi — Timer Modes</title>
+  <style>
+    body { background:#111; color:white; font-family:Arial; text-align:center; }
+    #timer { font-size:48px; margin:20px; }
+    button {
+      padding:10px 20px;
+      margin:10px;
+      border:none;
+      border-radius:8px;
+      font-size:16px;
+      cursor:pointer;
+    }
+    .quick   { background:#28a745; color:white; }
+    .puzzle  { background:#007bff; color:white; }
+    .invite  { background:#ffc107; color:black; }
+    .classic { background:#6c757d; color:white; }
+  </style>
+</head>
+<body>
+  <h1>Choose Mode</h1>
+  <div id="timer">--</div>
+
+  <button class="quick" onclick="startTimer('quick')">Quick</button>
+  <button class="puzzle" onclick="startTimer('puzzle')">Puzzle</button>
+  <button class="invite" onclick="startTimer('invite')">Invite</button>
+  <button class="classic" onclick="startTimer('classic')">Classic</button>
+
+  <script>
+    let timerInterval;
+
+    function startTimer(mode) {
+      clearInterval(timerInterval);
+
+      // default values
+      let duration = 30;
+      let warningThreshold = 10;
+
+      // configure per mode
+      if (mode === "quick") {
+        duration = 30; warningThreshold = 10;
+      } else if (mode === "puzzle") {
+        duration = 60; warningThreshold = 15;
+      } else if (mode === "invite") {
+        duration = 90; warningThreshold = 20;
+      } else if (mode === "classic") {
+        duration = 300; warningThreshold = 60;
+      }
+
+      let timerEl = document.getElementById("timer");
+      let timeLeft = duration;
+      timerEl.textContent = timeLeft;
+      timerEl.style.color = "white";
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+
+        if (timeLeft <= warningThreshold) {
+          timerEl.style.color = "red";
+        }
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          alert("Time's up! (" + mode + " mode)");
+          window.location.href = "https://github.com/pidoy0218-arts/chess-arena-pi-app";
+        }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
