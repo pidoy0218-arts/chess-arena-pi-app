@@ -101,5 +101,6 @@ function startTimer(mode) {
   }, 1000);
 }
 </script>
+
 </body>
 </html>
