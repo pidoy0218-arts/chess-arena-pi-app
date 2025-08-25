@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena for Pi</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    /* Intro Screen */
+    #intro {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(160deg, #0a0a0a, #1a1a1a);
+      animation: fadeIn 1.5s ease;
+    }
+
+    .logo {
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle at center, gold 60%, transparent 61%);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+      box-shadow: 0 0 25px gold;
+      animation: popIn 1.2s ease;
+    }
+
+    .logo svg {
+      width: 70px;
+      height: 70px;
+      fill: white;
+    }
+
+    .title {
+      font-size: 1.8em;
+      font-weight: bold;
+      background: linear-gradient(90deg, gold, white);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 40px;
+      animation: slideUp 1s ease;
+    }
+
+    .login-btn {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 25px;
+      font-size: 1em;
+      font-weight: bold;
+      color: #000;
+      background: gold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px gold;
+    }
+
+    .login-btn:hover {
+      background: #ffd700;
+      box-shadow: 0 0 20px gold;
+      transform: scale(1.05);
+    }
+
+    /* Main Menu (hidden until login) */
+    #main {
+      display: none;
+      height: 100%;
+      background: #111;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .menu-btn {
+      display: block;
+      margin: 15px auto;
+      padding: 15px 25px;
+      border-radius: 12px;
+      border: none;
+      background: #222;
+      color: #fff;
+      font-size: 1em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .menu-btn:hover {
+      background: gold;
+      color: #000;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+    @keyframes popIn {
+      0% {transform: scale(0);}
+      100% {transform: scale(1);}
+    }
+    @keyframes slideUp {
+      0% {transform: translateY(30px); opacity:0;}
+      100% {transform: translateY(0); opacity:1;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Intro -->
+  <div id="intro">
+    <div class="logo">
+      <!-- White Knight SVG -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">
+        <path d="M 22,10 C 22,6 28,6 28,10 L 28,15 L 32,20 L 30,28 L 20,28 L 18,20 L 22,15 Z"/>
+      </svg>
+    </div>
+    <div class="title">CHESS ARENA for PI</div>
+    <button class="login-btn" onclick="login()">Login with Pi</button>
+  </div>
+
+  <!-- Main Menu -->
+  <div id="main">
+    <h2>Main Menu</h2>
+    <button class="menu-btn">Quick Game</button>
+    <button class="menu-btn">Classic</button>
+    <button class="menu-btn">Invite</button>
+  </div>
+
+  <script>
+    function login() {
+      // Placeholder Pi login (replace with Pi SDK later)
+      document.getElementById('intro').style.display = 'none';
+      document.getElementById('main').style.display = 'block';
+    }
+  </script>
+
+</body>
+</html>
