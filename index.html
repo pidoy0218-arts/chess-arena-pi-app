@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena for Pi</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .frame {
+      display: none;
+      text-align: center;
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+    }
+    .active {
+      display: block;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 20px;
+      color: #ffd700;
+    }
+    .login-btn {
+      padding: 12px 20px;
+      font-size: 1rem;
+      background: #ffd700;
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .toggle-btn {
+      display: block;
+      margin: 15px auto;
+      padding: 12px 20px;
+      font-size: 1.2rem;
+      width: 180px;
+      background: #444;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .toggle-btn:hover {
+      background: #666;
+    }
+    .dimmed {
+      background: #999 !important;
+      color: #222 !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Intro Frame -->
+  <div id="intro" class="frame active">
+    <h1>♞ CHESS ARENA for PI</h1>
+    <button class="login-btn" onclick="goToFrame('menu')">Login with Pi ID</button>
+  </div>
+
+  <!-- Menu Frame -->
+  <div id="menu" class="frame">
+    <h1>Main Menu</h1>
+    <button class="toggle-btn" onclick="delayedSwitch(this, 'quick')">Quick</button>
+    <button class="toggle-btn" onclick="delayedSwitch(this, 'classic')">Classic</button>
+    <button class="toggle-btn" onclick="delayedSwitch(this, 'invite')">Invite</button>
+  </div>
+
+  <!-- Quick Frame -->
+  <div id="quick" class="frame">
+    <h1>Quick Mode</h1>
+    <p>Quick play timer here.</p>
+    <button class="toggle-btn" onclick="goToFrame('menu')">Back</button>
+  </div>
+
+  <!-- Classic Frame -->
+  <div id="classic" class="frame">
+    <h1>Classic Mode</h1>
+    <p>Classic play timer here.</p>
+    <button class="toggle-btn" onclick="goToFrame('menu')">Back</button>
+  </div>
+
+  <!-- Invite Frame -->
+  <div id="invite" class="frame">
+    <h1>Invite Mode</h1>
+    <p>Invite your friend with timer.</p>
+    <button class="toggle-btn" onclick="goToFrame('menu')">Back</button>
+  </div>
+
+  <script>
+    function goToFrame(id) {
+      document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function delayedSwitch(button, targetFrame) {
+      // Dim the button instantly
+      button.classList.add('dimmed');
+      // Wait 2s before switching
+      setTimeout(() => {
+        button.classList.remove('dimmed');
+        goToFrame(targetFrame);
+      }, 2000);
+    }
+  </script>
+
+</body>
+</html>
