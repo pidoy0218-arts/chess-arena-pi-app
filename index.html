@@ -6,127 +6,171 @@
   <title>Chess Arena Pi</title>
   <style>
     body {
-      margin: 0;
       font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-
-    .frame {
-      display: none;
+      background: #1a1a1a;
+      color: #fff;
+      margin: 0;
+      padding: 0;
       text-align: center;
     }
-    .active {
-      display: block;
+    header {
+      padding: 1rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      background: #222;
     }
-
-    button {
-      margin: 8px;
-      padding: 10px 18px;
+    .menu {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .menu button {
+      padding: 0.5rem 1rem;
       border: none;
       border-radius: 8px;
       background: #444;
-      color: white;
+      color: #fff;
       cursor: pointer;
     }
-    button:hover {
+    .menu button:hover {
       background: #666;
     }
-
+    #frameArea > div {
+      display: none;
+      margin-top: 1rem;
+    }
     .board {
-      margin: 20px auto;
       display: grid;
       grid-template-columns: repeat(8, 40px);
       grid-template-rows: repeat(8, 40px);
-      border: 3px solid #222;
+      margin: 1rem auto;
+      border: 2px solid #000;
     }
-    .tile {
+    .cell {
       width: 40px;
       height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      font-weight: bold;
     }
-    .light {
-      background: #f0d9b5;
+    /* Classic (wood) */
+    .classic .cell:nth-child(even) { background: #deb887; }
+    .classic .cell:nth-child(odd) { background: #f5deb3; }
+    /* Quick (striped colors) */
+    .quick .cell:nth-child(even) { background: #4caf50; }
+    .quick .cell:nth-child(odd) { background: #a5d6a7; }
+    /* Pieces */
+    .piece-dark { color: #222; }
+    .piece-light { color: #eee; }
+    .timer {
+      font-size: 1.2rem;
+      margin-top: 0.5rem;
     }
-    .dark {
-      background: #b58863;
-    }
-    .quick-light {
-      background: #e0ffe0;
-    }
-    .quick-dark {
-      background: #009933;
-    }
+    .warning { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
+  <header>♟ Chess Arena Pi</header>
 
-  <!-- Main Menu -->
-  <div id="menu" class="frame active">
-    <h1>Chess Arena Pi</h1>
-    <button onclick="showFrame('invite')">Invite</button>
-    <button onclick="showFrame('puzzle')">Puzzle</button>
-    <button onclick="showFrame('classic')">Classic</button>
+  <div class="menu">
     <button onclick="showFrame('quick')">Quick</button>
+    <button onclick="showFrame('classic')">Classic</button>
+    <button onclick="showFrame('invite')">Invite</button>
   </div>
 
-  <!-- Invite Menu -->
-  <div id="invite" class="frame">
-    <h2>Invite Mode</h2>
-    <p>Select which type of invite game:</p>
-    <button onclick="showFrame('classic')">Classic Invite</button>
-    <button onclick="showFrame('quick')">Quick Invite</button>
-    <br><br>
-    <button onclick="showFrame('menu')">⬅ Back</button>
-  </div>
+  <div id="frameArea">
+    <!-- Quick Frame -->
+    <div id="quick">
+      <h2>Quick Mode</h2>
+      <div class="board quick" id="boardQuick"></div>
+      <div class="timer" id="timerQuick"></div>
+    </div>
 
-  <!-- Classic Mode -->
-  <div id="classic" class="frame">
-    <h2>Classic Mode (Wooden Board)</h2>
-    <div class="board" id="classicBoard"></div>
-    <button onclick="showFrame('menu')">⬅ Back</button>
-  </div>
+    <!-- Classic Frame -->
+    <div id="classic">
+      <h2>Classic Mode</h2>
+      <div class="board classic" id="boardClassic"></div>
+      <div class="timer" id="timerClassic"></div>
+    </div>
 
-  <!-- Quick Mode -->
-  <div id="quick" class="frame">
-    <h2>Quick Mode (Green Board)</h2>
-    <div class="board" id="quickBoard"></div>
-    <button onclick="showFrame('menu')">⬅ Back</button>
-  </div>
+    <!-- Invite Frame (submenu) -->
+    <div id="invite">
+      <h2>Invite Mode</h2>
+      <button onclick="showFrame('inviteQuick')">Invite Quick</button>
+      <button onclick="showFrame('inviteClassic')">Invite Classic</button>
+    </div>
 
-  <!-- Puzzle -->
-  <div id="puzzle" class="frame">
-    <h2>Puzzle Mode</h2>
-    <div class="board" id="puzzleBoard"></div>
-    <button onclick="showFrame('menu')">⬅ Back</button>
+    <!-- Invite Quick Frame -->
+    <div id="inviteQuick">
+      <h2>Invite Quick</h2>
+      <div class="board quick" id="boardInviteQuick"></div>
+      <div class="timer" id="timerInviteQuick"></div>
+    </div>
+
+    <!-- Invite Classic Frame -->
+    <div id="inviteClassic">
+      <h2>Invite Classic</h2>
+      <div class="board classic" id="boardInviteClassic"></div>
+      <div class="timer" id="timerInviteClassic"></div>
+    </div>
   </div>
 
   <script>
+    let timers = {};
+
     function showFrame(id) {
-      document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
+      // Hide all
+      document.querySelectorAll('#frameArea > div').forEach(div => div.style.display = 'none');
+      // Show target
+      document.getElementById(id).style.display = 'block';
+      // Start timer if frame has one
+      if (id.includes("Quick")) startTimer(id, 30, 10);
+      else if (id.includes("Classic")) startTimer(id, 60, 15);
     }
 
-    // Generate boards
-    function makeBoard(containerId, lightClass, darkClass) {
-      let board = document.getElementById(containerId);
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          let tile = document.createElement("div");
-          tile.classList.add("tile");
-          if ((r + c) % 2 === 0) tile.classList.add(lightClass);
-          else tile.classList.add(darkClass);
-          board.appendChild(tile);
+    function startTimer(frameId, duration, warnAt) {
+      let timerId = "timer" + frameId.charAt(0).toUpperCase() + frameId.slice(1);
+      let display = document.getElementById(timerId);
+
+      // Clear old
+      if (timers[frameId]) clearInterval(timers[frameId]);
+
+      let time = duration;
+      display.textContent = `Time: ${time}s`;
+
+      timers[frameId] = setInterval(() => {
+        time--;
+        display.textContent = `Time: ${time}s`;
+        if (time <= warnAt) display.classList.add("warning");
+        else display.classList.remove("warning");
+        if (time <= 0) {
+          clearInterval(timers[frameId]);
+          display.textContent = "⏰ Time's up!";
         }
+      }, 1000);
+    }
+
+    function createBoard(boardId) {
+      let board = document.getElementById(boardId);
+      for (let i = 0; i < 64; i++) {
+        let cell = document.createElement("div");
+        cell.classList.add("cell");
+        if (i < 16) cell.innerHTML = "♟"; // pawns row
+        if (i >= 48) cell.innerHTML = "♙";
+        if (i < 16) cell.classList.add("piece-dark");
+        if (i >= 48) cell.classList.add("piece-light");
+        board.appendChild(cell);
       }
     }
 
-    makeBoard("classicBoard", "light", "dark");       // Wooden
-    makeBoard("quickBoard", "quick-light", "quick-dark"); // Green
-    makeBoard("puzzleBoard", "light", "dark");        // Default wood for now
+    // Setup boards
+    createBoard("boardQuick");
+    createBoard("boardClassic");
+    createBoard("boardInviteQuick");
+    createBoard("boardInviteClassic");
   </script>
 </body>
 </html>
