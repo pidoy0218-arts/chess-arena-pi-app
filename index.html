@@ -3,146 +3,151 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Chess Arena Pi</title>
+  <title>Chess Arena for Pi</title>
   <style>
     body {
-      margin: 0; font-family: Arial, sans-serif; background: #f5f5dc; color: #333;
-      display: flex; justify-content: center; align-items: center; height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      text-align: center;
     }
-    #app { width: 100%; max-width: 500px; text-align: center; }
-    .screen { display: none; }
-    .active { display: block; }
+    header {
+      padding: 20px;
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+    .container {
+      margin: 20px auto;
+      max-width: 400px;
+    }
     button {
-      display: block; width: 90%; margin: 10px auto; padding: 15px;
-      font-size: 18px; border: none; border-radius: 10px;
-      background: #4CAF50; color: white; cursor: pointer;
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 12px;
+      font-size: 1em;
+      background: #1e88e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
     }
-    button:hover { background: #45a049; }
-    #board { display: grid; grid-template-columns: repeat(8, 1fr);
-      width: 100%; max-width: 400px; margin: 20px auto; border: 2px solid #333; }
-    .square { width: 100%; padding-top: 100%; position: relative; }
-    .light { background: #eeeed2; }
-    .dark { background: #769656; }
-    .piece {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      font-size: 28px;
+    button:hover {
+      background: #1565c0;
     }
-    #timer { font-size: 22px; margin: 10px; font-weight: bold; }
-    #timer.red { color: red; }
+    .board {
+      margin: 20px auto;
+      width: 320px;
+      height: 320px;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      border: 2px solid #fff;
+    }
+    .square {
+      width: 40px;
+      height: 40px;
+    }
+    .light { background: #d2b48c; }
+    .dark { background: #654321; }
+    .coming-soon {
+      margin-top: 20px;
+      font-style: italic;
+      color: #bbb;
+    }
   </style>
 </head>
 <body>
-<div id="app">
+  <header>♟️ Chess Arena for Pi</header>
 
-  <!-- Invite screen -->
-  <div id="inviteScreen" class="screen active">
-    <h1>♟ The Chess Arena Pi</h1>
-    <button onclick="inviteFriend()">Invite a Friend</button>
+  <div class="container">
+    <button id="loginBtn">🔑 Login with Pi</button>
+    <button id="inviteBtn">🤝 Invite a Friend</button>
+
+    <div id="gameArea" style="display:none;">
+      <h2>Select Mode</h2>
+      <button onclick="startGame('Quick')">⚡ Quick Game</button>
+      <button onclick="startGame('Classic')">♟ Classic Game</button>
+      <div class="coming-soon">🤖 AI Mode - Coming Soon</div>
+
+      <div id="board" class="board"></div>
+    </div>
   </div>
 
-  <!-- SDK placeholder -->
-  <div id="sdkScreen" class="screen">
-    <h2>Pi SDK Friend Picker</h2>
-    <p>(Placeholder: Here SDK will open and let you choose a friend)</p>
-    <button onclick="goToMode()">Proceed</button>
-  </div>
+  <script>
+    // Bridge for Pi SDK (safe in Chrome & Pi Browser)
+    if (typeof window.Pi === "undefined") {
+      console.log("Pi SDK not found, running in bridge mode...");
 
-  <!-- Mode selection -->
-  <div id="modeScreen" class="screen">
-    <h2>Select Game Mode</h2>
-    <button onclick="startGame('classic')">Classic Game</button>
-    <button onclick="startGame('quick')">Quick Game</button>
-    <button disabled>Play vs AI (Coming Soon)</button>
-  </div>
+      window.Pi = {
+        init: () => console.log("Pi.init() simulated"),
+        authenticate: async (scopes, onIncomplete) => {
+          console.log("Simulated Pi.authenticate", scopes);
+          return {
+            user: { username: "guest_user" },
+            accessToken: "mock_access_token"
+          };
+        },
+        payments: {
+          send: async (paymentData, callbacks) => {
+            console.log("Simulated Pi.payments.send", paymentData);
+            setTimeout(() => callbacks.onReadyForServerApproval({ id: "123" }), 500);
+            setTimeout(() => callbacks.onReadyForServerCompletion({ id: "123" }), 1000);
+            setTimeout(() => callbacks.onCompleted({ id: "123" }), 1500);
+            return { id: "123", status: "COMPLETED" };
+          }
+        },
+        invite: async () => {
+          console.log("Simulated Pi.invite()");
+          alert("Simulated friend invite — works in Pi Browser!");
+          return true;
+        }
+      };
+    }
 
-  <!-- Game board -->
-  <div id="gameScreen" class="screen">
-    <h2 id="gameTitle"></h2>
-    <div id="timer"></div>
-    <div id="board"></div>
-    <button onclick="backToMenu()">Exit</button>
-  </div>
+    // --- Main Functions ---
+    const loginBtn = document.getElementById("loginBtn");
+    const inviteBtn = document.getElementById("inviteBtn");
+    const gameArea = document.getElementById("gameArea");
 
-</div>
+    loginBtn.addEventListener("click", async () => {
+      try {
+        const scopes = ["username", "payments"];
+        const result = await Pi.authenticate(scopes, (incomplete) => {
+          console.log("Incomplete login:", incomplete);
+        });
+        alert("Welcome, " + result.user.username + "!");
+        gameArea.style.display = "block";
+      } catch (err) {
+        console.error("Login failed", err);
+      }
+    });
 
-<script>
-  let currentMode = null;
-  let timerInterval, timeLeft;
+    inviteBtn.addEventListener("click", async () => {
+      try {
+        await Pi.invite();
+      } catch (err) {
+        console.error("Invite failed", err);
+      }
+    });
 
-  function show(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
-  }
+    function startGame(mode) {
+      alert(mode + " game starting...");
+      renderBoard();
+    }
 
-  function inviteFriend() { show("sdkScreen"); }
-  function goToMode() { show("modeScreen"); }
-
-  function startGame(mode) {
-    currentMode = mode;
-    show("gameScreen");
-    document.getElementById("gameTitle").innerText =
-      mode === "classic" ? "Classic Chess" : "Quick Chess (30s per move)";
-    drawBoard();
-    startTimer(mode);
-  }
-
-  function drawBoard() {
-    const board = document.getElementById("board");
-    board.innerHTML = "";
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        const square = document.createElement("div");
-        square.classList.add("square");
-        (row + col) % 2 === 0 ? square.classList.add("light") : square.classList.add("dark");
-
-        // Initial simple placement
-        if (row === 1) square.innerHTML = "<div class='piece'>♟</div>";
-        if (row === 6) square.innerHTML = "<div class='piece'>♙</div>";
-        if (row === 0 && (col === 0 || col === 7)) square.innerHTML = "<div class='piece'>♜</div>";
-        if (row === 7 && (col === 0 || col === 7)) square.innerHTML = "<div class='piece'>♖</div>";
-        if (row === 0 && (col === 1 || col === 6)) square.innerHTML = "<div class='piece'>♞</div>";
-        if (row === 7 && (col === 1 || col === 6)) square.innerHTML = "<div class='piece'>♘</div>";
-        if (row === 0 && (col === 2 || col === 5)) square.innerHTML = "<div class='piece'>♝</div>";
-        if (row === 7 && (col === 2 || col === 5)) square.innerHTML = "<div class='piece'>♗</div>";
-        if (row === 0 && col === 3) square.innerHTML = "<div class='piece'>♛</div>";
-        if (row === 7 && col === 3) square.innerHTML = "<div class='piece'>♕</div>";
-        if (row === 0 && col === 4) square.innerHTML = "<div class='piece'>♚</div>";
-        if (row === 7 && col === 4) square.innerHTML = "<div class='piece'>♔</div>";
-
-        board.appendChild(square);
+    function renderBoard() {
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const square = document.createElement("div");
+          square.className = "square " + ((row + col) % 2 === 0 ? "light" : "dark");
+          board.appendChild(square);
+        }
       }
     }
-  }
-
-  function startTimer(mode) {
-    clearInterval(timerInterval);
-    if (mode === "quick") {
-      timeLeft = 30;
-      updateTimer();
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        updateTimer();
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          alert("⏳ Time’s up! You lose.");
-          backToMenu();
-        }
-      }, 1000);
-    } else {
-      document.getElementById("timer").innerText = "";
-    }
-  }
-
-  function updateTimer() {
-    const t = document.getElementById("timer");
-    t.innerText = `Time left: ${timeLeft}s`;
-    if (timeLeft <= 10) t.classList.add("red"); else t.classList.remove("red");
-  }
-
-  function backToMenu() {
-    clearInterval(timerInterval);
-    show("modeScreen");
-  }
-</script>
+  </script>
 </body>
 </html>
