@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Chess Arena for Pi</title>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<style>
+  :root{
+    --bg:#0b0b0c;
+    --panel:#121217;
+    --accent:#f4b400;
+    --wood-light:#e8d5b8;
+    --wood-dark:#6e3f1a;
+    --white:#fff;
+    --muted:#9aa0a6;
+    --danger:#ff4d4d;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--white)}
+  .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:28px;}
+  header {text-align:center;margin-bottom:14px}
+  header h1{margin:0;font-size:22px;}
+  header p{margin:6px 0 0;color:var(--muted);font-size:13px}
+
+  .frame{width:100%;max-width:980px;margin:12px 0;display:none;background:linear-gradient(180deg,#0e0e10,#111);border:1px solid rgba(255,255,255,.03);border-radius:14px;padding:18px}
+  .frame.active{display:block}
+
+  .btn{display:inline-block;padding:12px 18px;border-radius:999px;border:0;background:var(--accent);color:#111;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(244,180,0,.12);font-size:15px}
+  .btn.ghost{background:transparent;color:var(--white);border:1px solid rgba(255,255,255,.06);box-shadow:none}
+  .btn.small{padding:8px 12px;font-size:14px}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+  .center{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)); padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.03);min-width:260px}
+  .panel.huge{min-width:420px}
+
+  .boardWrap{width:430px;padding:14px;background:linear-gradient(180deg,#1d1510,#1a120f);border-radius:18px;box-shadow:0 18px 40px rgba(0,0,0,.6)}
+  .board{width:400px;height:400px;display:grid;grid-template-columns:repeat(8,1fr);border-radius:10px;overflow:hidden;border:6px solid #7d4d27;background:linear-gradient(180deg,var(--wood-light),var(--wood-light))}
+  .square{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;font-size:34px;user-select:none;cursor:pointer}
+  .sq-light{background:var(--wood-light);}
+  .sq-dark{background:var(--wood-dark);color:var(--white)}
+  .highlight{outline:4px solid rgba(139,212,80,.85);outline-offset:-4px;border-radius:2px}
+  .last-move{box-shadow:inset 0 0 0 6px rgba(244,180,0,.08)}
+  .piece{font-size:36px;filter:drop-shadow(0 2px 0 rgba(0,0,0,.5))}
+
+  .status{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+  .timer{font-weight:800;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.35);min-width:96px;text-align:center}
+  .timer.warn{background:linear-gradient(90deg,#ffb4a4,var(--danger));color:#111}
+  .players{display:flex;gap:12px;flex-direction:column}
+
+  .history{max-height:220px;overflow:auto;padding:10px;background:rgba(255,255,255,.02);border-radius:8px}
+  .captured{display:flex;gap:8px;flex-wrap:wrap;padding:6px}
+  .badge{background:rgba(255,255,255,.04);padding:6px 8px;border-radius:8px}
+
+  @media(max-width:900px){
+    .boardWrap{width:320px}
+    .board{width:300px;height:300px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>♞ CHESS ARENA <span style="font-weight:400">for Pi</span></h1>
+    <p>Classic wooden board • Ebony / Ivory pieces • Pi Testnet ready</p>
+  </header>
+
+  <!-- INTRO / LOGIN FRAME -->
+  <section id="frame-intro" class="frame active" aria-label="Intro">
+    <div style="text-align:center;margin-bottom:12px">
+      <div style="width:160px;height:160px;margin:0 auto;border-radius:40px;background:#110b09;display:grid;place-items:center;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+        <svg width="96" height="96" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+          <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#f6d6a6"/><stop offset="1" stop-color="#c07a2e"/></linearGradient></defs>
+          <circle cx="32" cy="32" r="30" fill="#2b1b12"/>
+          <path d="M20 46c8-8 22-8 28 0" stroke="#f4b400" stroke-width="2" stroke-linecap="round"/>
+          <path d="M18 28c6-6 22-10 30-4" stroke="#f4b400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div style="text-align:center">
+      <button id="loginBtn" class="btn">🔑 Login with Pi</button>
+      <div style="margin-top:12px;color:var(--muted)">Login with Pi lets you invite pioneers in sandbox & unlock multiplayer.</div>
+    </div>
+  </section>
+
+  <!-- MODE SELECT FRAME -->
+  <section id="frame-mode" class="frame" aria-label="Mode selection">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="font-weight:800;font-size:18px">Select a Mode</div>
+      <div class="row" style="width:100%;justify-content:center">
+        <button id="inviteBtn" class="btn small">🤝 Invite a Friend</button>
+        <button id="quickBtn" class="btn small">⚡ Quick</button>
+        <button id="classicBtn" class="btn small">♟ Classic</button>
+      </div>
+      <div style="color:var(--muted);margin-top:8px">AI Mode — coming soon</div>
+    </div>
+  </section>
+
+  <!-- INVITE FRAME -->
+  <section id="frame-invite" class="frame" aria-label="Invite">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="font-weight:800;font-size:18px;margin-bottom:6px">Invite a Pioneer</div>
+      <div style="color:var(--muted);max-width:640px;text-align:center">Use Pi invite to select a friend. On completion you'll return to game selector to choose Quick or Classic and begin.</div>
+      <div class="row" style="margin-top:12px">
+        <button id="doInvite" class="btn">Open Pi Invite</button>
+        <button id="skipInvite" class="btn ghost">Skip (Find random)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME FRAME -->
+  <section id="frame-game" class="frame" aria-label="Game" style="padding:18px 22px">
+    <div class="center">
+      <div class="panel players" style="width:320px">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-weight:800">Opponent</div>
+          <div class="badge" id="opponentId">—</div>
+          <div class="badge">Captured: <span id="opponentCaptured">—</span></div>
+          <div style="margin-top:6px;font-size:13px;color:var(--muted)">Top: opponent id & clock</div>
+        </div>
+
+        <div style="margin-top:18px">
+          <div style="font-weight:800">Move History</div>
+          <div class="history" id="moveHistory"></div>
+        </div>
+      </div>
+
+      <div class="boardWrap panel huge" style="display:flex;flex-direction:column;align-items:center">
+        <div class="status" style="width:100%;margin-bottom:8px;justify-content:space-between;align-items:center">
+          <div style="text-align:left">
+            <div style="font-weight:800" id="gameModeLabel">Mode: —</div>
+            <div style="font-size:12px;color:var(--muted)">Top center shows turn & clocks</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="timer" id="topTimer">15:00</div>
+            <div style="font-size:12px;color:var(--muted)">Your ID: <span id="myId">guest</span></div>
+          </div>
+        </div>
+
+        <div class="board" id="board" role="grid" aria-label="Chessboard"></div>
+
+        <div class="status" style="width:100%;margin-top:10px;justify-content:space-between">
+          <div style="display:flex;flex-direction:column">
+            <div style="font-weight:800">You</div>
+            <div class="badge">Captured: <span id="myCaptured">—</span></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="timer" id="bottomTimer">15:00</div>
+            <div style="display:flex;gap:8px">
+              <button id="resignBtn" class="btn small" style="background:#b73a3a">Resign</button>
+              <button id="rematchBtn" class="btn small ghost">Rematch</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.0.0/chess.min.js"></script>
+
+<script>
+// ---------- Pi SDK bridge (mobile-ready) ----------
+if (!window.Pi) {
+  console.log("Pi SDK not detected. Using mobile Chrome simulation.");
+  window.Pi = {
+    authenticate: async (scopes, onIncomplete) => {
+      return new Promise((res) => {
+        const username = prompt("Enter your Pioneer username (or leave empty for guest):", "guest");
+        res({
+          user: { username: username && username.trim() !== "" ? username.trim() : "guest" },
+          accessToken: "mock-token"
+        });
+      });
+    },
+    invite: async () => {
+      return new Promise((res) => {
+        const friend = prompt("Enter a friend username to invite (or leave empty for random):", "pioneer_friend_01");
+        if(friend && friend.trim() !== "") {
+          alert(`Simulated Pi Invite: ${friend.trim()} selected. Returning to game selector.`);
+          res({ invited: true, friendId: friend.trim() });
+        } else {
+          alert("Simulated Pi Invite: random pioneer selected. Returning to game selector.");
+          res({ invited: true, friendId: "random_pioneer" });
+        }
+      });
+    }
+  };
+}
+
+// ---------- UI references ----------
+const frameIntro = document.getElementById('frame-intro');
+const frameMode  = document.getElementById('frame-mode');
+const frameInvite= document.getElementById('frame-invite');
+const frameGame  = document.getElementById('frame-game');
+
+const loginBtn = document.getElementById('loginBtn');
+const inviteBtn = document.getElementById('inviteBtn');
+const quickBtn = document.getElementById('quickBtn');
+const classicBtn = document.getElementById('classicBtn');
+const doInvite = document.getElementById('doInvite');
+const skipInvite = document.getElementById('skipInvite');
+
+const boardEl = document.getElementById('board');
+const myIdEl = document.getElementById('myId');
+const opponentIdEl = document.getElementById('opponentId');
+const topTimerEl = document.getElementById('topTimer');
+const bottomTimerEl = document.getElementById('bottomTimer');
+const gameModeLabel = document.getElementById('gameModeLabel');
+const moveHistoryEl = document.getElementById('moveHistory');
+const myCapturedEl = document.getElementById('myCaptured');
+const oppCapturedEl = document.getElementById('opponentCaptured');
+const resignBtn = document.getElementById('resignBtn');
+
+// ---------- chess engine ----------
+let game = new Chess();
+let selectedSquare = null;
+let legalMoves = [];
+let currentTurn = 'w';
+
+// timers
+let mode = null;
+let classicClock = { w: 15*60, b: 15*60 };
+let quickMoveTime = 30;
+let moveTimer = quickMoveTime;
+let activeClockInterval = null;
+let quickInterval = null;
+let isGameOver = false;
+
+const pieceGlyph = {
+  p: '\u265F', r: '\u265C', n: '\u265E', b: '\u265D', q: '\u265B', k: '\u265A',
+  P: '\u2659', R: '\u2656', N: '\u2658', B: '\u2657', Q: '\u2655', K: '\u2654'
+};
+
+// ---------- utility ----------
+function showFrame(fr){ [frameIntro,frameMode,frameInvite,frameGame].forEach(f=>f.classList.remove('active')); fr.classList.add('active'); }
+
+async function doLogin(){
+  try{
+    const res = await Pi.authenticate(['username','payments'], ()=>{});
+    myIdEl.textContent = res.user.username || "guest";
+    showFrame(frameMode);
+  }catch(e){
+    alert("Login failed");
+    console.error(e);
+  }
+}
+loginBtn.onclick = doLogin;
+
+inviteBtn.onclick = ()=> showFrame(frameInvite);
+doInvite.onclick = async ()=>{
+  try{
+    const res = await Pi.invite();
+    opponentIdEl.textContent = res.friendId || "random_pioneer";
+    showFrame(frameMode);
+  }catch(e){ console.error(e); alert("Invite failed"); }
+};
+skipInvite.onclick = ()=>{ opponentIdEl.textContent = "random_pioneer"; showFrame(frameMode); };
+
+quickBtn.onclick = ()=> startMode('quick');
+classicBtn.onclick = ()=> startMode('classic');
+
+// ---------- start selected mode ----------
+function startMode(m){
+  mode = m;
+  isGameOver = false;
+  game = new Chess();
+  selectedSquare = null;
+  legalMoves = [];
+  currentTurn = 'w';
+  if(mode==='classic'){ classicClock = { w:15*60, b:15*60 }; updateClassicTimersUI(); stopActiveClock(); startActiveClock(); }
+  else { moveTimer = quickMoveTime; updateMoveTimerUI(); stopActiveClock(); startMoveTimer(); }
+  gameModeLabel.textContent = `Mode: ${mode === 'classic' ? 'Classic (15:00 each)' : 'Quick (30s/move)'}`;
+  moveHistoryEl.innerHTML = '';
+  myCapturedEl.textContent = '';
+  oppCapturedEl.textContent = '';
+  showFrame(frameGame);
+  renderBoard();
+}
+
+// ---------- board rendering & interaction ----------
+function renderBoard(){
+  boardEl.innerHTML = '';
+  const board = game.board();
+  for(let r=0;r<8;r++){
+    for(let f=0;f<8;f++){
+      const sq = document.createElement('div');
+      const isLight = ((r+f)%2===0);
+      sq.className = 'square ' + (isLight? 'sq-light':'sq-dark');
+      const coord = toAlg(r,f);
+      sq.dataset.coord = coord;
+      const piece = board[r][f];
+      if(piece){
+        const glyph = document.createElement('div');
+        glyph.className = 'piece';
+        glyph.textContent = pieceGlyph[ piece.color==='w'?piece.type.toUpperCase():piece.type ];
+        sq.appendChild(glyph);
+      }
+      sq.addEventListener('click', ()=> onSquareClick(coord));
+      boardEl.appendChild(sq);
+    }
+  }
+  highlightLegal();
+}
+
+function toAlg(r,f){ return 'abcdefgh'[f] + (8-r); }
+function algToIdx(al){ return { r: 8 - parseInt(al[1]), f: al.charCodeAt(0)-97 }; }
+
+function onSquareClick(coord){
+  if(isGameOver) return;
+  if(!selectedSquare){
+    const piece = game.get(coord);
+    if(piece && piece.color===currentTurn){ selectedSquare=coord; legalMoves=game.moves({square:coord,verbose:true}).map(m=>m.to); highlightLegal(); }
+    return;
+  }
+  const move = game.move({ from:selectedSquare, to:coord, promotion:'q' });
+  if(move){ pushHistory(move); selectedSquare=null; legalMoves=[]; updateCaptured();
+    if(mode==='classic'){ switchTurnAndClocks(); } else { moveTimer=quickMoveTime; currentTurn
