@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena for Pi</title>
+  <title>Chess Arena for Pi — Flow Test</title>
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background: #111;
-      color: #eee;
+      color: white;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -22,143 +22,107 @@
       justify-content: center;
       width: 100%;
       height: 100%;
+      text-align: center;
     }
-    .active {
-      display: flex;
-    }
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 20px;
-      color: gold;
-      text-shadow: 0 0 10px #333;
-    }
+    .frame.active { display: flex; }
     button {
-      padding: 12px 20px;
-      margin: 8px;
+      margin: 10px;
+      padding: 12px 24px;
+      font-size: 18px;
       border: none;
       border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
       background: #444;
-      color: #fff;
-      transition: background 0.3s ease;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s, opacity 0.3s;
     }
-    button:active {
+    button.dim {
       background: #888;
+      opacity: 0.6;
     }
     .board {
+      width: 320px;
+      height: 320px;
       display: grid;
-      grid-template-columns: repeat(8, 40px);
-      grid-template-rows: repeat(8, 40px);
-      gap: 0;
-      margin: 15px 0;
-      border: 2px solid #333;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
     }
-    .square {
+    .tile {
       width: 40px;
       height: 40px;
     }
-    .light { background: #eee; }
-    .dark { background: #555; }
-    .player {
-      display: flex;
-      justify-content: space-between;
-      width: 340px;
-      margin: 5px 0;
-      font-size: 1rem;
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+    .timer {
+      margin-top: 10px;
+      font-size: 20px;
+      font-weight: bold;
     }
-    .id { font-weight: bold; }
-    .timer { color: #0f0; }
   </style>
 </head>
 <body>
-  <!-- Login Frame -->
-  <div class="frame active" id="login">
+
+  <!-- Frame 1: Login -->
+  <div class="frame active" id="loginFrame">
     <h1>♞ CHESS ARENA for PI</h1>
-    <button onclick="goToFrame('menu')">Login with Pi ID</button>
+    <button onclick="nextFrame(this, 'inviteFrame')">Login with Pi ID</button>
   </div>
 
-  <!-- Main Menu -->
-  <div class="frame" id="menu">
-    <h1>Main Menu</h1>
-    <button onclick="switchWithDelay('classic')">Classic</button>
-    <button onclick="switchWithDelay('quick')">Quick</button>
-    <button onclick="switchWithDelay('invite')">Invite</button>
+  <!-- Frame 2a: Invite Friends (Pi SDK placeholder) -->
+  <div class="frame" id="inviteFrame">
+    <h2>Invite Pioneer Friends</h2>
+    <p>(Pi SDK Friends Library Placeholder)</p>
+    <button onclick="nextFrame(this, 'gameSelector')">Select Friend → Next</button>
+    <button onclick="backFrame('loginFrame')">Back</button>
   </div>
 
-  <!-- Classic Mode -->
-  <div class="frame" id="classic">
-    <h1>Classic Mode</h1>
-    <div class="player">
-      <span class="id">Player 1</span>
-      <span class="timer">00:00</span>
-    </div>
+  <!-- Frame 2b: Game Selector -->
+  <div class="frame" id="gameSelector">
+    <h2>Select Game Mode</h2>
+    <button onclick="nextFrame(this, 'boardFrame')">Quick Game</button>
+    <button onclick="nextFrame(this, 'boardFrame')">Classic Game</button>
+    <button onclick="nextFrame(this, 'leaderboardFrame')">Leaderboard</button>
+    <button onclick="backFrame('inviteFrame')">Back</button>
+  </div>
+
+  <!-- Frame 3: Leaderboard -->
+  <div class="frame" id="leaderboardFrame">
+    <h2>Leaderboard (Placeholder)</h2>
+    <p>Top Pioneers will appear here.</p>
+    <button onclick="backFrame('gameSelector')">Back</button>
+  </div>
+
+  <!-- Frame 4: Board -->
+  <div class="frame" id="boardFrame">
+    <h2>Game Board</h2>
     <div class="board">
-      <!-- Chessboard squares -->
+      <!-- 8x8 chess board -->
       <script>
-        for (let i = 0; i < 64; i++) {
-          document.write(`<div class="square ${(Math.floor(i/8)+i)%2==0 ? 'light':'dark'}"></div>`);
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            document.write(`<div class="tile ${(r+c)%2===0?'light':'dark'}"></div>`);
+          }
         }
       </script>
     </div>
-    <div class="player">
-      <span class="id">Player 2</span>
-      <span class="timer">00:00</span>
-    </div>
-    <button onclick="goToFrame('menu')">Back</button>
-  </div>
-
-  <!-- Quick Mode -->
-  <div class="frame" id="quick">
-    <h1>Quick Game</h1>
-    <div class="player">
-      <span class="id">Player 1</span>
-      <span class="timer">00:00</span>
-    </div>
-    <div class="board"></div>
-    <div class="player">
-      <span class="id">Player 2</span>
-      <span class="timer">00:00</span>
-    </div>
-    <button onclick="goToFrame('menu')">Back</button>
-  </div>
-
-  <!-- Invite Mode -->
-  <div class="frame" id="invite">
-    <h1>Invite a Friend</h1>
-    <div class="player">
-      <span class="id">You</span>
-      <span class="timer">00:00</span>
-    </div>
-    <div class="board"></div>
-    <div class="player">
-      <span class="id">Friend</span>
-      <span class="timer">00:00</span>
-    </div>
-    <button onclick="goToFrame('menu')">Back</button>
+    <div class="timer">Player A ⏱ 10:00 | Player B ⏱ 10:00</div>
+    <button onclick="backFrame('gameSelector')">Back</button>
   </div>
 
   <script>
-    function goToFrame(id) {
-      document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
-    function switchWithDelay(id) {
-      const btn = event.target;
-      btn.style.background = "#666";
+    function nextFrame(btn, targetId) {
+      btn.classList.add("dim");
       setTimeout(() => {
-        btn.style.background = "#444";
-        goToFrame(id);
+        document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+        document.getElementById(targetId).classList.add('active');
+        btn.classList.remove("dim");
       }, 2000);
     }
-    // generate boards for quick & invite too
-    document.querySelectorAll('.board').forEach(board => {
-      if (!board.innerHTML.trim()) {
-        for (let i = 0; i < 64; i++) {
-          board.innerHTML += `<div class="square ${(Math.floor(i/8)+i)%2==0 ? 'light':'dark'}"></div>`;
-        }
-      }
-    });
+    function backFrame(targetId) {
+      document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+      document.getElementById(targetId).classList.add('active');
+    }
   </script>
+
 </body>
 </html>
