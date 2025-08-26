@@ -1,294 +1,142 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Chess Arena — Vertical Flow (Pi)</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Arena Pi Mockup</title>
 <style>
-  :root{
-    --bg:#0f1116;
-    --card:#121318;
-    --wood-light:#f0d9b5;
-    --wood-dark:#8b4a2a;
-    --accent:#d4a34a;
-    --muted:#9aa0a6;
-    --white:#fff;
-    --panel:#111217;
+  body {
+    font-family: Arial, sans-serif;
+    background: #f0f0f0;
+    margin: 0; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh;
   }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto; background: linear-gradient(180deg,#0b0c10, #0f1116 40%); color:var(--white);}
-  .wrap{max-width:980px;margin:24px auto;padding:16px;display:flex;flex-direction:column;gap:18px}
-  header.appbar{display:flex;align-items:center;justify-content:center;flex-direction:column; gap:8px; text-align:center}
-  .logo-wrap{display:flex;align-items:center;gap:12px}
-  .logo{width:72px;height:72px;border-radius:14px;background:linear-gradient(180deg,#1a130c,#2b1e14);display:grid;place-items:center;box-shadow:0 6px 20px rgba(0,0,0,.6)}
-  .title{font-weight:800;letter-spacing:.6px;font-size:20px}
-  .subtitle{font-size:12px;color:var(--muted);font-weight:700}
-  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);padding:18px;border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.6)}
-  h2{margin:0 0 12px 0;font-size:18px}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  button{cursor:pointer;border:0;padding:10px 14px;border-radius:12px;font-weight:700;background:#222;color:var(--white)}
-  .btn-accent{background:var(--accent);color:#111}
-  .small{padding:8px 10px;font-size:13px}
-  .muted{color:var(--muted);font-size:13px}
-  /* Invite list */
-  .friends{display:flex;flex-direction:column;gap:8px}
-  .friend{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.02)}
-  /* Mode toggles */
-  .modes{display:flex;gap:8px}
-  .mode{padding:10px 12px;border-radius:10px;background:#141417;cursor:pointer;border:1px solid rgba(255,255,255,0.03)}
-  .mode.active{box-shadow:0 8px 20px rgba(0,0,0,.6);border-color:rgba(255,255,255,0.06)}
-  /* Board area */
-  .board-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
-  .top-info{display:flex;gap:14px;align-items:center}
-  .clock{padding:8px 12px;border-radius:10px;background:rgba(0,0,0,0.35);font-weight:800}
-  .clock.red{color:#ff4d4f}
-  .board{
-    width:560px;max-width:92vw;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,1fr);border-radius:10px;overflow:hidden;
-    border:6px solid #5b3f24;box-shadow:0 12px 40px rgba(0,0,0,.6);
-    background:linear-gradient(180deg,#e7d4b2,#e3cfa4);
+  .frame {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    width: 90%; max-width: 400px;
   }
-  .square{position:relative;display:flex;align-items:center;justify-content:center}
-  .light{background:var(--wood-light)}
-  .dark{background:var(--wood-dark)}
-  .piece{width:76%;height:76%;display:grid;place-items:center;font-weight:800;font-size:20px;color:#111}
-  .piece.white{color:#fff;filter:drop-shadow(0 2px 0 rgba(0,0,0,.3))}
-  .captured{display:flex;gap:6px;flex-wrap:wrap;min-height:34px;padding:8px;background:rgba(0,0,0,0.06);border-radius:8px}
-  .moves{max-height:160px;overflow:auto;padding:8px;background:rgba(0,0,0,0.03);border-radius:8px}
-  .controls{display:flex;gap:8px;justify-content:center;margin-top:8px}
-  .confetti-canvas{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:9999}
-  /* responsive */
-  @media(max-width:640px){ .board{width:92vw} .logo{width:58px;height:58px} .title{font-size:18px} }
+  .frame.active { display: block; }
+  button {
+    margin: 10px; padding: 12px 20px;
+    border: none; border-radius: 10px;
+    background: #4CAF50; color: white;
+    font-size: 16px; cursor: pointer;
+  }
+  button:hover { background: #45a049; }
+  #timer {
+    font-size: 32px; font-weight: bold;
+    margin: 15px;
+    color: green;
+  }
+  #board {
+    margin: 15px auto;
+    width: 240px; height: 240px;
+    background: repeating-linear-gradient(
+      45deg, #deb887, #deb887 30px,
+      #f5f5dc 30px, #f5f5dc 60px
+    );
+    border: 5px solid #333;
+  }
+  #status { font-size: 20px; margin-top: 10px; }
 </style>
 </head>
 <body>
-  <div class="wrap" id="wrap">
 
-    <!-- HEADER / INTRO -->
-    <header class="appbar">
-      <div class="logo-wrap">
-        <div class="logo" aria-hidden="true">
-          <!-- clean knight-like emblem (not Pi symbol) -->
-          <svg viewBox="0 0 64 64" width="44" height="44" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Knight mark">
-            <rect width="64" height="64" rx="10" fill="#2b1e14"/>
-            <path d="M20 42c0-8 6-12 12-12s12 4 12 12v6H20v-6z" fill="#d4a34a"/>
-            <path d="M26 22c0-4 6-6 8-6s8 2 8 6" stroke="#fff" stroke-width="1.8" fill="none" opacity="0.85"/>
-          </svg>
-        </div>
-        <div>
-          <div class="title">CHESS ARENA <span style="font-weight:700">for Pi</span></div>
-          <div class="subtitle">Classic • Quick • Versus AI (sandbox)</div>
-        </div>
-      </div>
-    </header>
+<!-- Launch Screen -->
+<div class="frame active" id="launch">
+  <h2>🚀 Welcome to The Chess Arena Pi</h2>
+  <button onclick="goTo('invite')">Start</button>
+</div>
 
-    <!-- 1) Pi Login Frame -->
-    <section class="card" id="frame-login" aria-label="Login frame">
-      <h2>Login (Pi)</h2>
-      <div class="muted">Sign in using Pi (sandbox) to enable invites and multiplayer.</div>
-      <div style="margin-top:12px" class="row">
-        <button class="btn-accent" id="loginBtn">Sign in with Pi (placeholder)</button>
-        <button id="skipLogin" class="small">Continue without sign-in</button>
-      </div>
-      <div class="muted" style="margin-top:8px">After sign in you can invite friends or play random matches.</div>
-    </section>
+<!-- Invite Frame -->
+<div class="frame" id="invite">
+  <h2>♟ Invite Friends</h2>
+  <p><b>Player ID:</b> pioneer123 (mock)</p>
+  <button onclick="goTo('gameSelector')">Invite Friend</button>
+  <button onclick="goTo('gameSelector')">Random Opponent</button>
+  <h3>🏆 Leaderboard (placeholder)</h3>
+  <p>Top Players List...</p>
+  <button onclick="goTo('launch')">⬅ Back</button>
+</div>
 
-    <!-- 2) Invite / Play Frame -->
-    <section class="card" id="frame-invite">
-      <h2>Invite & Play</h2>
-      <div class="muted">Invite a Pioneer friend or play a random opponent.</div>
+<!-- Game Selector -->
+<div class="frame" id="gameSelector">
+  <h2>Select Game Mode</h2>
+  <button onclick="goTo('classic')">Classic Game</button>
+  <button onclick="goTo('quick')">Quick Game (Blitz)</button>
+  <button onclick="goTo('invite')">⬅ Back</button>
+</div>
 
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
-        <button id="btn-invite" class="">Invite Friend (placeholder)</button>
-        <button id="btn-random" class="">Random Opponent</button>
-        <button id="btn-leaderboard" class="">Competition Leaderboard</button>
-        <button id="to-modes" class="btn-accent">Game Modes</button>
-      </div>
+<!-- Classic Game -->
+<div class="frame" id="classic">
+  <h2>♞ Classic Game</h2>
+  <p>10 min per player</p>
+  <div id="board"></div>
+  <div id="timer">10:00</div>
+  <button onclick="goTo('gameSelector')">⬅ Back</button>
+</div>
 
-      <div style="margin-top:14px">
-        <div class="muted">Mock friends (click Invite to simulate):</div>
-        <div class="friends" style="margin-top:8px">
-          <div class="friend"><div>@pioneer_alex</div><button class="small" onclick="mockInvite('pioneer_alex')">Invite</button></div>
-          <div class="friend"><div>@pioneer_maya</div><button class="small" onclick="mockInvite('pioneer_maya')">Invite</button></div>
-          <div class="friend"><div>@pioneer_lee</div><button class="small" onclick="mockInvite('pioneer_lee')">Invite</button></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3) Game Mode Selector -->
-    <section class="card" id="frame-modes">
-      <h2>Choose Mode</h2>
-      <div class="muted">Pick a mode. Quick is blitz per-move (30s). Classic is standard (10:00 each).</div>
-      <div class="modes" style="margin-top:12px">
-        <div class="mode" id="mode-puzzle" onclick="selectMode('puzzle')">🧩 Puzzle</div>
-        <div class="mode" id="mode-classic" onclick="selectMode('classic')">♟ Classic</div>
-        <div class="mode" id="mode-quick" onclick="selectMode('quick')">⚡ Quick</div>
-        <div class="mode" id="mode-leader" onclick="selectMode('leader')">🏆 Leaderboard</div>
-      </div>
-      <div style="margin-top:14px" class="row">
-        <button class="btn-accent" onclick="enterSelectedMode()">Go</button>
-        <button onclick="scrollTo('frame-invite')" class="small">Back</button>
-      </div>
-    </section>
-
-    <!-- 4) Game Board Frame -->
-    <section class="card" id="frame-board" style="display:block">
-      <h2 id="board-title">Game Board</h2>
-
-      <div class="board-wrap">
-        <div class="top-info" style="justify-content:space-between;width:100%;max-width:92vw">
-          <div style="display:flex;gap:12px;align-items:center">
-            <div style="text-align:center">
-              <div class="muted">Opponent</div>
-              <div id="oppId" style="font-weight:800">@random_player</div>
-            </div>
-            <div class="clock" id="oppClock">10:00</div>
-            <div style="min-width:12px"></div>
-          </div>
-
-          <div style="text-align:center">
-            <div class="muted">Game</div>
-            <div id="gameModeLabel" style="font-weight:800">—</div>
-          </div>
-
-          <div style="display:flex;gap:12px;align-items:center">
-            <div style="text-align:center">
-              <div class="muted">You</div>
-              <div id="youId" style="font-weight:800">@you</div>
-            </div>
-            <div class="clock" id="youClock">10:00</div>
-          </div>
-        </div>
-
-        <!-- Board -->
-        <div id="board" class="board" aria-label="Chess board"></div>
-
-        <!-- Below: player controls, captured, moves -->
-        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;width:100%;max-width:92vw">
-          <div style="flex:1;min-width:240px">
-            <div class="muted">Captured</div>
-            <div id="capturedWhite" class="captured" style="margin-top:8px"></div>
-          </div>
-          <div style="flex:1;min-width:240px">
-            <div class="muted">Move History</div>
-            <div id="moveHistory" class="moves" style="margin-top:8px"></div>
-          </div>
-        </div>
-
-        <div class="controls">
-          <button id="btn-end-turn" onclick="endTurn()">End Turn (simulate move)</button>
-          <button id="btn-forfeit" onclick="forfeit()">Resign</button>
-          <button id="btn-rematch" onclick="rematch()">Rematch</button>
-          <button id="btn-back-to-modes" onclick="scrollTo('frame-modes')">Back</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- 5) End / Leaderboard -->
-    <section class="card" id="frame-end">
-      <h2 id="endHeading">Game Over</h2>
-      <div id="endText" class="muted">Result will appear here</div>
-      <div style="margin-top:12px" class="row">
-        <button class="btn-accent" onclick="scrollTo('frame-modes')">Play Again</button>
-        <button onclick="scrollTo('frame-invite')" class="small">Back to Invite</button>
-      </div>
-    </section>
-
-  </div>
-
-  <canvas id="confetti" class="confetti-canvas"></canvas>
+<!-- Quick Game -->
+<div class="frame" id="quick">
+  <h2>⚡ Quick Game</h2>
+  <p>30s per move</p>
+  <div id="board"></div>
+  <div id="timer">30</div>
+  <div id="status"></div>
+  <button onclick="makeMove()">Make Move</button>
+  <button onclick="goTo('gameSelector')">⬅ Back</button>
+</div>
 
 <script>
-/* ---------- Simple vertical navigation ---------- */
-function scrollTo(id){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.scrollIntoView({behavior:'smooth',block:'start'});
+let timerInterval, timeLeft = 30;
+
+function goTo(frame) {
+  document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+  document.getElementById(frame).classList.add('active');
+
+  if(frame === "quick") startQuickGame();
+  else stopTimer();
 }
 
-/* ---------- Login placeholders ---------- */
-const loginBtn = document.getElementById('loginBtn');
-const skipLogin = document.getElementById('skipLogin');
-let signedIn = false;
-loginBtn.addEventListener('click', ()=> {
-  signedIn = true;
-  loginBtn.textContent = "Signed in (demo)";
-  loginBtn.disabled = true;
-});
-skipLogin.addEventListener('click', ()=> { scrollTo('frame-invite'); });
-
-/* ---------- Invite placeholders ---------- */
-function mockInvite(name){
-  alert('Invite sent to ' + name + ' (placeholder)');
-}
-document.getElementById('btn-invite').addEventListener('click', ()=> alert('Open Pi friends list (placeholder)'));
-document.getElementById('btn-random').addEventListener('click', ()=> {
-  document.getElementById('oppId').textContent = '@random_' + Math.floor(Math.random()*900 +100);
-  scrollTo('frame-modes');
-});
-document.getElementById('btn-leaderboard').addEventListener('click', ()=> alert('Leaderboard (placeholder)'));
-document.getElementById('to-modes').addEventListener('click', ()=> scrollTo('frame-modes'));
-
-/* ---------- Mode selection ---------- */
-let selectedMode = null;
-function selectMode(m){
-  selectedMode = m;
-  document.querySelectorAll('.mode').forEach(el=>el.classList.toggle('active', el.id === 'mode-'+m));
-}
-function enterSelectedMode(){
-  if(!selectedMode){ alert('Pick a mode first'); return; }
-  document.getElementById('gameModeLabel').textContent = selectedMode.toUpperCase();
-  // prepare board and timers
-  if(selectedMode === 'quick'){ prepareQuick(); scrollTo('frame-board'); }
-  else if(selectedMode === 'classic'){ prepareClassic(); scrollTo('frame-board'); }
-  else if(selectedMode === 'puzzle'){ alert('Puzzle placeholder'); }
-  else if(selectedMode === 'leader'){ alert('Leaderboard placeholder'); }
-}
-
-/* ---------- Board rendering (placeholder pieces only) ---------- */
-const boardEl = document.getElementById('board');
-function buildBoard(){
-  boardEl.innerHTML = '';
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const sq = document.createElement('div');
-      sq.className = 'square ' + (((r+c)%2===0)?'light':'dark');
-      // small coordinate (optional)
-      //sq.innerHTML = `<span style="position:absolute;bottom:4px;left:6px;font-size:10px;color:rgba(0,0,0,0.25)">${'abcdefgh'[c]}${8-r}</span>`;
-      boardEl.appendChild(sq);
+function startQuickGame() {
+  timeLeft = 30;
+  updateTimer();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      document.getElementById("status").textContent = "❌ YOU LOSE!";
     }
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+}
+
+function updateTimer() {
+  const t = document.getElementById("timer");
+  t.textContent = timeLeft;
+  if (timeLeft <= 10) {
+    t.style.color = "red";
+  } else {
+    t.style.color = "green";
   }
 }
-/* initial board */
-buildBoard();
 
-/* ---------- Timers ---------- */
-let quickTime = 30, quickTimer = null;
-let activeSide = 'you'; // 'you' or 'opp' for quick per-move simulation
-
-let classicYou = 600, classicOpp = 600, classicTimer = null; // 600s = 10:00
-
-function formatTime(s){
-  const mm = Math.floor(s/60).toString().padStart(2,'0');
-  const ss = (s%60).toString().padStart(2,'0');
-  return `${mm}:${ss}`;
+function makeMove() {
+  timeLeft = 30;
+  updateTimer();
+  document.getElementById("status").textContent = "✅ Move made! Timer reset.";
 }
+</script>
 
-/* Quick mode setup */
-function prepareQuick(){
-  // UI reset
-  document.getElementById('board-title').textContent = 'Quick Game — 30s per move';
-  document.getElementById('moveHistory').innerHTML = '';
-  document.getElementById('capturedWhite').innerHTML = '';
-  quickTime = 30; activeSide = 'you';
-  updateQuickUI();
-  if(quickTimer) clearInterval(quickTimer);
-  quickTimer = setInterval(()=> {
-    quickTime--;
-    updateQuickUI();
-    if(quickTime <= 0){ clearInterval(quickTimer); gameOver(activeSide === 'you' ? 'You lost on time' : 'Opponent lost on time'); }
-  },1000);
-}
-function updateQuickUI(){
-  const tEl = document.getElementById('youClock');
-  const oEl = document.getElementById('oppClock');
-  // show both clocks but quick
+</body>
+</html>
