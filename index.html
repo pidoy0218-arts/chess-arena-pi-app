@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Arena Pi</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  .frame {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    width: 90%;
+    max-width: 400px;
+  }
+  .frame.active {
+    display: flex;
+  }
+  button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #333;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+  }
+  button:hover {
+    background: #555;
+  }
+  .timer {
+    font-size: 24px;
+    font-weight: bold;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Main Menu -->
+<div id="mainMenu" class="frame active">
+  <h2>Chess Arena Pi</h2>
+  <button onclick="showFrame('inviteMenu')">Invite</button>
+  <button onclick="showFrame('classicFrame')">Classic Game</button>
+  <button onclick="showFrame('quickFrame')">Quick Game</button>
+</div>
+
+<!-- Invite Menu -->
+<div id="inviteMenu" class="frame">
+  <h2>Invite Options</h2>
+  <button onclick="showFrame('inviteFriendFrame')">Invite Friend</button>
+  <button onclick="showFrame('randomOpponentFrame')">Random Opponent</button>
+  <button onclick="showFrame('leaderboardFrame')">Leaderboard</button>
+  <button onclick="showFrame('mainMenu')">⬅ Back</button>
+</div>
+
+<!-- Invite Friend -->
+<div id="inviteFriendFrame" class="frame">
+  <h2>Invite Friend</h2>
+  <button onclick="showFrame('classicFrame')">Classic Game</button>
+  <button onclick="showFrame('quickFrame')">Quick Game</button>
+  <button onclick="showFrame('inviteMenu')">⬅ Back</button>
+</div>
+
+<!-- Random Opponent -->
+<div id="randomOpponentFrame" class="frame">
+  <h2>Random Opponent</h2>
+  <button onclick="showFrame('classicFrame')">Classic Game</button>
+  <button onclick="showFrame('quickFrame')">Quick Game</button>
+  <button onclick="showFrame('inviteMenu')">⬅ Back</button>
+</div>
+
+<!-- Leaderboard -->
+<div id="leaderboardFrame" class="frame">
+  <h2>Leaderboard</h2>
+  <p>[Placeholder for leaderboard]</p>
+  <button onclick="showFrame('inviteMenu')">⬅ Back</button>
+</div>
+
+<!-- Classic Game -->
+<div id="classicFrame" class="frame">
+  <h2>Classic Game</h2>
+  <p>15 min timer per side.</p>
+  <button onclick="showFrame('mainMenu')">⬅ Back to Menu</button>
+</div>
+
+<!-- Quick Game -->
+<div id="quickFrame" class="frame">
+  <h2>Quick Game</h2>
+  <p>30 seconds per move. Fail to move → Lose.</p>
+  <div id="timer" class="timer">30</div>
+  <button onclick="startQuickGame()">Start</button>
+  <button onclick="showFrame('mainMenu')">⬅ Back to Menu</button>
+</div>
+
+<script>
+  let timerInterval;
+  let timeLeft = 30;
+
+  function showFrame(id) {
+    document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    clearInterval(timerInterval); // stop timer when leaving quick game
+    timeLeft = 30;
+    document.getElementById("timer").style.color = "black";
+    document.getElementById("timer").textContent = timeLeft;
+  }
+
+  function startQuickGame() {
+    timeLeft = 30;
+    document.getElementById("timer").textContent = timeLeft;
+    document.getElementById("timer").style.color = "black";
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      if (timeLeft <= 10) {
+        document.getElementById("timer").style.color = "red";
+      }
+      document.getElementById("timer").textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        alert("You lose! Time ran out.");
+      }
+    }, 1000);
+  }
+</script>
+
+</body>
+</html>
