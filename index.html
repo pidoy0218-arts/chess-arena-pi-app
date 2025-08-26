@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CHESS ARENA for PI</title>
+<style>
+  :root{
+    --bg1:#0f0f14; --bg2:#1b1a22;
+    --gold:#d4a34a; --gold-d:#a97f34;
+    --wood-light:#f0d9b5; --wood-dark:#8b4a2a;
+    --quick-a:#2b3a67; --quick-b:#1f2742;
+    --panel:#1f1e26; --panel-2:#24232d;
+    --text:#f5f5f7; --muted:#9aa0a6; --ok:#39d98a; --warn:#ffb020; --bad:#ff5d5d;
+    --btn:#343347; --btn-hover:#3f3e56; --btn-active:#2a2940;
+    --accent:#6dd6ff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(160deg,var(--bg1),var(--bg2));color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial}
+  /* Layout */
+  .shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .frame{width:min(980px,92vw);background:var(--panel);border:1px solid #2b2a36;border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.35);display:none}
+  .frame.active{display:block;animation:pop .35s ease}
+  @keyframes pop{from{opacity:.0;transform:scale(.985)} to{opacity:1;transform:scale(1)}}
+  .stack{display:flex;flex-direction:column;gap:16px;align-items:center}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
+  .topbar{width:100%;display:flex;justify-content:center}
+  /* Logo */
+  .logoWrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .logoBadge{width:72px;height:72px;border-radius:16px;background:radial-gradient(circle at 30% 30%, #fff4, #0000), #2a1d12;display:grid;place-items:center;box-shadow:inset 0 0 0 2px #48331e, 0 8px 30px rgba(0,0,0,.35)}
+  .logoBadge svg{width:44px;height:44px}
+  .title{font-weight:900;font-size:1.8rem;letter-spacing:.6px}
+  .title .gold{color:var(--gold)}
+  /* Buttons */
+  .btn{border:0;background:var(--btn);color:var(--text);padding:11px 16px;border-radius:999px;font-weight:800;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .btn:hover{background:var(--btn-hover)}
+  .btn:active{background:var(--btn-active)}
+  .btn.gold{background:linear-gradient(180deg,var(--gold),var(--gold-d));color:#23180a}
+  .btn.ghost{background:transparent;border:1px solid #3a394a}
+  .pill{padding:10px 14px;border-radius:999px;border:1px solid #3a394a;background:var(--panel-2);font-weight:800;cursor:pointer}
+  .pill.quick{background:linear-gradient(180deg,var(--quick-a),var(--quick-b));border-color:#39466f}
+  .pill.classic{background:linear-gradient(180deg,#6b4a2a,#4b341d);border-color:#7a5634}
+  .pill.puzzle{background:linear-gradient(180deg,#2c5c3e,#1d3b28);border-color:#2f6a45}
+  .pill.dim{filter:brightness(.75);transform:translateY(1px)}
+  .disabled{opacity:.45;pointer-events:none}
+  .muted{color:var(--muted);font-size:.95rem}
+  /* Invite list */
+  .inviteBox{width:100%;max-width:720px;background:var(--panel-2);border:1px solid #333245;border-radius:14px;padding:14px}
+  .inviteRow{display:flex;gap:8px;align-items:center}
+  input[type=text]{flex:1;padding:10px 12px;border-radius:10px;border:1px solid #3a394a;background:#1c1b23;color:var(--text);outline:none}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .chip{background:#2b2a38;border:1px solid #3a394a;color:var(--text);padding:6px 10px;border-radius:999px}
+  .online{color:var(--ok);font-weight:700;margin-left:4px}
+  .offline{color:var(--bad);font-weight:700;margin-left:4px}
+  /* Board */
+  .boardWrap{width:100%;display:flex;flex-direction:column;gap:12px;align-items:center}
+  .infoBar{width:100%;max-width:720px;background:var(--panel-2);border:1px solid #333245;border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between}
+  .idBox{display:flex;align-items:center;gap:10px}
+  .tag{background:#2f2e3f;border:1px solid #3a394a;padding:6px 10px;border-radius:999px}
+  .timer{font-variant-numeric:tabular-nums;font-weight:900}
+  .timer.warn{color:var(--warn)}
+  .board{width:min(720px,92vw);aspect-ratio:1/1;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:12px;overflow:hidden;border:2px solid #4a321d}
+  .sq{display:flex;align-items:center;justify-content:center;font-weight:900}
+  /* themes */
+  .classic .light{background:var(--wood-light)}
+  .classic .dark{background:var(--wood-dark)}
+  .quick .light{background:#2c375e}
+  .quick .dark{background:#1b223c}
+  /* move history */
+  .history{width:100%;max-width:720px;background:var(--panel-2);border:1px solid #333245;border-radius:12px;padding:10px 12px}
+  .history .list{max-height:140px;overflow:auto;display:grid;grid-auto-rows:min-content;gap:4px}
+  .move{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;color:#e6e1f8}
+  /* fade */
+  .fade{transition:filter .2s ease}
+  .fade.dim{filter:brightness(.7)}
+  /* tiny helper */
+  .note{font-size:.85rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- Intro -->
+  <section id="intro" class="frame active">
+    <div class="stack">
+      <div class="logoWrap">
+        <div class="logoBadge" aria-label="Logo">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+              <stop stop-color="#f5d2a6"/><stop offset="1" stop-color="#c07a2e"/></linearGradient></defs>
+            <circle cx="32" cy="32" r="22" fill="url(#g)" stroke="#6f4b1f" stroke-width="3"/>
+            <path d="M24 42h16l-2-8H26l-2 8z" fill="#5b3a1a"/>
+            <circle cx="32" cy="28" r="8" fill="#fff" opacity=".85"/>
+          </svg>
+        </div>
+        <div class="title">CHESS ARENA <span class="gold">for PI</span></div>
+        <div class="muted">Animated intro (simple). Tap continue.</div>
+      </div>
+      <button class="btn gold" id="introContinue">Continue</button>
+    </div>
+  </section>
+
+  <!-- Login -->
+  <section id="login" class="frame">
+    <div class="stack">
+      <div class="logoWrap">
+        <div class="title">CHESS ARENA <span class="gold">for PI</span></div>
+        <div class="muted">Sign in to proceed.</div>
+      </div>
+      <button class="btn gold" id="btnLogin">Login with Pi</button>
+      <div class="note" id="loginNote">Status: Not signed in</div>
+    </div>
+  </section>
+
+  <!-- Main Menu -->
+  <section id="menu" class="frame">
+    <div class="stack">
+      <div class="logoWrap" style="gap:4px;">
+        <div class="title" style="font-size:1.3rem">Menu</div>
+        <div class="muted">Top center small logo + toggles</div>
+      </div>
+      <div class="row">
+        <button class="pill puzzle" id="btnPuzzle">PUZZLE</button>
+        <button class="pill classic" id="btnClassicFromMenu">CLASSIC</button>
+        <button class="pill quick" id="btnQuickFromMenu">QUICK</button>
+        <button class="pill ghost disabled">LDRBOARD</button>
+      </div>
+      <div class="note">Classic/Quick require inviting a friend first. You’ll be redirected to Invite.</div>
+      <div class="row">
+        <button class="btn" id="btnInviteStart">Invite Pioneer Friends</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Invite Friends -->
+  <section id="invite" class="frame">
+    <div class="stack">
+      <div class="title">Invite Friends (Pi)</div>
+      <div class="inviteBox">
+        <div class="inviteRow">
+          <input type="text" id="friendInput" placeholder="Enter Pi username (e.g. @pioneer1)"/>
+          <button class="btn" id="addFriend">Add</button>
+        </div>
+        <div class="chips" id="friendChips"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="checkOnline">Check Online</button>
+          <button class="btn gold" id="inviteNext" disabled>Next: Choose Mode</button>
+        </div>
+        <div class="note" id="inviteNote">Add at least one friend, check online, then continue.</div>
+      </div>
+      <button class="btn ghost" id="backToMenu1">Back</button>
+    </div>
+  </section>
+
+  <!-- Mode Select (after Invite) -->
+  <section id="mode" class="frame">
+    <div class="stack">
+      <div class="title">Select Game Mode</div>
+      <div class="row">
+        <button class="pill classic" id="pickClassic">CLASSIC (15:00 each)</button>
+        <button class="pill quick" id="pickQuick">QUICK (0:30 per move)</button>
+      </div>
+      <div class="note">Buttons dim for ~2s, then open the game.</div>
+      <button class="btn ghost" id="backToInvite">Back to Invite</button>
+    </div>
+  </section>
+
+  <!-- Game Board -->
+  <section id="game" class="frame">
+    <div class="stack">
+      <div class="boardWrap">
+        <!-- Top info (opponent) -->
+        <div class="infoBar">
+          <div class="idBox">
+            <span class="tag">OPP</span>
+            <span id="oppId">@opponent</span>
+          </div>
+          <div class="timer" id="oppTimer">15:00</div>
+          <div class="idBox">
+            <span class="tag">CAP</span>
+            <span id="oppCap">–</span>
+          </div>
+        </div>
+        <!-- Board -->
+        <div id="board" class="board classic"></div>
+        <!-- Bottom info (you) -->
+        <div class="infoBar">
+          <div class="idBox">
+            <span class="tag">YOU</span>
+            <span id="youId">@you</span>
+          </div>
+          <div class="timer" id="youTimer">15:00</div>
+          <div class="idBox">
+            <span class="tag">CAP</span>
+            <span id="youCap">–</span>
+          </div>
+        </div>
+        <!-- Move history -->
+        <div class="history">
+          <div style="font-weight:800;margin-bottom:6px;">Move History</div>
+          <div class="list" id="moveList"><div class="move">— ready —</div></div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="backToMode">Back</button>
+        <button class="btn" id="resignBtn">Resign</button>
+        <button class="btn" id="drawBtn">Offer Draw</button>
+        <button class="btn gold" id="rematchBtn">Rematch</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Puzzle Placeholder (optional path) -->
+  <section id="puzzle" class="frame">
+    <div class="stack">
+      <div class="title">Puzzle Mode</div>
+      <div class="note">Timer placeholder, board placeholder here too.</div>
+      <div class="infoBar">
+        <div class="idBox"><span class="tag">PUZZLE</span><span>Daily #001</span></div>
+        <div class="timer" id="puzzleTimer">01:00</div>
+        <div class="idBox"><span class="tag">HINT</span><span>—</span></div>
+      </div>
+      <div id="puzzleBoard" class="board quick"></div>
+      <button class="btn ghost" id="backToMenu2">Back</button>
+    </div>
+  </section>
+</div>
+
+<script>
+  /* ====== SIMPLE STATE & NAV ====== */
+  const S = {
+    you: '@you',
+    opp: '@opponent',
+    mode: 'classic', // or 'quick'
+    invited: [],
+    online: new Set()
+  };
+
+  const frames = ['intro','login','menu','invite','mode','game','puzzle'];
+  function show(id){
+    frames.forEach(fid => document.getElementById(fid).classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+  function dimThen(el, next){
+    el.classList.add('dim');
+    setTimeout(()=>{ el.classList.remove('dim'); next(); }, 2000);
+  }
+
+  /* ====== INTRO ====== */
+  document.getElementById('introContinue').addEventListener('click', e=>{
+    dimThen(e.currentTarget, ()=> show('login'));
+  });
+
+  /* ====== LOGIN ====== */
+  const loginNote = document.getElementById('loginNote');
+  document.getElementById('btnLogin').addEventListener('click', e=>{
+    dimThen(e.currentTarget, ()=>{
+      loginNote.textContent = 'Status: Signed in as @you';
+      S.you='@you';
+      show('menu');
+    });
+  });
+
+  /* ====== MENU ====== */
+  document.getElementById('btnInviteStart').addEventListener('click', e=>{
+    dimThen(e.currentTarget, ()=> show('invite'));
+  });
+  document.getElementById('btnClassicFromMenu').addEventListener('click', e=>{
+    dimThen(e.currentTarget, ()=> show('invite')); // force invite first
+  });
+  document.getElementById('btnQuickFromMenu').addEventListener('click', e=>{
+    dimThen(e.currentTarget, ()=> show('invite')); // force invite first
+  });
+  document.getElementById('btnPuzzle').addEventListener('click', e=>{
+    dimThen(e.currentTarget, ()=>{
+      buildBoard(document.getElementById('puzzleBoard'), 'quick');
+      document.getElementById('puzzleTimer').textContent = '01:00';
+      show('puzzle');
+    });
+  });
+
+  /* ====== INVITE ====== */
+  const friendInput = document.getElementById('friendInput');
+  const chips = document.getElementById('friendChips');
+  const inviteNext = document.getElementById('inviteNext');
+  const inviteNote = document.getElementById('inviteNote');
+
+  function renderChips(){
+    chips.innerHTML = '';
+    S.invited.forEach(u=>{
+      const span = document.createElement('span');
+      span.className='chip';
+      span.textContent = u + (S.online.has(u) ? ' • online' : ' • offline');
+      span.style.borderColor = S.online.has(u) ? '#2f6a45' : '#6a2f2f';
+      span.style.background = S.online.has(u) ? '#1f2b23' : '#2b1f23';
+      chips.appendChild(span);
+    });
+    const anyOnline = S.invited.some(u=>S.online.has(u));
+    inviteNext.disabled = !anyOnline;
+    inviteNote.textContent = anyOnline ? 'At least one friend is online. Continue.' : 'Add & check; need one online to continue.';
+  }
+
+  document.getElementById('addFriend').addEventListener('click', ()=>{
+    const v = friendInput.value.trim();
+    if(!v) return;
+    if(!S.invited.includes(v)) S.invited.push(v);
+    friendInput.value='';
+    renderChips();
+  });
+
+  document.getElementById('checkOnline').addEventListener('click', e=>{
+    dimThen(e.currentTarget, ()=>{
+      // Sandbox: randomly mark some as online
+      S.online.clear();
+      S.invited.forEach(u=>{ if(Math.random() > 0.4) S.online.add(u); });
+      renderChips();
+    });
+  });
+
+  inviteNext.addEventListener('click', e=>{
+    dimThen(e.currentTarget, ()=> show('mode'));
+  });
+
+  document.getElementById('backToMenu1').addEventListener('click', ()=> show('menu'));
+
+  /* ====== MODE PICK (AFTER INVITE) ====== */
+  document.getElementById('pickClassic').addEventListener('click', e=>{
+    dimThen(e.currentTarget, ()=>{
+      S.mode='classic';
+      enterGame();
+    });
+  });
+  document.getElementById('pickQuick').addEventListener('click', e=>{
+    dimThen(e.currentTarget, ()=>{
+      S.mode='quick';
+      enterGame();
+    });
+  });
+  document.getElementById('backToInvite').addEventListener('click', ()=> show('invite'));
+
+  /* ====== GAME VIEW ====== */
+  function enterGame(){
+    // set IDs
+    document.getElementById('youId').textContent = S.you;
+    // pick first online friend as opponent
+    const opp = S.invited.find(u=>S.online.has(u)) || S.invited[0] || '@opponent';
+    S.opp = opp;
+    document.getElementById('oppId').textContent = S.opp;
+
+    // timers by mode (placeholders)
+    if(S.mode==='classic'){
+      document.getElementById('youTimer').textContent = '15:00';
+      document.getElementById('oppTimer').textContent = '15:00';
+    }else{
+      document.getElementById('youTimer').textContent = '00:30';
+      document.getElementById('oppTimer').textContent = '00:30';
+    }
+
+    // board theme
+    const board = document.getElementById('board');
+    board.classList.remove('classic','quick');
+    board.classList.add(S.mode==='classic'?'classic':'quick');
+
+    // build board squares (placeholder tiles only)
+    buildBoard(board, S.mode);
+
+    // reset move list placeholder
+    const list = document.getElementById('moveList');
+    list.innerHTML = '<div class="move">— game ready —</div>';
+
+    show('game');
+  }
+
+  function buildBoard(boardEl, theme){
+    boardEl.innerHTML='';
+    for(let r=0;r<8;r++){
+      for(let c=0;c<8;c++){
+        const d = document.createElement('div');
+        d.className='sq ' + (((r+c)%2===0)?'light':'dark');
+        boardEl.appendChild(d);
+      }
+    }
+  }
+
+  // Game controls (placeholders)
+  document.getElementById('backToMode').addEventListener('click', ()=> show('mode'));
+  document.getElementById('resignBtn').addEventListener('click', ()=> alert('Resign (placeholder)'));
+  document.getElementById('drawBtn').addEventListener('click', ()=> alert('Draw offer (placeholder)'));
+  document.getElementById('rematchBtn').addEventListener('click', ()=> alert('Rematch (placeholder)'));
+
+  // Puzzle back
+  document.getElementById('backToMenu2').addEventListener('click', ()=> show('menu'));
+</script>
+</body>
+</html>
