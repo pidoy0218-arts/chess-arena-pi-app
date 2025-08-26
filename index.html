@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Arena Pi</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; background: #f8f8f8; margin: 0; }
+  .screen { display: none; padding: 20px; }
+  .active { display: block; }
+  button { padding: 10px 20px; margin: 10px; border: none; border-radius: 8px; background: #444; color: #fff; font-size: 16px; }
+  button:hover { background: #666; }
+  #timer { font-size: 32px; margin: 20px; }
+  #timer.red { color: red; }
+  #board { width: 320px; height: 320px; margin: 20px auto; background: burlywood; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); }
+  .cell { width: 40px; height: 40px; }
+  .light { background: #f0d9b5; }
+  .dark { background: #b58863; }
+</style>
+</head>
+<body>
+
+<!-- Frame 1: Invite -->
+<div id="invite" class="screen active">
+  <h1>Invite Friends</h1>
+  <button onclick="goTo('selector')">Invite Friend</button>
+  <button onclick="goTo('selector')">Random Opponent</button>
+  <button onclick="alert('Leaderboard Placeholder')">Leaderboard</button>
+</div>
+
+<!-- Frame 2: Selector -->
+<div id="selector" class="screen">
+  <h1>Select Game Mode</h1>
+  <button onclick="startClassic()">Classic Game</button>
+  <button onclick="startQuick()">Quick Game</button>
+  <button onclick="goTo('invite')">Back</button>
+</div>
+
+<!-- Frame 3a: Classic -->
+<div id="classic" class="screen">
+  <h1>Classic Game</h1>
+  <div id="classic-board"></div>
+  <div id="classic-timer">10:00</div>
+  <button onclick="endGame('You Lose')">Forfeit</button>
+</div>
+
+<!-- Frame 3b: Quick Game -->
+<div id="quick" class="screen">
+  <h1>Quick Game (30s per move)</h1>
+  <div id="board"></div>
+  <div id="timer">30</div>
+  <button onclick="endGame('You Lose')">Forfeit</button>
+</div>
+
+<!-- Frame 4: End -->
+<div id="end" class="screen">
+  <h1 id="endMessage"></h1>
+  <button onclick="goTo('selector')">Play Again</button>
+  <button onclick="goTo('invite')">Back</button>
+</div>
+
+<script>
+let timer, timeLeft = 30;
+
+function goTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screen).classList.add('active');
+  clearInterval(timer);
+}
+
+function startClassic() {
+  goTo('classic');
+  document.getElementById('classic-timer').innerText = "10:00";
+}
+
+function startQuick() {
+  goTo('quick');
+  buildBoard();
+  startTimer();
+}
+
+function buildBoard() {
+  let board = document.getElementById('board');
+  board.innerHTML = "";
+  for (let r=0; r<8; r++) {
+    for (let c=0; c<8; c++) {
+      let cell = document.createElement('div');
+      cell.className = 'cell ' + ((r+c)%2===0 ? 'light' : 'dark');
+      board.appendChild(cell);
+    }
+  }
+}
+
+function startTimer() {
+  timeLeft = 30;
+  updateTimer();
+  timer = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      endGame("You Lose");
+    }
+  }, 1000);
+}
+
+function updateTimer() {
+  let t = document.getElementById('timer');
+  t.innerText = timeLeft;
+  if (timeLeft <= 10) {
+    t.classList.add('red');
+  } else {
+    t.classList.remove('red');
+  }
+}
+
+function endGame(msg) {
+  goTo('end');
+  document.getElementById('endMessage').innerText = msg;
+}
+</script>
+
+</body>
+</html>
