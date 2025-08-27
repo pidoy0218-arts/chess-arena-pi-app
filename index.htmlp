@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena for Pi</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #222;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .frame {
+      display: none;
+      text-align: center;
+      width: 100%;
+      max-width: 500px;
+      padding: 20px;
+    }
+    .active {
+      display: block;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+    .knight {
+      font-size: 60px;
+      color: gold;
+      animation: bounce 1.5s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    button {
+      display: block;
+      margin: 10px auto;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #444;
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #666;
+    }
+    /* Game Frame extras */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 0.9em;
+    }
+    .chessboard {
+      width: 320px;
+      height: 320px;
+      margin: 10px auto;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+    }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+    .controls {
+      margin-top: 15px;
+    }
+    .controls button {
+      display: inline-block;
+      margin: 5px;
+      padding: 10px 14px;
+      font-size: 0.8em;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Frame -->
+  <div id="loginFrame" class="frame active">
+    <div class="knight">♞</div>
+    <h1>CHESS ARENA for PI</h1>
+    <button onclick="goToMenu()">Login with Pi</button>
+  </div>
+
+  <!-- Menu Frame -->
+  <div id="menuFrame" class="frame">
+    <h1>Menu</h1>
+    <button onclick="goToGame('quick')">INVITE</button>
+    <button onclick="goToGame('quick')">QUICK (30s)</button>
+    <button onclick="goToGame('classic')">CLASSIC (15m)</button>
+    <button>LEADERBOARD</button>
+    <button disabled>TOURNAMENT (coming soon)</button>
+  </div>
+
+  <!-- Game Frame -->
+  <div id="gameFrame" class="frame">
+    <div class="top-bar">
+      <div>Player A ⏱ 15:00</div>
+      <div>Player B ⏱ 15:00</div>
+    </div>
+    <div class="chessboard" id="chessboard">
+      <!-- 64 squares -->
+      <script>
+        for (let i=0;i<64;i++) {
+          document.write(`<div class="${((Math.floor(i/8)+i)%2==0)?'light':'dark'}"></div>`);
+        }
+      </script>
+    </div>
+    <div class="controls">
+      <button>Draw</button>
+      <button>Resign</button>
+      <button>Rematch</button>
+      <button>History</button>
+    </div>
+    <button onclick="goToMenu()">Back to Menu</button>
+  </div>
+
+<script>
+  function goToMenu() {
+    showFrame('menuFrame');
+  }
+  function goToGame(mode) {
+    showFrame('gameFrame');
+    console.log("Game mode:", mode);
+  }
+  function showFrame(id) {
+    document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+</script>
+
+</body>
+</html>
