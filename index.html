@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena for Pi</title>
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #menu {
+      margin: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    #inviteBtn { background: #6c63ff; color: white; }
+    #quickBtn { background: #ff9800; color: white; }
+    #classicBtn { background: #4caf50; color: white; }
+    #game {
+      display: none;
+      margin-top: 20px;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 50px);
+      grid-template-rows: repeat(8, 50px);
+      margin: auto;
+      border: 3px solid #fff;
+    }
+    .cell {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+    .light2 { background: #d1e7dd; }
+    .dark2 { background: #1976d2; }
+    #timers {
+      margin: 15px;
+      font-size: 20px;
+    }
+    .warning {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>♟️ Chess Arena for Pi</h1>
+  <div id="menu">
+    <button id="loginBtn">Login with Pi</button>
+    <button id="inviteBtn">Invite Friend</button>
+    <button id="quickBtn">Quick Game</button>
+    <button id="classicBtn">Classic Game</button>
+  </div>
+
+  <div id="game">
+    <div id="timers">
+      ⬜ White: <span id="whiteTimer">30</span>s | ⬛ Black: <span id="blackTimer">30</span>s
+    </div>
+    <div id="board" class="board"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script>
+    const board = document.getElementById("board");
+    const game = new Chess();
+    let currentPlayer = "w"; // white starts
+    let whiteTime = 30;
+    let blackTime = 30;
+    let timerInterval;
+
+    function buildBoard() {
+      board.innerHTML = "";
+      for (let row = 7; row >= 0; row--) {
+        for (let col = 0; col < 8; col++) {
+          const square = document.createElement("div");
+          const isLight = (row + col) % 2 === 0;
+          square.className = "cell " + (isLight ? "light" : "dark");
+
+          // Quick board distinction (classic = wood, quick = blue/green)
+          if (document.body.dataset.mode === "quick") {
+            square.className = "cell " + (isLight ? "light2" : "dark2");
+          }
+
+          const pos = "abcdefgh"[col] + (row + 1);
+          const piece = game.get(pos);
+          if (piece) {
+            square.textContent = piece.type.toUpperCase();
+            square.style.color = piece.color === "w" ? "ivory" : "black";
+          }
+          board.appendChild(square);
+        }
+      }
+    }
+
+    function updateTimers() {
+      document.getElementById("whiteTimer").textContent = whiteTime;
+      document.getElementById("blackTimer").textContent = blackTime;
+
+      // warning
+      document.getElementById("whiteTimer").className = whiteTime <= 10 ? "warning" : "";
+      document.getElementById("blackTimer").className = blackTime <= 10 ? "warning" : "";
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (currentPlayer === "w") {
+          whiteTime--;
+          if (whiteTime <= 0) {
+            clearInterval(timerInterval);
+            alert("⛔ White ran out of time! Black wins!");
+          }
+        } else {
+          blackTime--;
+          if (blackTime <= 0) {
+            clearInterval(timerInterval);
+            alert("⛔ Black ran out of time! White wins!");
+          }
+        }
+        updateTimers();
+      }, 1000);
+    }
+
+    // Mode buttons
+    document.getElementById("quickBtn").addEventListener("click", () => {
+      document.body.dataset.mode = "quick";
+      document.getElementById("menu").style.display = "none";
+      document.getElementById("game").style.display = "block";
+      whiteTime = blackTime = 30;
+      updateTimers();
+      buildBoard();
+      startTimer();
+    });
+
+    document.getElementById("classicBtn").addEventListener("click", () => {
+      document.body.dataset.mode = "classic";
+      document.getElementById("menu").style.display = "none";
+      document.getElementById("game").style.display = "block";
+      whiteTime = blackTime = 300; // example 5min for classic
+      updateTimers();
+      buildBoard();
+      startTimer();
+    });
+
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      alert("🔑 Pi Login bridge placeholder");
+    });
+
+    document.getElementById("inviteBtn").addEventListener("click", () => {
+      alert("📨 Invite friend via Pi SDK placeholder");
+    });
+  </script>
+</body>
+</html>
