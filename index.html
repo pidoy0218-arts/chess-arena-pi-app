@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena for Pi</title>
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    h1 {
+      color: #f1c40f;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    #loginBtn { background: #3498db; color: white; }
+    #inviteBtn { background: #9b59b6; color: white; }
+    #toggleBoard { background: #2ecc71; color: black; } /* ✅ bright green toggle */
+    #board {
+      display: none; /* initially hidden */
+      margin: 20px auto;
+      width: 320px;
+      height: 320px;
+      background: #deb887; /* wooden */
+    }
+  </style>
+</head>
+<body>
+  <h1>Chess Arena for Pi</h1>
+
+  <button id="loginBtn">Login with Pi</button>
+  <button id="inviteBtn">Invite</button>
+  <button id="toggleBoard">Toggle Gameboard</button>
+
+  <div id="board">[Gameboard Placeholder]</div>
+
+  <!-- ✅ Pi SDK Mock Bridge -->
+  <script>
+    if (typeof window.Pi === "undefined") {
+      console.log("⚠️ Pi SDK not detected. Using mock bridge for testing in Chrome.");
+      window.Pi = {
+        authenticate: async (scopes, onIncomplete) => {
+          console.log("Mock Pi.authenticate called with scopes:", scopes);
+          return {
+            user: { uid: "test_user_123", username: "pioneer_mock" },
+            accessToken: "mock_access_token_abc123"
+          };
+        },
+        payments: {
+          create: async (paymentData, onIncomplete) => {
+            console.log("Mock Pi.createPayment called:", paymentData);
+            return { txid: "mock_tx_001", status: "completed" };
+          },
+        },
+        openShareDialog: async (options) => {
+          console.log("Mock Pi.openShareDialog:", options);
+          return { success: true };
+        }
+      };
+    }
+  </script>
+
+  <!-- ✅ Wiring Buttons -->
+  <script>
+    const loginBtn = document.getElementById("loginBtn");
+    const inviteBtn = document.getElementById("inviteBtn");
+    const toggleBoardBtn = document.getElementById("toggleBoard");
+    const board = document.getElementById("board");
+
+    loginBtn.addEventListener("click", async () => {
+      const result = await Pi.authenticate(["username"], () => {});
+      alert("Logged in as: " + result.user.username);
+    });
+
+    inviteBtn.addEventListener("click", async () => {
+      await Pi.openShareDialog({
+        title: "Join me on Chess Arena for Pi",
+        message: "Play chess with me and other Pioneers!",
+      });
+      alert("Invite sent (mock in Chrome).");
+    });
+
+    toggleBoardBtn.addEventListener("click", () => {
+      if (board.style.display === "none") {
+        board.style.display = "block";
+      } else {
+        board.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
