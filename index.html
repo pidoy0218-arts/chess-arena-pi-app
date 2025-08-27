@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chess Arena Pi</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #1a1a1a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 15px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .toggle-menu {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 18px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    #toggleLogin {
+      background: #4CAF50;
+      color: white;
+    }
+
+    #toggleLeaderboard {
+      background: #2196F3;
+      color: white;
+    }
+
+    .frame {
+      display: none;
+      background: #2b2b2b;
+      padding: 15px;
+      border-radius: 10px;
+      width: 100%;
+      min-height: 200px;
+    }
+
+    .frame.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>♟ The Chess Arena Pi</h1>
+
+    <!-- Toggle buttons -->
+    <div class="toggle-menu">
+      <button id="toggleLogin">Login</button>
+      <button id="toggleLeaderboard">Leaderboard</button>
+    </div>
+
+    <!-- Frames -->
+    <div id="loginFrame" class="frame">
+      <p>🔑 Pi Login Placeholder</p>
+      <p>Click here to login with Pi SDK (coming soon).</p>
+    </div>
+
+    <div id="leaderboardFrame" class="frame">
+      <h2>🏆 Leaderboard</h2>
+      <ol>
+        <li>Alice — 1500 pts</li>
+        <li>Bob — 1420 pts</li>
+        <li>Charlie — 1390 pts</li>
+      </ol>
+    </div>
+
+    <div id="gameFrame" class="frame">
+      <p>♟ Game board & timers will render here.</p>
+    </div>
+  </div>
+
+  <script>
+    const loginBtn = document.getElementById("toggleLogin");
+    const leaderboardBtn = document.getElementById("toggleLeaderboard");
+
+    const loginFrame = document.getElementById("loginFrame");
+    const leaderboardFrame = document.getElementById("leaderboardFrame");
+    const gameFrame = document.getElementById("gameFrame");
+
+    function hideAll() {
+      loginFrame.classList.remove("active");
+      leaderboardFrame.classList.remove("active");
+      gameFrame.classList.remove("active");
+    }
+
+    loginBtn.addEventListener("click", () => {
+      hideAll();
+      loginFrame.classList.add("active");
+    });
+
+    leaderboardBtn.addEventListener("click", () => {
+      hideAll();
+      leaderboardFrame.classList.add("active");
+    });
+  </script>
+</body>
+</html>
