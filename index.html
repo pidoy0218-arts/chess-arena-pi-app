@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Chess Arena Pi</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      background: #f4f4f4;
+    }
+    .frame { display: none; padding: 20px; }
+    #loginFrame, #menuFrame, #gameFrame, #endFrame, #leaderboardFrame {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    button {
+      padding: 10px 20px; margin: 10px;
+      border: none; border-radius: 5px;
+      background: #4CAF50; color: white; font-size: 16px;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 50px);
+      grid-template-rows: repeat(8, 50px);
+      gap: 0;
+      margin: 20px auto;
+      border: 2px solid #333;
+    }
+    .square {
+      width: 50px; height: 50px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; user-select: none;
+    }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+  </style>
+</head>
+<body>
+
+  <!-- Login -->
+  <div id="loginFrame" class="frame" style="display:block;">
+    <h1>Welcome to The Chess Arena Pi</h1>
+    <button onclick="showFrame('menuFrame')">Login (placeholder)</button>
+  </div>
+
+  <!-- Menu -->
+  <div id="menuFrame" class="frame">
+    <h2>Main Menu</h2>
+    <button onclick="startQuickGame()">Quick Game</button>
+    <button onclick="startClassicGame()">Classic Game</button>
+    <button onclick="showFrame('leaderboardFrame')">Leaderboard</button>
+  </div>
+
+  <!-- Game -->
+  <div id="gameFrame" class="frame">
+    <h2>Game On!</h2>
+    <div id="board"></div>
+    <button onclick="endGame()">End Game</button>
+  </div>
+
+  <!-- End -->
+  <div id="endFrame" class="frame">
+    <h2>Game Over</h2>
+    <button onclick="showFrame('menuFrame')">Back to Menu</button>
+  </div>
+
+  <!-- Leaderboard -->
+  <div id="leaderboardFrame" class="frame">
+    <h2>Leaderboard</h2>
+    <p>(Placeholder)</p>
+    <button onclick="showFrame('menuFrame')">Back</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script>
+    const chess = new Chess();
+    let selectedSquare = null;
+
+    function showFrame(id) {
+      document.querySelectorAll('.frame').forEach(f => f.style.display = 'none');
+      document.getElementById(id).style.display = 'flex';
+    }
+
+    function startQuickGame() {
+      showFrame('gameFrame');
+      initBoard();
+    }
+
+    function startClassicGame() {
+      alert("Classic Game placeholder");
+    }
+
+    function endGame() {
+      showFrame('endFrame');
+    }
+
+    function initBoard() {
+      const boardDiv = document.getElementById('board');
+      boardDiv.innerHTML = '';
+      const board = chess.board();
+      for (let r = 7; r >= 0; r--) {
+        for (let c = 0; c < 8; c++) {
+          const squareColor = (r + c) % 2 === 0 ? 'light' : 'dark';
+          const square = document.createElement('div');
+          square.className = `square ${squareColor}`;
+          const piece = board[r][c];
+          if (piece) square.textContent = piece.type.toUpperCase();
+          square.dataset.row = r;
+          square.dataset.col = c;
+          square.onclick = () => handleClick(r, c);
+          boardDiv.appendChild(square);
+        }
+      }
+    }
+
+    function handleClick(r, c) {
+      const file = 'abcdefgh'[c];
+      const rank = r + 1;
+      const squareName = file + rank;
+
+      if (!selectedSquare) {
+        selectedSquare = squareName;
+      } else {
+        const move = chess.move({ from: selectedSquare, to: squareName, promotion: 'q' });
+        selectedSquare = null;
+        if (move) initBoard();
+      }
+    }
+  </script>
+</body>
+</html>
