@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Game</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; background: #e6e2d3; }
+    h2 { margin: 20px 0; }
+    #board { width: 90vmin; margin: auto; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); border: 4px solid #333; }
+    .square { width: 100%; padding-top: 100%; position: relative; }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+    .piece { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2em; cursor: pointer; }
+    button { margin: 20px; padding: 10px 20px; font-size: 16px; border: none; border-radius: 6px; background: #444; color: #fff; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>Quick Game</h2>
+  <div id="board"></div>
+  <button onclick="window.location.href='menu.html'">Back to Menu</button>
+
+  <script>
+    const boardEl = document.getElementById('board');
+    const pieces = {
+      r: "♜", n: "♞", b: "♝", q: "♛", k: "♚", p: "♟",
+      R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔", P: "♙"
+    };
+    const startPos = [
+      "rnbqkbnr",
+      "pppppppp",
+      "........",
+      "........",
+      "........",
+      "........",
+      "PPPPPPPP",
+      "RNBQKBNR"
+    ];
+    // build 8x8
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const square = document.createElement('div');
+        square.classList.add('square');
+        square.classList.add((row + col) % 2 === 0 ? 'light' : 'dark');
+        const piece = startPos[row][col];
+        if (piece !== ".") {
+          const pieceEl = document.createElement('div');
+          pieceEl.classList.add('piece');
+          pieceEl.textContent = pieces[piece];
+          square.appendChild(pieceEl);
+        }
+        boardEl.appendChild(square);
+      }
+    }
+  </script>
+</body>
+</html>
