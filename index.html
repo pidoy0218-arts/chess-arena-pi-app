@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5dc;
+      text-align: center;
+    }
+    .screen {
+      display: none;
+      padding: 20px;
+    }
+    .active {
+      display: block;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    /* Chess board styling */
+    #board {
+      width: 320px;
+      height: 320px;
+      margin: 20px auto;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      border: 4px solid #654321;
+    }
+    .square {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+    .light {
+      background: #f0d9b5;
+    }
+    .dark {
+      background: #b58863;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Start Screen -->
+  <div id="start" class="screen active">
+    <h1>♟️ Chess Arena Pi</h1>
+    <button onclick="goTo('home')">Start</button>
+  </div>
+
+  <!-- Home Screen -->
+  <div id="home" class="screen">
+    <h2>Main Menu</h2>
+    <button onclick="goTo('quick')">Quick Game</button>
+    <button onclick="goTo('classic')">Classic Game</button>
+    <button onclick="goTo('leaderboard')">Leaderboard</button>
+  </div>
+
+  <!-- Quick Game Screen -->
+  <div id="quick" class="screen">
+    <h2>Quick Game</h2>
+    <div id="board"></div>
+    <button onclick="goTo('home')">Back</button>
+  </div>
+
+  <!-- Classic Game Screen -->
+  <div id="classic" class="screen">
+    <h2>Classic Game</h2>
+    <p>[Board will be added here later]</p>
+    <button onclick="goTo('home')">Back</button>
+  </div>
+
+  <!-- Leaderboard Screen -->
+  <div id="leaderboard" class="screen">
+    <h2>Leaderboard</h2>
+    <p>[Coming soon]</p>
+    <button onclick="goTo('home')">Back</button>
+  </div>
+
+  <script>
+    // Navigation between screens
+    function goTo(screen) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screen).classList.add('active');
+    }
+
+    // Draw chess board in Quick Game
+    function drawBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const square = document.createElement('div');
+          square.classList.add('square');
+          if ((row + col) % 2 === 0) {
+            square.classList.add('light');
+          } else {
+            square.classList.add('dark');
+          }
+          board.appendChild(square);
+        }
+      }
+    }
+
+    // Load chess board when Quick screen is shown
+    document.getElementById('quick').addEventListener('click', drawBoard, { once: true });
+  </script>
+
+</body>
+</html>
