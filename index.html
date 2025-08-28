@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chess Arena for Pi</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #222;
+      color: white;
+      text-align: center;
+    }
+    .screen {
+      display: none;
+      height: 100vh;
+      width: 100vw;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .active { display: flex; }
+
+    button {
+      padding: 12px 24px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .menu-btn { background: #ffb400; color: black; }
+
+    /* Board area */
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 60px);
+      grid-template-rows: repeat(8, 60px);
+      border: 4px solid #5a381e;
+      box-shadow: 0 0 10px #000;
+    }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+    .square {
+      width: 60px; height: 60px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 40px;
+    }
+    #game-header {
+      margin-bottom: 10px;
+      font-size: 20px;
+    }
+    .back-btn { background: #ff4d4d; color: white; margin-top: 15px; }
+  </style>
+  <!-- Chess.js for rules -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="loginScreen" class="screen active">
+    <h1>Chess Arena for Pi</h1>
+    <button class="menu-btn" onclick="goTo('menuScreen')">Enter Arena</button>
+  </div>
+
+  <!-- Menu Screen -->
+  <div id="menuScreen" class="screen">
+    <h2>Main Menu</h2>
+    <button class="menu-btn" onclick="goTo('quickScreen')">Quick Game</button>
+    <button class="menu-btn" onclick="goTo('classicScreen')">Classic Game</button>
+  </div>
+
+  <!-- Quick Game Screen -->
+  <div id="quickScreen" class="screen">
+    <div id="game-header">Quick Game — Wooden Board</div>
+    <div id="board"></div>
+    <button class="back-btn" onclick="goTo('menuScreen')">Back</button>
+  </div>
+
+  <!-- Classic Placeholder -->
+  <div id="classicScreen" class="screen">
+    <h2>Classic Mode Coming Soon...</h2>
+    <button class="back-btn" onclick="goTo('menuScreen')">Back</button>
+  </div>
+
+<script>
+  const screens = ["loginScreen","menuScreen","quickScreen","classicScreen"];
+  function goTo(id) {
+    screens.forEach(s => document.getElementById(s).classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    if(id==="quickScreen") initBoard();
+  }
+
+  let chess, boardEl;
+  function initBoard() {
+    chess = new Chess();
+    boardEl = document.getElementById("board");
+    drawBoard();
+  }
+
+  function drawBoard() {
+    boardEl.innerHTML = "";
+    let board = chess.board();
+    for (let r=0; r<8; r++) {
+      for (let c=0; c<8; c++) {
+        let sq = document.createElement("div");
+        sq.className = "square " + ((r+c)%2==0 ? "light":"dark");
+        let piece = board[r][c];
+        if(piece) sq.textContent = piece.type.toUpperCase()===piece.type? 
+          pieceSymbol(piece.type).toUpperCase() : pieceSymbol(piece.type);
+        sq.onclick = ()=>onSquareClick(r,c);
+        boardEl.appendChild(sq);
+      }
+    }
+  }
+
+  let selected=null;
+  function onSquareClick(r,c){
+    let square = "abcdefgh"[c]+(8-r);
+    if(selected){
+      let move = chess.move({from:selected,to:square,promotion:"q"});
+      selected=null;
+      if(move) {
+        drawBoard();
+      }
+    } else {
+      selected=square;
+    }
+  }
+
+  function pieceSymbol(type){
+    return {
+      p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚"
+    }[type];
+  }
+</script>
+</body>
+</html>
