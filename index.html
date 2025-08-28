@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHESS ARENA for PI</title>
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; background:#111; color:#fff; }
+    .frame { display:none; height:100vh; width:100%; padding:20px; box-sizing:border-box; text-align:center; }
+    .active { display:block; }
+    button { margin:10px; padding:12px 20px; border:none; border-radius:8px; font-size:1.1em; cursor:pointer; }
+    .login { background:#f4b400; color:#111; }
+    .menu { background:#34a853; color:#fff; }
+    .game { background:#4285f4; color:#fff; }
+    .end { background:#ea4335; color:#fff; }
+    h1 { margin-bottom:20px; }
+  </style>
+</head>
+<body>
+
+  <!-- Login Frame -->
+  <div id="loginFrame" class="frame active">
+    <h1>♟️ CHESS ARENA for PI</h1>
+    <p>Login with Pi Network</p>
+    <button class="login" onclick="showFrame('menuFrame')">Login</button>
+  </div>
+
+  <!-- Menu Frame -->
+  <div id="menuFrame" class="frame">
+    <h1>Main Menu</h1>
+    <button class="menu" onclick="showFrame('quickFrame')">Quick Game</button>
+    <button class="menu" onclick="showFrame('classicFrame')">Classic Game</button>
+    <button class="menu" disabled>Tournament (Coming Soon)</button>
+    <button class="menu" onclick="showFrame('leaderboardFrame')">🏆 Leaderboard</button>
+    <button class="menu">🎡 Promo Spin</button>
+    <button class="menu">📺 Watch Ads to Play</button>
+  </div>
+
+  <!-- Quick Game Frame -->
+  <div id="quickFrame" class="frame">
+    <h1>Quick Game</h1>
+    <p>⏱️ Fast-paced match (Placeholder)</p>
+    <button class="game" onclick="showFrame('gameFrame')">Start</button>
+    <button onclick="showFrame('menuFrame')">Back</button>
+  </div>
+
+  <!-- Classic Game Frame -->
+  <div id="classicFrame" class="frame">
+    <h1>Classic Game</h1>
+    <p>♟️ Standard rules and timing (Placeholder)</p>
+    <button class="game" onclick="showFrame('gameFrame')">Start</button>
+    <button onclick="showFrame('menuFrame')">Back</button>
+  </div>
+
+  <!-- Game Frame -->
+  <div id="gameFrame" class="frame">
+    <h1>Game Screen</h1>
+    <p>[Chess Board Placeholder]</p>
+    <p>Timer: 15:00 | Captured Pieces: —</p>
+    <button class="end" onclick="showFrame('endFrame')">End Game</button>
+  </div>
+
+  <!-- Leaderboard Frame -->
+  <div id="leaderboardFrame" class="frame">
+    <h1>🏆 Leaderboard</h1>
+    <p>[Placeholder for scores]</p>
+    <button onclick="showFrame('menuFrame')">Back</button>
+  </div>
+
+  <!-- End Game Frame -->
+  <div id="endFrame" class="frame">
+    <h1>Game Over</h1>
+    <p>[Win/Lose Placeholder]</p>
+    <button class="menu" onclick="showFrame('menuFrame')">Back to Menu</button>
+  </div>
+
+  <script>
+    function showFrame(id) {
+      document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+  </script>
+
+</body>
+</html>
