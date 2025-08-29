@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Game - Chess Arena Pi</title>
+  <style>
+    body { 
+      margin: 0; 
+      padding: 0; 
+      font-family: Arial, sans-serif; 
+      background: #e0c097; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+    }
+    h2 { margin: 20px; }
+    #board { 
+      width: 95vw; 
+      max-width: 480px; 
+      aspect-ratio: 1; 
+      border: 8px solid #3e2723; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); 
+    }
+    button {
+      margin: 12px;
+      padding: 10px 20px;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+  <!-- chess.js (rules engine) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <!-- chessboard.js (UI board) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
+</head>
+<body>
+  <h2>Quick Game</h2>
+  <div id="board"></div>
+  <button onclick="window.location.href='menu.html'">Back to Menu</button>
+
+  <script>
+    var board = null;
+    var game = new Chess();
+
+    function onDragStart (source, piece) {
+      if (game.game_over()) return false;
+      // only allow moving correct side piece
+      if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+          (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+        return false;
+      }
+    }
+
+    function onDrop (source, target) {
+      var move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q' // auto promote to queen
+      });
+
+      if (move === null) return 'snapback'; // illegal move
+      updateStatus();
+    }
+
+    function onSnapEnd () {
+      board.position(game.fen());
+    }
+
+    function updateStatus () {
+      if (game.in_checkmate()) {
+        alert("Checkmate! " + (game.turn() === 'w' ? "Black" : "White") + " wins!");
+      } else if (game.in_draw()) {
+        alert("Game Drawn!");
+      }
+    }
+
+    var config = {
+      draggable: true,
+      position: 'start',
+      onDragStart: onDragStart,
+      onDrop: onDrop,
+      onSnapEnd: onSnapEnd,
+    };
+    board = Chessboard('board', config);
+  </script>
+</body>
+</html>
