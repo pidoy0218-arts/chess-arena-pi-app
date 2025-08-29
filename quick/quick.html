@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Game - Chess Arena Pi</title>
+  <link rel="stylesheet" href="style/style-board.css">
+  <link rel="stylesheet" href="style/style-quick.css">
+  <script src="logic/logic-board.js"></script>
+  <script src="logic/logic-quick.js" defer></script>
+</head>
+<body>
+  <div class="game-header">
+    <h2>⚡ Quick Game (30s per move)</h2>
+    <a href="menu.html" class="back-btn">⬅ Back to Menu</a>
+  </div>
+
+  <!-- Timer display -->
+  <div class="timer">
+    <span id="player1-timer">30</span> ⏱ <span id="player2-timer">30</span>
+  </div>
+
+  <!-- Chessboard -->
+  <div id="board"></div>
+
+  <!-- Captured pieces -->
+  <div class="captured">
+    <p>White Captures: <span id="white-captures"></span></p>
+    <p>Black Captures: <span id="black-captures"></span></p>
+  </div>
+
+  <!-- Status -->
+  <div id="status"></div>
+</body>
+</html>
