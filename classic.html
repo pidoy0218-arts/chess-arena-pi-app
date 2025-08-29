@@ -3,10 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Classic Game</title>
+  <title>Classic Game - Chess Arena Pi</title>
+
+  <!-- Chessboard.js + Chess.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/css/chessboard-1.0.0.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/js/chessboard-1.0.0.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f5f5dc;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 { margin-bottom: 20px; }
+    #board { width: 90vw; max-width: 480px; margin: auto; }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background: #0066cc;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: #004c99; }
+  </style>
 </head>
 <body>
-  <h2>Classic Game (Coming Soon)</h2>
+  <h2>Classic Chess - Chess Arena Pi</h2>
+  <div id="board"></div>
   <button onclick="window.location.href='menu.html'">Back to Menu</button>
+
+  <script>
+    var board = null
+    var game = new Chess()
+
+    function onDragStart (source, piece) {
+      if (game.game_over()) return false
+      if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+          (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+        return false
+      }
+    }
+
+    function onDrop (source, target) {
+      var move = game.move({ from: source, to: target, promotion: 'q' })
+      if (move === null) return 'snapback'
+      updateStatus()
+    }
+
+    function onSnapEnd () {
+      board.position(game.fen())
+    }
+
+    function updateStatus () {
+      if (game.in_checkmate()) {
+        alert("Checkmate! " + (game.turn() === 'w' ? "Black" : "White") + " wins!")
+      } else if (game.in_draw()) {
+        alert("Draw!")
+      }
+    }
+
+    var config = {
+      draggable: true,
+      position: 'start',
+      onDragStart: onDragStart,
+      onDrop: onDrop,
+      onSnapEnd: onSnapEnd
+    }
+    board = Chessboard('board', config)
+  </script>
 </body>
 </html>
