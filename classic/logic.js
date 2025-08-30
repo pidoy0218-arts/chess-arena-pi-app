@@ -1,59 +1,97 @@
-let board = null;
-let game = new Chess();
-let currentTimer = 30;
-let interval = null;
-let currentTurn = 'w';
+const boardEl = document.getElementById("chessBoard");
+const moveSound = document.getElementById("moveSound");
+const winSound = document.getElementById("winSound");
+const loseSound = document.getElementById("loseSound");
+const capturedWhiteEl = document.getElementById("captured-white");
+const capturedBlackEl = document.getElementById("captured-black");
 
-function startTimer() {
-  clearInterval(interval);
-  currentTimer = 30;
-  updateTimerDisplay();
+const initialBoard = [
+  ["♜", "♞", "♝", "♛", "♚", "♝", "♞", "♜"],
+  ["♟", "♟", "♟", "♟", "♟", "♟", "♟", "♟"],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["♙", "♙", "♙", "♙", "♙", "♙", "♙", "♙"],
+  ["♖", "♘", "♗", "♕", "♔", "♗", "♘", "♖"]
+];
 
-  interval = setInterval(() => {
-    currentTimer--;
-    updateTimerDisplay();
-    if (currentTimer <= 0) {
-      clearInterval(interval);
-      document.getElementById("status").innerText = 
-        (currentTurn === 'w' ? "White" : "Black") + " lost on time!";
+let selected = null;
+let currentTurn = "white";
+let capturedWhite = [];
+let capturedBlack = [];
+
+function renderBoard() {
+  boardEl.innerHTML = "";
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const square = document.createElement("div");
+      square.className = "square " + ((row + col) % 2 === 0 ? "white" : "black");
+      square.dataset.row = row;
+      square.dataset.col = col;
+      square.textContent = initialBoard[row][col];
+      square.addEventListener("click", handleSquareClick);
+      boardEl.appendChild(square);
     }
-  }, 1000);
+  }
+  updateCaptured();
 }
 
-function updateTimerDisplay() {
-  document.getElementById("timerWhite").innerText = "White: " + (currentTurn === 'w' ? currentTimer : "⏳");
-  document.getElementById("timerBlack").innerText = "Black: " + (currentTurn === 'b' ? currentTimer : "⏳");
+function handleSquareClick(e) {
+  const row = parseInt(e.target.dataset.row);
+  const col = parseInt(e.target.dataset.col);
+  const piece = initialBoard[row][col];
+
+  if (selected) {
+    const [selRow, selCol] = selected;
+
+    if (selRow === row && selCol === col) {
+      selected = null;
+      return;
+    }
+
+    const target = initialBoard[row][col];
+    if (target) {
+      if ((currentTurn === "white" && isBlackPiece(target)) ||
+          (currentTurn === "black" && isWhitePiece(target))) {
+        // Capture
+        if (currentTurn === "white") {
+          capturedWhite.push(target);
+        } else {
+          capturedBlack.push(target);
+        }
+        moveSound.play();
+      } else {
+        return;
+      }
+    } else {
+      moveSound.play();
+    }
+
+    initialBoard[row][col] = initialBoard[selRow][selCol];
+    initialBoard[selRow][selCol] = "";
+    selected = null;
+    currentTurn = currentTurn === "white" ? "black" : "white";
+    renderBoard();
+  } else {
+    if ((currentTurn === "white" && isWhitePiece(piece)) ||
+        (currentTurn === "black" && isBlackPiece(piece))) {
+      selected = [row, col];
+    }
+  }
 }
 
-function onDrop(source, target) {
-  let move = game.move({ from: source, to: target, promotion: 'q' });
-
-  if (move === null) return 'snapback';
-
-  currentTurn = game.turn();
-  startTimer();
-
-  document.getElementById("status").innerText = game.in_checkmate() ? "Checkmate!" : 
-    game.in_draw() ? "Draw!" : 
-    (currentTurn === 'w' ? "White's Move" : "Black's Move");
+function isWhitePiece(piece) {
+  return "♙♖♘♗♕♔".includes(piece);
 }
 
-function onSnapEnd() {
-  board.position(game.fen());
+function isBlackPiece(piece) {
+  return "♟♜♞♝♛♚".includes(piece);
 }
 
-function resetQuickGame() {
-  game.reset();
-  board.start();
-  currentTurn = 'w';
-  startTimer();
+function updateCaptured() {
+  capturedWhiteEl.textContent = "Captured by White: " + capturedWhite.join(" ");
+  capturedBlackEl.textContent = "Captured by Black: " + capturedBlack.join(" ");
 }
 
-board = Chessboard('board', {
-  draggable: true,
-  position: 'start',
-  onDrop: onDrop,
-  onSnapEnd: onSnapEnd
-});
-
-resetQuickGame();
+renderBoard();
