@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quick - Chess Arena for Pi</title>
+  <link rel="stylesheet" href="../style/style-board.css">
+  <!-- chess.js (rules engine). If you don't want CDN, download and serve locally and update this path -->
+  <script src="https://cdn.jsdelivr.net/npm/chess.js@1.0.0/dist/chess.min.js"></script>
+</head>
+<body>
+  <div class="app-wrap">
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo">♞</div>
+        <div class="brand-text">
+          <div class="title">CHESS ARENA <span class="for">for</span> PI</div>
+          <div class="subtitle">Quick — 30s per move</div>
+        </div>
+      </div>
+      <div class="controls-header">
+        <button id="backBtn" class="btn small">Back</button>
+        <button id="restartBtn" class="btn small">Restart</button>
+      </div>
+    </header>
+
+    <main class="board-area">
+      <section class="top-row">
+        <div class="player-info" id="whiteInfo">
+          <div class="player-id">White • You</div>
+          <div class="player-timer" id="whiteTimer">00:30</div>
+          <div class="captured" id="whiteCaptured"></div>
+        </div>
+
+        <div class="board-wrap" id="boardWrap" aria-label="Chess board">
+          <!-- board grid will be rendered here by JS -->
+          <div id="board" class="board"></div>
+        </div>
+
+        <div class="player-info" id="blackInfo">
+          <div class="player-id">Black • Opp</div>
+          <div class="player-timer" id="blackTimer">00:30</div>
+          <div class="captured" id="blackCaptured"></div>
+        </div>
+      </section>
+
+      <section class="bottom-row">
+        <div class="moves">
+          <div class="moves-title">Move History</div>
+          <div id="movesList" class="moves-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <canvas id="confetti"></canvas>
+    <audio id="moveSound" src="../assets/move.mp3" preload="auto"></audio>
+    <audio id="captureSound" src="../assets/capture.mp3" preload="auto"></audio>
+    <audio id="winSound" src="../assets/win.mp3" preload="auto"></audio>
+    <audio id="loseSound" src="../assets/lose.mp3" preload="auto"></audio>
+
+    <div id="promotionModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-inner">
+        <div>Select promotion piece:</div>
+        <div class="promo-buttons">
+          <button data-piece="q">Queen</button>
+          <button data-piece="r">Rook</button>
+          <button data-piece="b">Bishop</button>
+          <button data-piece="n">Knight</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../logic/logic-quick.js" type="module"></script>
+</body>
+</html>
