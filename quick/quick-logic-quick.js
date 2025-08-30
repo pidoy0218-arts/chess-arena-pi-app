@@ -1,6 +1,6 @@
 // quick-logic-quick.js
 // Requires chess.js to be loaded globally (window.Chess)
-// Place this file at ../logic/logic-quick.js relative to quick.html
+// Place this file at ../quick-logic-quick.js relative to quick.html
 
 // If you want non-module, remove "type=module" from HTML and this file can be plain script.
 // I write as module to avoid polluting globals.
