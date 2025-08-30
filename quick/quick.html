@@ -4,500 +4,77 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Quick Game — Chess Arena for Pi</title>
-  <meta name="color-scheme" content="dark">
 
-  <style>
-    :root{
-      --bg:#0f1116;
-      --board-light:#f0d9b5;   /* ivory */
-      --board-dark:#8b5a2b;    /* wood dark */
-      --panel:#111;
-      --accent:#d4a34a;
-      --muted:#9aa0a6;
-      --danger:#e74c3c;
-      --white:#ffffff;
-    }
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--white);font-family:Inter,system-ui,Arial;}
-    .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
-    .card{width:min(980px,96%);background:linear-gradient(180deg,#111,#0b0b0c);border-radius:14px;padding:18px;box-shadow:0 30px 60px rgba(0,0,0,.6)}
-    .top{display:flex;align-items:center;gap:16px;margin-bottom:12px;justify-content:space-between}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo{width:64px;height:64px;background:#1e140f;border-radius:12px;display:grid;place-items:center;font-size:36px;color:gold}
-    .title{font-weight:800;font-size:18px}
-    .subtitle{font-size:12px;color:var(--muted)}
-    .controls{display:flex;gap:10px;align-items:center}
-    .btn{background:var(--accent);border:0;padding:8px 12px;border-radius:10px;color:#111;font-weight:800;cursor:pointer}
-    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.06);color:var(--white)}
-    .body{display:grid;grid-template-columns: 1fr 320px;gap:18px}
-    @media(max-width:980px){.body{grid-template-columns:1fr}}
-    /* board area */
-    .board-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
-    .board { width: min(660px, 90vw); max-width: 660px; aspect-ratio: 1; display:grid; grid-template-columns: repeat(8,1fr); border-radius:10px; overflow:hidden; box-shadow:0 8px 40px rgba(0,0,0,.6); transform-style: preserve-3d; }
-    .sq { display:flex;align-items:center;justify-content:center;font-size:34px; user-select:none; position:relative; }
-    .sq.light{ background: var(--board-light); color: #2b1e11; }
-    .sq.dark{ background: var(--board-dark); color: #fff; }
-    .sq.highlight{ outline:3px solid rgba(139,212,80,.9); outline-offset:-3px; }
-    .sq.legal::after{ content:""; position:absolute; width:18px; height:18px; border-radius:50%; bottom:8px; right:8px; background: rgba(255,255,255,.7)}
-    .piece{ font-size:42px; text-shadow:0 2px 0 rgba(0,0,0,.45) }
-    .info-panel{background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.1)); border-radius:12px; padding:12px; border:1px solid rgba(255,255,255,.03)}
-    .timers{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
-    .timer-row{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.03)}
-    .timer .time{font-weight:800;font-size:18px}
-    .history{margin-top:10px; max-height:220px; overflow:auto; background:rgba(0,0,0,.02); padding:8px; border-radius:8px}
-    .history .move{font-family:monospace;padding:4px 6px;border-bottom:1px dashed rgba(255,255,255,.02)}
-    .captured{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .cap-piece{padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.03);font-weight:700}
-    .small{font-size:13px;color:var(--muted)}
-    .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-    .quiet{background:#222;color:var(--muted);padding:8px 10px;border-radius:8px;border:0}
-    /* promotion modal */
-    .modal{position:fixed;left:0;top:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:60}
-    .modal .card{max-width:360px;padding:20px}
-    .promo-grid{display:flex;gap:8px;justify-content:center;margin-top:12px}
-    .promo-btn{padding:10px 14px;border-radius:8px;border:0;cursor:pointer}
-    /* end message */
-    .status{margin-top:8px;font-weight:800}
-    canvas.confetti{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:80}
-    /* accessibility hints */
-    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
-  </style>
+  <!-- chessboard.js CSS (CDN) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css" integrity="" crossorigin="anonymous" />
+
+  <!-- local styles -->
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="wrap">
-    <div class="card" role="application" aria-label="Chess Arena Quick Game">
-      <div class="top">
-        <div class="brand">
-          <div class="logo" aria-hidden="true">♞</div>
-          <div>
-            <div class="title">THE CHESS ARENA</div>
-            <div class="subtitle small">for <span style="color:#9b59b6;font-weight:800">Pi</span> — Quick Match (30s/move)</div>
-          </div>
-        </div>
-
-        <div class="controls">
-          <button class="btn ghost" id="backBtn">Back</button>
-          <button class="btn" id="resignBtn">Resign</button>
+  <div class="container">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">♞</div>
+        <div>
+          <div class="title">THE CHESS ARENA</div>
+          <div class="subtitle">for <span class="for-pi">Pi</span></div>
         </div>
       </div>
 
-      <div class="body">
-        <div class="board-wrap">
-          <div id="board" class="board" role="grid" aria-label="Chess board"></div>
-          <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-top:8px">
-            <div class="small">White ♙</div>
-            <div id="gameStatus" class="status small">Game in progress</div>
-            <div class="small">Black ♟</div>
-          </div>
+      <div class="controls">
+        <button id="btnBack" class="btn small">← Back</button>
+        <button id="btnReset" class="btn small">Restart</button>
+      </div>
+    </header>
+
+    <main class="main-quick">
+      <section class="match-top">
+        <div class="player" id="whiteInfo">
+          <div class="pid">White — Pioneer</div>
+          <div class="timer" id="whiteTimer">30s</div>
         </div>
 
-        <aside class="info-panel" aria-label="Game controls & info">
-          <div class="timers">
-            <div class="timer-row" id="whiteRow">
-              <div>White</div>
-              <div class="time" id="whiteTimer">30s</div>
-            </div>
-            <div class="timer-row" id="blackRow">
-              <div>Black</div>
-              <div class="time" id="blackTimer">30s</div>
-            </div>
+        <div class="status" id="status">Quick: 30s per move — make a move to start</div>
+
+        <div class="player" id="blackInfo">
+          <div class="pid">Black — Opponent</div>
+          <div class="timer" id="blackTimer">30s</div>
+        </div>
+      </section>
+
+      <section class="board-area">
+        <div id="board" class="board"></div>
+        <aside class="sidepanel">
+          <div class="panel">
+            <strong>Moves</strong>
+            <div id="moves" class="moves"></div>
           </div>
-
-          <div class="small">Captured</div>
-          <div class="captured" id="capturedArea"></div>
-
-          <div style="margin-top:8px" class="small">Moves</div>
-          <div class="history" id="history"></div>
-
-          <div class="actions">
-            <button class="quiet" id="drawBtn">Offer Draw</button>
-            <button class="quiet" id="rematchBtn">Rematch</button>
-            <button class="quiet" id="toggleSoundBtn">Sound: On</button>
-            <button class="quiet" id="menuBtn">Menu</button>
+          <div class="panel">
+            <strong>Captured</strong>
+            <div id="captured" class="moves">—</div>
           </div>
-
-          <div class="small" style="margin-top:8px;color:var(--muted)">Rules: FIDE standard (castling, en-passant, promotion). Quick: 30s per move — failure to move loses.</div>
         </aside>
-      </div>
-    </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="small-note">Quick rules: 30s per move. Warning when ≤10s. Fail to move = you lose.</div>
+    </footer>
   </div>
 
-  <!-- promotion modal -->
-  <div id="promoModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="card">
-      <div style="font-weight:800">Promote pawn to</div>
-      <div class="promo-grid">
-        <button class="promo-btn" data-piece="q">Queen ♕</button>
-        <button class="promo-btn" data-piece="r">Rook ♖</button>
-        <button class="promo-btn" data-piece="b">Bishop ♗</button>
-        <button class="promo-btn" data-piece="n">Knight ♘</button>
-      </div>
-    </div>
-  </div>
+  <!-- Sound elements (place your mp3 files under quick/sound/) -->
+  <audio id="sndMove" src="./sound/move.mp3" preload="auto"></audio>
+  <audio id="sndCapture" src="./sound/capture.mp3" preload="auto"></audio>
+  <audio id="sndCheck" src="./sound/check.mp3" preload="auto"></audio>
+  <audio id="sndWin" src="./sound/win.mp3" preload="auto"></audio>
+  <audio id="sndLose" src="./sound/lose.mp3" preload="auto"></audio>
 
-  <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+  <!-- chess.js (engine) and chessboard.js (UI) from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 
-  <div class="sr-only" id="a11y"></div>
-
-  <script>
-  // --- Load chess.js: prefer local vendor (quick/vendor/chess.min.js), fallback to CDN ---
-  (function loadChessLib(){
-    function load(url){ return new Promise((resolve,reject)=>{ const s=document.createElement('script'); s.src=url; s.onload=()=>resolve(); s.onerror=()=>reject(); document.head.appendChild(s); }); }
-    load('./vendor/chess.min.js')
-      .catch(()=> load('https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js'))
-      .then(init)
-      .catch(()=> {
-        alert('Failed to load chess.js. Put chess.min.js into quick/vendor chess file or allow CDN.');
-      });
-  })();
-
-  function init(){
-    // chess object
-    const ChessConstructor = window.Chess || window.ChessJS || window.Chessboard; // some libs export differently
-    if (typeof window.Chess !== 'function' && typeof window.Chess !== 'object') {
-      // 0.13.4 exposes window.Chess
-    }
-    const game = new window.Chess();
-
-    // DOM nodes
-    const boardEl = document.getElementById('board');
-    const whiteTimerEl = document.getElementById('whiteTimer');
-    const blackTimerEl = document.getElementById('blackTimer');
-    const historyEl = document.getElementById('history');
-    const capturedEl = document.getElementById('capturedArea');
-    const statusEl = document.getElementById('gameStatus');
-    const promoModal = document.getElementById('promoModal');
-    const a11y = document.getElementById('a11y');
-
-    // timers (per-move)
-    const MOVE_SECONDS = 30;
-    let timeWhite = MOVE_SECONDS, timeBlack = MOVE_SECONDS;
-    let activeColor = 'w'; // whose turn it is (starts with white)
-    let timerInterval = null;
-    let soundOn = true;
-
-    // selection state
-    let selectedSq = null;
-    let legalTargets = [];
-    let pendingPromotion = null; // {from, to, color}
-
-    // captured sets (recomputed)
-    const initialCounts = {p:8,r:2,n:2,b:2,q:1,k:1};
-    function computeCaptured(){
-      const counts = {w:{p:0,r:0,n:0,b:0,q:0,k:0}, b:{p:0,r:0,n:0,b:0,q:0,k:0}};
-      const board = game.board();
-      for(let r=0;r<8;r++){
-        for(let c=0;c<8;c++){
-          const p = board[r][c];
-          if(p) counts[p.color][p.type]++;
-        }
-      }
-      const captured = {w:[], b:[]};
-      ['p','r','n','b','q'].forEach(type=>{
-        const whiteMissing = initialCounts[type] - counts['w'][type];
-        const blackMissing = initialCounts[type] - counts['b'][type];
-        for(let i=0;i<whiteMissing;i++) captured['b'].push(type); // black captured white piece
-        for(let i=0;i<blackMissing;i++) captured['w'].push(type); // white captured black piece
-      });
-      return captured;
-    }
-
-    const UNICODE = {
-      w: {p:'♙', r:'♖', n:'♘', b:'♗', q:'♕', k:'♔'},
-      b: {p:'♟', r:'♜', n:'♞', b:'♝', q:'♛', k:'♚'}
-    };
-
-    // helper: algebraic square from r,c
-    function rcToAlg(r,c){ return 'abcdefgh'[c] + (8 - r); }
-    function algToRC(s){
-      const c = s.charCodeAt(0)-97;
-      const r = 8 - parseInt(s[1],10);
-      return {r,c};
-    }
-
-    // build board DOM
-    function renderBoard(){
-      boardEl.innerHTML = '';
-      const board = game.board();
-      for(let r=0;r<8;r++){
-        for(let c=0;c<8;c++){
-          const sq = document.createElement('div');
-          const light = ((r + c) % 2 === 0);
-          sq.className = 'sq ' + (light ? 'light' : 'dark');
-          const alg = rcToAlg(r,c);
-          sq.dataset.square = alg;
-          sq.setAttribute('role','button');
-          sq.setAttribute('aria-label', 'square ' + alg);
-          // add piece
-          const p = board[r][c];
-          if(p){
-            const span = document.createElement('div');
-            span.className = 'piece';
-            span.textContent = UNICODE[p.color][p.type];
-            sq.appendChild(span);
-          }
-          // highlight selection & legal targets
-          if (selectedSq === alg) sq.classList.add('highlight');
-          if (legalTargets.includes(alg)) sq.classList.add('legal');
-
-          sq.addEventListener('click', ()=> onSquareClick(alg));
-          boardEl.appendChild(sq);
-        }
-      }
-      updateCaptured();
-      updateHistory();
-      updateA11y();
-    }
-
-    function updateA11y(){
-      a11y.textContent = `Turn: ${game.turn()==='w'?'White':'Black'}. Moves: ${game.history().length}.`;
-    }
-
-    function onSquareClick(alg){
-      if (pendingPromotion) return; // block while choosing promotion
-      const piece = game.get(alg);
-      // if a square selected and target is legal -> make move
-      if (selectedSq && legalTargets.includes(alg)){
-        // check if this is a promotion
-        const moves = game.moves({square:selectedSq, verbose:true});
-        const mv = moves.find(m=>m.to===alg);
-        if (mv && mv.promotion){
-          // prompt promotion
-          pendingPromotion = {from:selectedSq, to:alg, color: mv.color};
-          showPromotionModal();
-          return;
-        }
-        const res = game.move({from:selectedSq, to:alg});
-        if (res) onMoveExecuted(res);
-        selectedSq = null; legalTargets = [];
-        renderBoard();
-        return;
-      }
-      // otherwise, select piece if it's the current player's color
-      if (piece && piece.color === game.turn()){
-        selectedSq = alg;
-        // compute legal targets for that square
-        legalTargets = game.moves({square:alg, verbose:true}).map(m=>m.to);
-      } else {
-        selectedSq = null; legalTargets = [];
-      }
-      renderBoard();
-    }
-
-    function onMoveExecuted(moveObj){
-      playMoveSound();
-      // reset timers: when move executed, start opponent's move timer
-      activeColor = game.turn(); // after move, turn switches
-      if(activeColor==='w'){ timeWhite = MOVE_SECONDS; } else { timeBlack = MOVE_SECONDS; }
-      updateTimersDisplay();
-      // check game end
-      if (game.in_checkmate()){
-        showGameOver('Checkmate — ' + (moveObj.color==='w' ? 'White' : 'Black') + ' wins');
-        playWinSound();
-        confettiBurst();
-      } else if (game.in_stalemate()){
-        showGameOver('Stalemate — Draw');
-      } else if (game.in_draw()){
-        showGameOver('Draw');
-      } else {
-        statusEl.textContent = 'Game in progress';
-      }
-      renderBoard();
-    }
-
-    // promotion modal
-    function showPromotionModal(){
-      promoModal.style.display = 'flex';
-      promoModal.setAttribute('aria-hidden','false');
-    }
-    function hidePromotionModal(){ promoModal.style.display = 'none'; promoModal.setAttribute('aria-hidden','true'); }
-
-    promoModal.querySelectorAll('.promo-btn').forEach(btn=>{
-      btn.addEventListener('click', ()=> {
-        const p = btn.dataset.piece;
-        if (!pendingPromotion) return hidePromotionModal();
-        const res = game.move({from: pendingPromotion.from, to: pendingPromotion.to, promotion: p});
-        pendingPromotion = null;
-        hidePromotionModal();
-        if (res) onMoveExecuted(res);
-        selectedSq = null; legalTargets = [];
-        renderBoard();
-      });
-    });
-
-    // move history
-    function updateHistory(){
-      const moves = game.history({verbose:true});
-      historyEl.innerHTML = '';
-      for(let i=0;i<moves.length;i+=2){
-        const white = moves[i];
-        const black = moves[i+1];
-        const div = document.createElement('div');
-        div.className = 'move';
-        const moveNum = (i/2)+1;
-        div.textContent = moveNum + '. ' + (white?white.san:'') + ' ' + (black?black.san:'');
-        historyEl.appendChild(div);
-      }
-    }
-
-    function updateCaptured(){
-      const cap = computeCaptured();
-      capturedEl.innerHTML = '';
-      // show black captured by white first (white captured pieces)
-      cap.w.forEach(t=>{
-        const el = document.createElement('div'); el.className='cap-piece'; el.textContent = UNICODE['b'][t]; capturedEl.appendChild(el);
-      });
-      cap.b.forEach(t=>{
-        const el = document.createElement('div'); el.className='cap-piece'; el.textContent = UNICODE['w'][t]; capturedEl.appendChild(el);
-      });
-    }
-
-    // timers logic
-    function startTimers(){
-      stopTimers();
-      timerInterval = setInterval(()=>{
-        if (game.game_over()) { stopTimers(); return; }
-        if (activeColor === 'w'){
-          timeWhite--;
-          if (timeWhite <= 0){ stopTimers(); showGameOver('White ran out of time — White loses'); }
-        } else {
-          timeBlack--;
-          if (timeBlack <= 0){ stopTimers(); showGameOver('Black ran out of time — Black loses'); }
-        }
-        updateTimersDisplay();
-      },1000);
-    }
-    function stopTimers(){ if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
-    function updateTimersDisplay(){
-      whiteTimerEl.textContent = timeWhite + 's';
-      blackTimerEl.textContent = timeBlack + 's';
-      // warning style on 10s left for the running player
-      document.getElementById('whiteRow').style.borderColor = (activeColor==='w' && timeWhite<=10) ? 'var(--danger)' : 'rgba(255,255,255,.03)';
-      document.getElementById('blackRow').style.borderColor = (activeColor==='b' && timeBlack<=10) ? 'var(--danger)' : 'rgba(255,255,255,.03)';
-      if (activeColor==='w' && timeWhite<=10) whiteTimerEl.style.color = 'var(--danger)'; else whiteTimerEl.style.color = 'var(--white)';
-      if (activeColor==='b' && timeBlack<=10) blackTimerEl.style.color = 'var(--danger)'; else blackTimerEl.style.color = 'var(--white)';
-    }
-
-    // controls
-    document.getElementById('resignBtn').addEventListener('click', ()=>{
-      const winner = game.turn() === 'w' ? 'Black' : 'White';
-      showGameOver('Resignation — ' + winner + ' wins');
-    });
-    document.getElementById('drawBtn').addEventListener('click', ()=>{
-      if (confirm('Offer a draw to opponent? (local demo auto-accept)')){
-        showGameOver('Draw by agreement');
-      }
-    });
-    document.getElementById('rematchBtn').addEventListener('click', ()=>{
-      if (confirm('Start rematch?')){
-        resetGame();
-      }
-    });
-    document.getElementById('menuBtn').addEventListener('click', ()=> {
-      if (confirm('Exit to menu? Current game will be lost.')) window.location.href = '../menu.html';
-    });
-    document.getElementById('backBtn').addEventListener('click', ()=> {
-      window.location.href = '../menu.html';
-    });
-    document.getElementById('toggleSoundBtn').addEventListener('click', ()=>{
-      soundOn = !soundOn;
-      document.getElementById('toggleSoundBtn').textContent = 'Sound: ' + (soundOn ? 'On' : 'Off');
-    });
-
-    // basic sounds using WebAudio
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playMoveSound(){
-      if (!soundOn) return;
-      try{
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.type='triangle';
-        o.frequency.value = 800;
-        o.connect(g); g.connect(audioCtx.destination);
-        g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.15, audioCtx.currentTime + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.18);
-        o.start(audioCtx.currentTime);
-        o.stop(audioCtx.currentTime + 0.2);
-      }catch(e){}
-    }
-    function playWinSound(){
-      if (!soundOn) return;
-      try{
-        const ctx = audioCtx;
-        const notes = [ 523.25, 659.26, 783.99, 1046.5 ];
-        notes.forEach((freq,i)=>{
-          const o = ctx.createOscillator();
-          const g = ctx.createGain();
-          o.type='sine';
-          o.frequency.value = freq;
-          o.connect(g); g.connect(ctx.destination);
-          const t = ctx.currentTime + i*0.12;
-          g.gain.setValueAtTime(0.0001, t);
-          g.gain.linearRampToValueAtTime(0.16, t+0.02);
-          g.gain.exponentialRampToValueAtTime(0.0001, t+0.28);
-          o.start(t); o.stop(t+0.3);
-        });
-      }catch(e){}
-    }
-
-    // confetti (lightweight)
-    function confettiBurst(){
-      const c = document.getElementById('confetti');
-      const ctx = c.getContext('2d');
-      const w = innerWidth, h = innerHeight;
-      c.width = w; c.height = h;
-      const pieces = 80;
-      const colors = ['#f44336','#e91e63','#2196f3','#4caf50','#ffeb3b','#9b59b6'];
-      const drops = Array.from({length:pieces}).map(()=> ({
-        x: Math.random()*w, y: -20, vy: Math.random()*4+2, r: Math.random()*6+3, color: colors[Math.floor(Math.random()*colors.length)], rot: Math.random()*360
-      }));
-      let t=0;
-      function step(){
-        ctx.clearRect(0,0,w,h);
-        drops.forEach(d=>{
-          d.y += d.vy;
-          d.rot += 6;
-          ctx.save();
-          ctx.translate(d.x, d.y);
-          ctx.rotate(d.rot * Math.PI/180);
-          ctx.fillStyle = d.color;
-          ctx.fillRect(-d.r/2,-d.r/2,d.r,d.r*0.6);
-          ctx.restore();
-        });
-        if(++t<120) requestAnimationFrame(step);
-        else ctx.clearRect(0,0,w,h);
-      }
-      requestAnimationFrame(step);
-    }
-
-    function showGameOver(text){
-      statusEl.textContent = text;
-      playWinSound();
-      confettiBurst();
-      stopTimers();
-    }
-
-    function resetGame(){
-      game.reset();
-      selectedSq = null; legalTargets = [];
-      timeWhite = MOVE_SECONDS; timeBlack = MOVE_SECONDS; activeColor = 'w';
-      statusEl.textContent = 'Game in progress';
-      startTimers();
-      renderBoard();
-    }
-
-    // start it
-    resetGame();
-
-    // Start the timers for the active color
-    startTimers();
-
-    // Make the board adjust piece sizes on resize
-    window.addEventListener('resize', ()=>{ /* noop for now; CSS handles responsiveness */ });
-
-    // initial render
-    renderBoard();
-  } // init end
-  </script>
+  <!-- local logic -->
+  <script src="./logic.js"></script>
 </body>
 </html>
