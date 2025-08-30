@@ -1,84 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Menu</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-      background: #111;
-      color: white;
-    }
-    .container {
-      padding: 40px;
-    }
-    .logo {
-      font-size: 80px;
-      color: gold;
-    }
-    h1 {
-      margin: 10px 0 5px;
-      font-size: 28px;
-      font-weight: bold;
-    }
-    h2 {
-      margin: 0 0 40px;
-      font-size: 16px;
-      color: #bbb;
-    }
-    button {
-      display: block;
-      width: 220px;
-      margin: 12px auto;
-      padding: 14px;
-      font-size: 18px;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      color: white;
-    }
-    .classic { background: #28a745; }
-    .quick { background: #007bff; }
-    .tournament { background: #fd7e14; opacity: 0.7; }
-    .leaderboard { background: #6f42c1; opacity: 0.7; }
-
-    /* Frame for loading game inside */
-    iframe {
-      width: 95%;
-      height: 500px;
-      border: 2px solid gold;
-      border-radius: 10px;
-      margin-top: 20px;
-      display: none; /* hidden until button is clicked */
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="logo">♞</div>
-    <h1>THE CHESS ARENA</h1>
-    <h2>for Pi</h2>
-
-    <button class="classic" onclick="loadGame('classic.html')">Classic Chess</button>
-    <button class="quick" onclick="loadGame('quick.html')">Quick Chess</button>
-    <button class="tournament" disabled>Tournament (Coming Soon)</button>
-    <button class="leaderboard" disabled>Leaderboard (Coming Soon)</button>
-
-    <!-- Frame for loading content -->
-    <iframe id="gameFrame"></iframe>
-  </div>
-
-  <script>
-    function loadGame(page) {
-      const frame = document.getElementById('gameFrame');
-      frame.style.display = 'block';
-      frame.src = page;
-    }
-  </script>
-</body>
-</html>
+<div class="menu">
+  <h1>♞ The Chess Arena Pi</h1>
+  <button onclick="location.href='classic/classic.html'">Classic</button>
+  <button onclick="location.href='quick/quick.html'">Quick</button>
+  <button onclick="location.href='ai/ai.html'">Play with AI</button>
+  <button onclick="location.href='tournament/tournament.html'">Tournament</button>
+  <button onclick="location.href='leaderboard/leaderboard.html'">Leaderboard</button>
+  <button onclick="location.href='index.html'">Back</button>
+</div>
