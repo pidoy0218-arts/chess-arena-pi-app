@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Chess Arena Pi – Solid Khaki & Black Board</title>
+  <title>Chess Arena Pi – Classic</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       background-color: #4caf50;
@@ -11,46 +12,52 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px;
+      margin: 0;
+      padding: 10px;
     }
 
     h2 {
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
 
+    /* Responsive 8x8 board */
     #board {
       display: grid;
-      grid-template-columns: repeat(8, 60px);
-      grid-template-rows: repeat(8, 60px);
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 95vw;       /* scale to screen */
+      max-width: 480px;  /* cap on large screens */
+      aspect-ratio: 1;   /* keep square */
       border: 4px solid #ccc;
     }
 
     .square {
-      width: 60px;
-      height: 60px;
-      font-size: 40px;
       display: flex;
       justify-content: center;
       align-items: center;
+      font-size: calc(9vw); /* big pieces */
+      line-height: 1;
       cursor: pointer;
+      user-select: none;
     }
 
     .white-square { background-color: #f0f0f0; }
     .green-square { background-color: #b1e59f; }
 
     .white-piece {
-      color: #b8860b; /* Solid golden khaki */
+      color: #b8860b; /* golden khaki */
       font-weight: 900;
       text-shadow: 1px 1px 0 black;
     }
 
-    .black-piece {
-      color: black;
-    }
+    .black-piece { color: black; }
+
+    .highlight { outline: 3px solid yellow; }
 
     #status {
       margin-top: 15px;
       font-weight: bold;
+      text-align: center;
     }
   </style>
 </head>
@@ -60,6 +67,8 @@
 <div id="board"></div>
 <div id="status">White to move</div>
 
+<!-- chess.js FIDE rules engine -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 <script>
   const boardEl = document.getElementById("board");
   const statusEl = document.getElementById("status");
@@ -69,61 +78,70 @@
     R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔", P: "♙"
   };
 
-  let board = [
-    ["r","n","b","q","k","b","n","r"],
-    ["p","p","p","p","p","p","p","p"],
-    ["","","","","","","",""],
-    ["","","","","","","",""],
-    ["","","","","","","",""],
-    ["","","","","","","",""],
-    ["P","P","P","P","P","P","P","P"],
-    ["R","N","B","Q","K","B","N","R"]
-  ];
-
+  const game = new Chess(); // standard start
   let selected = null;
-  let turn = "white";
 
   function renderBoard() {
     boardEl.innerHTML = "";
+    const board = game.board();
+
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const square = document.createElement("div");
         square.classList.add("square");
         square.classList.add((row + col) % 2 === 0 ? "white-square" : "green-square");
-        square.dataset.row = row;
-        square.dataset.col = col;
+
+        const squareName = "abcdefgh"[col] + (8 - row);
+        square.dataset.square = squareName;
 
         const piece = board[row][col];
         if (piece) {
-          square.textContent = PIECES[piece];
-          square.classList.add(piece === piece.toUpperCase() ? "white-piece" : "black-piece");
+          const symbol = piece.type;
+          const color = piece.color === "w" ? symbol.toUpperCase() : symbol;
+          square.textContent = PIECES[color];
+          square.classList.add(piece.color === "w" ? "white-piece" : "black-piece");
         }
+
+        if (selected === squareName) square.classList.add("highlight");
 
         boardEl.appendChild(square);
       }
     }
 
-    statusEl.textContent = `${turn.charAt(0).toUpperCase() + turn.slice(1)} to move`;
+    if (game.in_checkmate()) {
+      statusEl.textContent = `Checkmate! ${game.turn() === "w" ? "Black" : "White"} wins`;
+    } else if (game.in_draw()) {
+      statusEl.textContent = "Draw!";
+    } else if (game.in_check()) {
+      statusEl.textContent = `${game.turn() === "w" ? "White" : "Black"} to move (Check!)`;
+    } else {
+      statusEl.textContent = `${game.turn() === "w" ? "White" : "Black"} to move`;
+    }
   }
 
   boardEl.addEventListener("click", (e) => {
     if (!e.target.classList.contains("square")) return;
-    const row = +e.target.dataset.row;
-    const col = +e.target.dataset.col;
-    const piece = board[row][col];
+    const square = e.target.dataset.square;
 
     if (selected) {
-      const [fromRow, fromCol] = selected;
-      board[row][col] = board[fromRow][fromCol];
-      board[fromRow][fromCol] = "";
-      selected = null;
-      turn = turn === "white" ? "black" : "white";
-      renderBoard();
+      const move = game.move({ from: selected, to: square, promotion: "q" });
+      if (move) {
+        selected = null;
+        renderBoard();
+      } else {
+        if (game.get(square) && game.get(square).color === game.turn()) {
+          selected = square;
+          renderBoard();
+        } else {
+          selected = null;
+          renderBoard();
+        }
+      }
     } else {
-      if (!piece) return;
-      if ((turn === "white" && piece === piece.toUpperCase()) ||
-          (turn === "black" && piece === piece.toLowerCase())) {
-        selected = [row, col];
+      const piece = game.get(square);
+      if (piece && piece.color === game.turn()) {
+        selected = square;
+        renderBoard();
       }
     }
   });
