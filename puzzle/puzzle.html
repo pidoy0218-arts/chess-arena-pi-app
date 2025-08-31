@@ -3,24 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi — Puzzle Mode</title>
+  <title>Chess Arena Pi – Puzzle Mode</title>
   <link rel="stylesheet" href="puzzle.css">
-  <!-- chessboard.js + chess.js -->
+
+  <!-- Chessboard.js and Chess.js from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
 </head>
 <body>
   <div class="container">
-    <h2>♟ Puzzle Mode</h2>
+    <h2>♟️ Chess Puzzle</h2>
     <p id="turnText">Loading puzzle...</p>
     <div id="board" class="board"></div>
     <div class="controls">
       <button id="newPuzzle">🔀 New Puzzle</button>
-      <button id="hintBtn">💡 Hint</button>
+      <button id="hint">💡 Hint</button>
     </div>
-    <p id="hintText"></p>
   </div>
+
   <script src="puzzle.js"></script>
 </body>
 </html>
