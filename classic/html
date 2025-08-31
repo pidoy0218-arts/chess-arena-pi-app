@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chess Arena Pi – Solid Khaki & Black Board</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 60px);
+      grid-template-rows: repeat(8, 60px);
+      border: 4px solid #ccc;
+    }
+
+    .square {
+      width: 60px;
+      height: 60px;
+      font-size: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .white-square { background-color: #f0f0f0; }
+    .green-square { background-color: #b1e59f; }
+
+    .white-piece {
+      color: #b8860b; /* Solid golden khaki */
+      font-weight: 900;
+      text-shadow: 1px 1px 0 black;
+    }
+
+    .black-piece {
+      color: black;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Chess Arena Pi</h2>
+<div id="board"></div>
+<div id="status">White to move</div>
+
+<script>
+  const boardEl = document.getElementById("board");
+  const statusEl = document.getElementById("status");
+
+  const PIECES = {
+    r: "♜", n: "♞", b: "♝", q: "♛", k: "♚", p: "♟",
+    R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔", P: "♙"
+  };
+
+  let board = [
+    ["r","n","b","q","k","b","n","r"],
+    ["p","p","p","p","p","p","p","p"],
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["P","P","P","P","P","P","P","P"],
+    ["R","N","B","Q","K","B","N","R"]
+  ];
+
+  let selected = null;
+  let turn = "white";
+
+  function renderBoard() {
+    boardEl.innerHTML = "";
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const square = document.createElement("div");
+        square.classList.add("square");
+        square.classList.add((row + col) % 2 === 0 ? "white-square" : "green-square");
+        square.dataset.row = row;
+        square.dataset.col = col;
+
+        const piece = board[row][col];
+        if (piece) {
+          square.textContent = PIECES[piece];
+          square.classList.add(piece === piece.toUpperCase() ? "white-piece" : "black-piece");
+        }
+
+        boardEl.appendChild(square);
+      }
+    }
+
+    statusEl.textContent = `${turn.charAt(0).toUpperCase() + turn.slice(1)} to move`;
+  }
+
+  boardEl.addEventListener("click", (e) => {
+    if (!e.target.classList.contains("square")) return;
+    const row = +e.target.dataset.row;
+    const col = +e.target.dataset.col;
+    const piece = board[row][col];
+
+    if (selected) {
+      const [fromRow, fromCol] = selected;
+      board[row][col] = board[fromRow][fromCol];
+      board[fromRow][fromCol] = "";
+      selected = null;
+      turn = turn === "white" ? "black" : "white";
+      renderBoard();
+    } else {
+      if (!piece) return;
+      if ((turn === "white" && piece === piece.toUpperCase()) ||
+          (turn === "black" && piece === piece.toLowerCase())) {
+        selected = [row, col];
+      }
+    }
+  });
+
+  renderBoard();
+</script>
+
+</body>
+</html>
