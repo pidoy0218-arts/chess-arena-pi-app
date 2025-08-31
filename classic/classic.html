@@ -20,14 +20,14 @@
       margin: 10px 0;
     }
 
-    /* Board keeps square shape and fills screen width */
+    /* Responsive chessboard */
     #board {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
       grid-template-rows: repeat(8, 1fr);
-      width: 95vw;         /* almost full width */
-      max-width: 600px;    /* limit on large screens */
-      aspect-ratio: 1;     /* always square */
+      width: 95vw;
+      max-width: 600px;
+      aspect-ratio: 1; /* keeps square shape */
       border: 4px solid #ccc;
     }
 
@@ -35,7 +35,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: calc(10vw); /* big pieces on mobile */
+      font-size: calc(10vw); /* scale pieces */
       line-height: 1;
       user-select: none;
     }
@@ -81,12 +81,12 @@
     R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔", P: "♙"
   };
 
-  const game = new Chess();
+  const game = new Chess(); // standard FIDE start position
   let selectedSquare = null;
 
   function renderBoard() {
     boardEl.innerHTML = "";
-    const board = game.board();
+    const board = game.board(); // 8x8 array
 
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
@@ -113,6 +113,7 @@
       }
     }
 
+    // Status text
     if (game.in_checkmate()) {
       statusEl.textContent = `Checkmate! ${game.turn() === "w" ? "Black" : "White"} wins`;
     } else if (game.in_draw()) {
