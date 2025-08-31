@@ -1,6 +1,6 @@
 body {
   font-family: Arial, sans-serif;
-  background: #f4f1e9;
+  background: #f4f4f4;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -10,18 +10,19 @@ body {
 
 .container {
   text-align: center;
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-h1 {
+h2 {
   margin-bottom: 10px;
 }
 
+#board {
+  width: 350px;
+  margin: 10px auto;
+}
+
 .controls {
-  margin-top: 15px;
+  margin-top: 10px;
 }
 
 button {
@@ -29,19 +30,17 @@ button {
   margin: 5px;
   border: none;
   border-radius: 6px;
+  background: #333;
+  color: #fff;
   cursor: pointer;
-  background: #4CAF50;
-  color: white;
-  font-size: 14px;
-  transition: 0.3s;
 }
 
 button:hover {
-  background: #45a049;
+  background: #555;
 }
 
 #hintText {
   margin-top: 10px;
   font-weight: bold;
-  color: #333;
+  color: #444;
 }
