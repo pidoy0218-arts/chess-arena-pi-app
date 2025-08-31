@@ -4,25 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chess Arena Pi — Puzzle Mode</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css" />
 <style>
-body { font-family: sans-serif; background: #f3f3f3; display: flex; flex-direction: column; align-items: center; padding: 10px; }
-h1 { margin-bottom: 5px; text-align: center; }
-#progress { margin-bottom: 10px; font-weight: bold; }
-#board { width: 90vw; max-width: 400px; aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); margin-bottom: 10px; }
-.square { display: flex; align-items: center; justify-content: center; font-size: 2rem; user-select: none; box-sizing: border-box; }
-.white { background: #f0d9b5; }
-.black { background: #b58863; }
-.highlight { outline: 3px solid #ffeb3b; }
+body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f3f3f3; padding: 10px; }
+h1 { margin: 10px 0; text-align: center; }
+#progress, #turnInfo { margin: 5px 0; font-weight: bold; }
 #controls { margin: 10px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 button { padding: 8px 12px; border-radius: 5px; border: none; background: #4CAF50; color: white; font-weight: bold; cursor: pointer; }
 button:hover { background: #45a049; }
+#board { width: 90vw; max-width: 400px; margin-bottom: 10px; }
+.square-highlight { background-color: rgba(255, 235, 59, 0.5) !important; }
 </style>
 </head>
 <body>
 
 <h1>Chess Arena Pi — Puzzle</h1>
 <div id="progress"></div>
+<div id="turnInfo"></div>
 <div id="board"></div>
 <div id="controls">
   <button id="hintBtn">Hint</button>
@@ -30,151 +28,125 @@ button:hover { background: #45a049; }
   <button id="nextBtn">Next Puzzle</button>
 </div>
 
-<!-- Confetti canvas -->
-<canvas id="confettiCanvas" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none;"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 
 <script>
-// Confetti effect
+// Confetti and win sound
 function launchConfetti() {
-  const confetti = document.createElement('canvas');
-  confetti.width = window.innerWidth;
-  confetti.height = window.innerHeight;
-  document.body.appendChild(confetti);
-  const ctx = confetti.getContext('2d');
-  const particles = [];
-  for(let i=0;i<150;i++){
-    particles.push({x:Math.random()*confetti.width,y:Math.random()*confetti.height,r:Math.random()*6+2,d:Math.random()*10+2,color:`hsl(${Math.random()*360},100%,50%)`});
-  }
-  let angle=0;
-  function draw(){
-    ctx.clearRect(0,0,confetti.width,confetti.height);
-    angle+=0.01;
-    particles.forEach(p=>{
-      p.y += Math.cos(angle+p.d)+1+p.r/2;
-      p.x += Math.sin(angle)*2;
-      if(p.y>confetti.height){p.y=0;p.x=Math.random()*confetti.width;}
-      ctx.fillStyle=p.color;
-      ctx.beginPath();
-      ctx.arc(p.x,p.y,p.r,0,2*Math.PI);
-      ctx.fill();
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
-  setTimeout(()=>{document.body.removeChild(confetti);},3000);
+    const canvas = document.createElement('canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.position = 'fixed';
+    canvas.style.top = 0;
+    canvas.style.left = 0;
+    canvas.style.pointerEvents = 'none';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    const particles = [];
+    for(let i=0;i<150;i++){
+        particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*6+2,d:Math.random()*10+2,color:`hsl(${Math.random()*360},100%,50%)`});
+    }
+    let angle = 0;
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        angle+=0.01;
+        particles.forEach(p=>{
+            p.y += Math.cos(angle+p.d)+1+p.r/2;
+            p.x += Math.sin(angle)*2;
+            if(p.y>canvas.height){p.y=0;p.x=Math.random()*canvas.width;}
+            ctx.fillStyle=p.color;
+            ctx.beginPath();
+            ctx.arc(p.x,p.y,p.r,0,2*Math.PI);
+            ctx.fill();
+        });
+        requestAnimationFrame(draw);
+    }
+    draw();
+    setTimeout(()=>{document.body.removeChild(canvas);},3000);
 }
-
-// Success sound
 function playWinSound() {
-  const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
-  audio.play();
+    const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
+    audio.play();
 }
 
-const boardEl = document.getElementById('board');
-const progressEl = document.getElementById('progress');
+// Chess setup
 const chess = new Chess();
-let selectedSquare = null;
-let currentPuzzleIndex = 0;
+const progressEl = document.getElementById('progress');
+const turnInfoEl = document.getElementById('turnInfo');
 
 const puzzles = [
-  { fen: "6k1/5ppp/5n2/8/8/5Q2/5PPP/6K1 w - - 0 1", solution: "Qg3#" },
-  { fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 4", solution: "Bxf7+" },
-  { fen: "8/8/8/2k5/2P5/2K5/8/8 w - - 0 1", solution: "c5+" },
-  { fen: "r3k2r/pppq1ppp/2n1bn2/3p4/3P4/2N1BN2/PPPQ1PPP/R3K2R w KQkq - 0 1", solution: "O-O" }
+    { fen: "6k1/5ppp/5n2/8/8/5Q2/5PPP/6K1 w - - 0 1", solution: "g3" },
+    { fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 4", solution: "f7" },
+    { fen: "8/8/8/2k5/2P5/2K5/8/8 w - - 0 1", solution: "c5" },
+    { fen: "r3k2r/pppq1ppp/2n1bn2/3p4/3P4/2N1BN2/PPPQ1PPP/R3K2R w KQkq - 0 1", solution: "O-O" }
 ];
-
-const pieceSymbols = {
-  p: { white: '♙', black: '♟' },
-  r: { white: '♖', black: '♜' },
-  n: { white: '♘', black: '♞' },
-  b: { white: '♗', black: '♝' },
-  q: { white: '♕', black: '♛' },
-  k: { white: '♔', black: '♚' },
-};
-
-function renderBoard() {
-  boardEl.innerHTML = '';
-  const board = chess.board();
-  for (let rank = 7; rank >= 0; rank--) {
-    for (let file = 0; file < 8; file++) {
-      const square = board[rank][file];
-      const sqColor = (rank + file) % 2 === 0 ? 'white' : 'black';
-      const sqEl = document.createElement('div');
-      sqEl.classList.add('square', sqColor);
-      const squareName = String.fromCharCode(97 + file) + (rank + 1);
-      sqEl.dataset.square = squareName;
-      if (square) {
-        const piece = square.color === 'w' ? pieceSymbols[square.type].white : pieceSymbols[square.type].black;
-        sqEl.textContent = piece;
-      }
-      sqEl.addEventListener('click', () => onSquareClick(squareName));
-      boardEl.appendChild(sqEl);
-    }
-  }
-  progressEl.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${puzzles.length}`;
+let currentPuzzleIndex = 0;
+function updateProgress() {
+    progressEl.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${puzzles.length}`;
+    turnInfoEl.textContent = `First move: ${chess.turn() === 'w' ? 'White' : 'Black'}`;
 }
 
-function highlightMoves(square) {
-  const moves = chess.moves({ square, verbose: true });
-  document.querySelectorAll('.square').forEach(el => el.classList.remove('highlight'));
-  moves.forEach(m => {
-    const el = document.querySelector(`.square[data-square="${m.to}"]`);
-    if(el) el.classList.add('highlight');
-  });
-}
+// Chessboard.js with highlight
+const board = Chessboard('board', {
+    draggable: true,
+    position: puzzles[0].fen,
+    onDragStart: (source, piece) => {
+        if(chess.game_over()) return false;
+        if((chess.turn() === 'w' && piece.search(/^b/) !== -1) ||
+           (chess.turn() === 'b' && piece.search(/^w/) !== -1)) return false;
+        highlightLegalSquares(source);
+    },
+    onDrop: (source, target) => {
+        removeHighlights();
+        const move = chess.move({ from: source, to: target, promotion: 'q' });
+        if(move === null) return 'snapback';
+        if(chess.in_checkmate()){
+            playWinSound();
+            launchConfetti();
+            alert('✅ Puzzle Solved!');
+        } else if(chess.in_check()){
+            alert('♔ Check!');
+        }
+        updateProgress();
+    },
+    onSnapEnd: () => board.position(chess.fen()),
+    orientation: 'white'
+});
 
-function onSquareClick(square) {
-  const piece = chess.get(square);
-  if(selectedSquare){
-    const move = chess.move({ from: selectedSquare, to: square, promotion: 'q' });
-    selectedSquare = null;
-    document.querySelectorAll('.square').forEach(el => el.classList.remove('highlight'));
-    if(move){
-      renderBoard();
-      if(chess.in_checkmate()){
-        playWinSound();
-        launchConfetti();
-        alert("✅ Puzzle Solved!");
-      } else if(chess.in_check()){
-        alert("♔ Check!");
-      }
-    }
-  } else if(piece && piece.color === chess.turn()){
-    selectedSquare = square;
-    highlightMoves(square);
-  }
+// Highlight legal moves
+function highlightLegalSquares(square) {
+    removeHighlights();
+    const moves = chess.moves({ square: square, verbose: true });
+    moves.forEach(m => {
+        const squareEl = boardEl().querySelector(`[data-square='${m.to}']`);
+        if(squareEl) squareEl.classList.add('square-highlight');
+    });
 }
-
-function loadRandomPuzzle() {
-  currentPuzzleIndex = Math.floor(Math.random() * puzzles.length);
-  chess.load(puzzles[currentPuzzleIndex].fen);
-  selectedSquare = null;
-  renderBoard();
+function removeHighlights() {
+    boardEl().querySelectorAll('.square-highlight').forEach(s => s.classList.remove('square-highlight'));
 }
+function boardEl() { return document.getElementById('board'); }
 
-function loadNextPuzzle() {
-  currentPuzzleIndex = (currentPuzzleIndex + 1) % puzzles.length;
-  chess.load(puzzles[currentPuzzleIndex].fen);
-  selectedSquare = null;
-  renderBoard();
+function loadPuzzle(index) {
+    currentPuzzleIndex = index;
+    chess.load(puzzles[index].fen);
+    board.position(puzzles[index].fen);
+    removeHighlights();
+    updateProgress();
 }
 
 document.getElementById('hintBtn').addEventListener('click', () => {
-  alert(`Hint: ${puzzles[currentPuzzleIndex].solution}`);
+    alert('Hint: Move piece to ' + puzzles[currentPuzzleIndex].solution);
 });
-
-document.getElementById('resetBtn').addEventListener('click', () => {
-  chess.load(puzzles[currentPuzzleIndex].fen);
-  selectedSquare = null;
-  renderBoard();
-});
-
+document.getElementById('resetBtn').addEventListener('click', () => loadPuzzle(currentPuzzleIndex));
 document.getElementById('nextBtn').addEventListener('click', () => {
-  loadNextPuzzle();
+    const next = (currentPuzzleIndex + 1) % puzzles.length;
+    loadPuzzle(next);
 });
 
-// Initialize first puzzle randomly
-loadRandomPuzzle();
+// Load random puzzle at start
+loadPuzzle(Math.floor(Math.random() * puzzles.length));
 </script>
 
 </body>
