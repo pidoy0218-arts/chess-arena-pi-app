@@ -1,22 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Puzzle - Coming Soon</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Arena Pi — Puzzle Mode</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<style>
+  body { font-family: sans-serif; background: #f3f3f3; display: flex; flex-direction: column; align-items: center; padding: 10px; }
+  h1 { margin-bottom: 10px; text-align: center; }
+  #board { width: 90vw; max-width: 400px; aspect-ratio: 1; margin-bottom: 10px; }
+  .square { width: 12.5%; height: 12.5%; float: left; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; user-select: none; box-sizing: border-box; }
+  .white { background: #f0d9b5; }
+  .black { background: #b58863; }
+  #controls { margin: 10px; display: flex; gap: 10px; }
+  button { padding: 8px 12px; border-radius: 5px; border: none; background: #4CAF50; color: white; font-weight: bold; cursor: pointer; }
+  button:hover { background: #45a049; }
+</style>
 </head>
 <body>
-  <div class="menu">
-    <img src="knight.png" alt="Chess Knight" class="logo">
 
-    <div class="menu-frame">
-      <p>🧩 Puzzle Mode<br><br>Coming Soon</p>
-    </div>
+<h1>Chess Arena Pi — Puzzle</h1>
+<div id="board"></div>
+<div id="controls">
+  <button id="hintBtn">Hint</button>
+  <button id="resetBtn">Reset</button>
+  <button id="nextBtn">Next Puzzle</button>
+</div>
 
-    <div class="menu-frame">
-      <a href="menu.html">⬅ Back to Menu</a>
-    </div>
-  </div>
+<script>
+const boardEl = document.getElementById('board');
+const chess = new Chess();
+let selectedSquare = null;
+
+// Multiple puzzles: FEN + solution
+const puzzles = [
+  { fen: "6k1/5ppp/5n2/8/8/5Q2/5PPP/6K1 w - - 0 1", solution: "Qg3#" },
+  { fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 4", solution: "Bxf7+" },
+  { fen: "8/8/8/2k5/2P5/2K5/8/8 w - - 0 1", solution: "c5+" },
+  { fen: "r3k2r/pppq1ppp/2n1bn2/3p4/3P4/2N1BN2/PPPQ1PPP/R3K2R w KQkq - 0 1", solution: "O-O" }
+];
+
+let currentPuzzle = null;
+
+// Map pieces
+const pieceSymbols = {
+  p: { white: '♙', black: '♟' },
+  r: { white: '♖', black: '♜' },
+  n: { white: '♘', black: '♞' },
+  b: { white: '♗', black: '♝' },
+  q: { white: '♕', black: '♛' },
+  k: { white: '♔', black: '♚' },
+};
+
+function renderBoard() {
+  boardEl.innerHTML = '';
+  const board = chess.board();
+  for (let rank = 7; rank >= 0; rank--) {
+    for (let file = 0; file < 8; file++) {
+      const square = board[rank][file];
+      const sqColor = (rank + file) % 2 === 0 ? 'white' : 'black';
+      const sqEl = document.createElement('div');
+      sqEl.classList.add('square', sqColor);
+      sqEl.dataset.square = String.fromCharCode(97 + file) + (rank + 1);
+      if (square) {
+        const piece = square.color === 'w' ? pieceSymbols[square.type].white : pieceSymbols[square.type].black;
+        sqEl.textContent = piece;
+      }
+      sqEl.addEventListener('click', () => onSquareClick(sqEl.dataset.square));
+      boardEl.appendChild(sqEl);
+    }
+  }
+}
+
+function onSquareClick(square) {
+  if (selectedSquare) {
+    const move = chess.move({ from: selectedSquare, to: square, promotion: 'q' });
+    selectedSquare = null;
+    if (move) {
+      renderBoard();
+      if (chess.in_checkmate()) {
+        alert("✅ Puzzle Solved!");
+      } else if (chess.in_check()) {
+        alert("♔ Check!");
+      }
+    }
+  } else {
+    selectedSquare = square;
+  }
+}
+
+function loadRandomPuzzle() {
+  const index = Math.floor(Math.random() * puzzles.length);
+  currentPuzzle = puzzles[index];
+  chess.load(currentPuzzle.fen);
+  renderBoard();
+}
+
+document.getElementById('hintBtn').addEventListener('click', () => {
+  if(currentPuzzle) alert("Hint: " + currentPuzzle.solution);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if(currentPuzzle) chess.load(currentPuzzle.fen);
+  renderBoard();
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  loadRandomPuzzle();
+});
+
+// Initialize first puzzle
+loadRandomPuzzle();
+</script>
+
 </body>
 </html>
