@@ -1,89 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chess Arena Pi — Puzzle Mode</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/0.3.0/css/chessboard.min.css" />
-<style>
-body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f3f3f3; padding: 10px; }
-h1 { margin: 10px 0; text-align: center; }
-#progress, #turnInfo { margin: 5px 0; font-weight: bold; }
-#controls { margin: 10px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-button { padding: 8px 12px; border-radius: 5px; border: none; background: #4CAF50; color: white; font-weight: bold; cursor: pointer; }
-button:hover { background: #45a049; }
-#board { width: 90vw; max-width: 400px; margin-bottom: 10px; }
-.square-highlight { background-color: rgba(255, 235, 59, 0.5) !important; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi — Puzzle Mode</title>
+  <link rel="stylesheet" href="puzzle.css">
+
+  <!-- Chessboard.js and Chess.js from CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 </head>
 <body>
+  <div class="container">
+    <h1>♟ Puzzle Mode</h1>
+    <p id="turnText">Loading puzzle...</p>
+    <div id="board" style="width: 350px"></div>
 
-<h1>Chess Arena Pi — Puzzle</h1>
-<div id="progress"></div>
-<div id="turnInfo"></div>
-<div id="board" style="width: 400px;"></div>
-<div id="controls">
-  <button id="hintBtn">Hint</button>
-  <button id="resetBtn">Reset</button>
-  <button id="nextBtn">Next Puzzle</button>
-</div>
+    <div class="controls">
+      <button id="newPuzzle">New Puzzle</button>
+      <button id="hintBtn">Hint</button>
+    </div>
+    <p id="hintText"></p>
+  </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/0.3.0/js/chessboard.min.js"></script>
-<script>
-// Chess setup
-const chess = new Chess();
-const progressEl = document.getElementById('progress');
-const turnInfoEl = document.getElementById('turnInfo');
-
-const puzzles = [
-  { fen: "6k1/5ppp/5n2/8/8/5Q2/5PPP/6K1 w - - 0 1", solution: "g3" },
-  { fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 4", solution: "f7" },
-  { fen: "8/8/8/2k5/2P5/2K5/8/8 w - - 0 1", solution: "c5" }
-];
-
-let currentPuzzleIndex = 0;
-
-function updateProgress() {
-  progressEl.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${puzzles.length}`;
-  turnInfoEl.textContent = `First move: ${chess.turn() === 'w' ? 'White' : 'Black'}`;
-}
-
-const board = Chessboard('board', {
-  draggable: true,
-  position: puzzles[0].fen,
-  onDragStart: (source, piece) => {
-    if(chess.game_over()) return false;
-    if((chess.turn() === 'w' && piece.search(/^b/) !== -1) ||
-       (chess.turn() === 'b' && piece.search(/^w/) !== -1)) return false;
-  },
-  onDrop: (source, target) => {
-    const move = chess.move({ from: source, to: target, promotion: 'q' });
-    if(move === null) return 'snapback';
-    if(chess.in_checkmate()) alert('✅ Puzzle Solved!');
-    updateProgress();
-  },
-  onSnapEnd: () => board.position(chess.fen())
-});
-
-function loadPuzzle(index) {
-  currentPuzzleIndex = index;
-  chess.load(puzzles[index].fen);
-  board.position(puzzles[index].fen);
-  updateProgress();
-}
-
-document.getElementById('hintBtn').addEventListener('click', () => {
-  alert('Hint: Move piece to ' + puzzles[currentPuzzleIndex].solution);
-});
-document.getElementById('resetBtn').addEventListener('click', () => loadPuzzle(currentPuzzleIndex));
-document.getElementById('nextBtn').addEventListener('click', () => {
-  const next = (currentPuzzleIndex + 1) % puzzles.length;
-  loadPuzzle(next);
-});
-
-// Load random puzzle at start
-loadPuzzle(Math.floor(Math.random() * puzzles.length));
-</script>
+  <script src="puzzle.js"></script>
 </body>
 </html>
