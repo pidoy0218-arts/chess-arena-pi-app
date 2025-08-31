@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chess Arena Pi — Puzzle Mode</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/0.3.0/css/chessboard.min.css" />
 <style>
 body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f3f3f3; padding: 10px; }
 h1 { margin: 10px 0; text-align: center; }
@@ -21,7 +21,7 @@ button:hover { background: #45a049; }
 <h1>Chess Arena Pi — Puzzle</h1>
 <div id="progress"></div>
 <div id="turnInfo"></div>
-<div id="board"></div>
+<div id="board" style="width: 400px;"></div>
 <div id="controls">
   <button id="hintBtn">Hint</button>
   <button id="resetBtn">Reset</button>
@@ -29,125 +29,61 @@ button:hover { background: #45a049; }
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/0.3.0/js/chessboard.min.js"></script>
 <script>
-// Confetti and win sound
-function launchConfetti() {
-    const canvas = document.createElement('canvas');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    canvas.style.position = 'fixed';
-    canvas.style.top = 0;
-    canvas.style.left = 0;
-    canvas.style.pointerEvents = 'none';
-    document.body.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
-    const particles = [];
-    for(let i=0;i<150;i++){
-        particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*6+2,d:Math.random()*10+2,color:`hsl(${Math.random()*360},100%,50%)`});
-    }
-    let angle = 0;
-    function draw(){
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        angle+=0.01;
-        particles.forEach(p=>{
-            p.y += Math.cos(angle+p.d)+1+p.r/2;
-            p.x += Math.sin(angle)*2;
-            if(p.y>canvas.height){p.y=0;p.x=Math.random()*canvas.width;}
-            ctx.fillStyle=p.color;
-            ctx.beginPath();
-            ctx.arc(p.x,p.y,p.r,0,2*Math.PI);
-            ctx.fill();
-        });
-        requestAnimationFrame(draw);
-    }
-    draw();
-    setTimeout(()=>{document.body.removeChild(canvas);},3000);
-}
-function playWinSound() {
-    const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
-    audio.play();
-}
-
 // Chess setup
 const chess = new Chess();
 const progressEl = document.getElementById('progress');
 const turnInfoEl = document.getElementById('turnInfo');
 
 const puzzles = [
-    { fen: "6k1/5ppp/5n2/8/8/5Q2/5PPP/6K1 w - - 0 1", solution: "g3" },
-    { fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 4", solution: "f7" },
-    { fen: "8/8/8/2k5/2P5/2K5/8/8 w - - 0 1", solution: "c5" },
-    { fen: "r3k2r/pppq1ppp/2n1bn2/3p4/3P4/2N1BN2/PPPQ1PPP/R3K2R w KQkq - 0 1", solution: "O-O" }
+  { fen: "6k1/5ppp/5n2/8/8/5Q2/5PPP/6K1 w - - 0 1", solution: "g3" },
+  { fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 4", solution: "f7" },
+  { fen: "8/8/8/2k5/2P5/2K5/8/8 w - - 0 1", solution: "c5" }
 ];
+
 let currentPuzzleIndex = 0;
+
 function updateProgress() {
-    progressEl.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${puzzles.length}`;
-    turnInfoEl.textContent = `First move: ${chess.turn() === 'w' ? 'White' : 'Black'}`;
+  progressEl.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${puzzles.length}`;
+  turnInfoEl.textContent = `First move: ${chess.turn() === 'w' ? 'White' : 'Black'}`;
 }
 
-// Chessboard.js with highlight
 const board = Chessboard('board', {
-    draggable: true,
-    position: puzzles[0].fen,
-    onDragStart: (source, piece) => {
-        if(chess.game_over()) return false;
-        if((chess.turn() === 'w' && piece.search(/^b/) !== -1) ||
-           (chess.turn() === 'b' && piece.search(/^w/) !== -1)) return false;
-        highlightLegalSquares(source);
-    },
-    onDrop: (source, target) => {
-        removeHighlights();
-        const move = chess.move({ from: source, to: target, promotion: 'q' });
-        if(move === null) return 'snapback';
-        if(chess.in_checkmate()){
-            playWinSound();
-            launchConfetti();
-            alert('✅ Puzzle Solved!');
-        } else if(chess.in_check()){
-            alert('♔ Check!');
-        }
-        updateProgress();
-    },
-    onSnapEnd: () => board.position(chess.fen()),
-    orientation: 'white'
+  draggable: true,
+  position: puzzles[0].fen,
+  onDragStart: (source, piece) => {
+    if(chess.game_over()) return false;
+    if((chess.turn() === 'w' && piece.search(/^b/) !== -1) ||
+       (chess.turn() === 'b' && piece.search(/^w/) !== -1)) return false;
+  },
+  onDrop: (source, target) => {
+    const move = chess.move({ from: source, to: target, promotion: 'q' });
+    if(move === null) return 'snapback';
+    if(chess.in_checkmate()) alert('✅ Puzzle Solved!');
+    updateProgress();
+  },
+  onSnapEnd: () => board.position(chess.fen())
 });
 
-// Highlight legal moves
-function highlightLegalSquares(square) {
-    removeHighlights();
-    const moves = chess.moves({ square: square, verbose: true });
-    moves.forEach(m => {
-        const squareEl = boardEl().querySelector(`[data-square='${m.to}']`);
-        if(squareEl) squareEl.classList.add('square-highlight');
-    });
-}
-function removeHighlights() {
-    boardEl().querySelectorAll('.square-highlight').forEach(s => s.classList.remove('square-highlight'));
-}
-function boardEl() { return document.getElementById('board'); }
-
 function loadPuzzle(index) {
-    currentPuzzleIndex = index;
-    chess.load(puzzles[index].fen);
-    board.position(puzzles[index].fen);
-    removeHighlights();
-    updateProgress();
+  currentPuzzleIndex = index;
+  chess.load(puzzles[index].fen);
+  board.position(puzzles[index].fen);
+  updateProgress();
 }
 
 document.getElementById('hintBtn').addEventListener('click', () => {
-    alert('Hint: Move piece to ' + puzzles[currentPuzzleIndex].solution);
+  alert('Hint: Move piece to ' + puzzles[currentPuzzleIndex].solution);
 });
 document.getElementById('resetBtn').addEventListener('click', () => loadPuzzle(currentPuzzleIndex));
 document.getElementById('nextBtn').addEventListener('click', () => {
-    const next = (currentPuzzleIndex + 1) % puzzles.length;
-    loadPuzzle(next);
+  const next = (currentPuzzleIndex + 1) % puzzles.length;
+  loadPuzzle(next);
 });
 
 // Load random puzzle at start
 loadPuzzle(Math.floor(Math.random() * puzzles.length));
 </script>
-
 </body>
 </html>
