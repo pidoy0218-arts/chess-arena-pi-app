@@ -1,54 +1,72 @@
-// Define some sample puzzles
-// Each puzzle: {fen, turn, solution}
+let board, game;
+
+// Sample puzzles (FEN + solution moves)
 const puzzles = [
   {
-    fen: "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
-    turn: "w",
-    solution: "Nxe5"
+    fen: "r1bqkbnr/pppppppp/2n5/8/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+    moves: ["f3g5", "d7d5", "e4d5"] // sample line
   },
   {
-    fen: "r1bq1rk1/pp3ppp/2n2n2/2bp4/2B5/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 1",
-    turn: "w",
-    solution: "Nxd5"
-  },
-  {
-    fen: "r2qk2r/pp1n1ppp/2pbpn2/8/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w kq - 0 1",
-    turn: "w",
-    solution: "e5"
+    fen: "r1bqkbnr/pppp1ppp/2n5/4p3/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq - 0 3",
+    moves: ["e5d4", "f3d4", "c6d4"] // sample line
   }
 ];
 
-let board = null;
-let game = new Chess();
-let currentPuzzle = null;
-
+// Load a new random puzzle
 function loadPuzzle() {
-  currentPuzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-  game.load(currentPuzzle.fen);
-  board.position(currentPuzzle.fen);
+  const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
+  game = new Chess(puzzle.fen);
+  board.position(puzzle.fen);
   document.getElementById("turnText").innerText =
-    (currentPuzzle.turn === "w" ? "White" : "Black") + " to move";
-  document.getElementById("hintText").innerText = "";
+    game.turn() === "w" ? "White to move" : "Black to move";
+  board.start();
+  return puzzle;
 }
 
-function showHint() {
-  document.getElementById("hintText").innerText =
-    "Hint: Best move is " + currentPuzzle.solution;
+let currentPuzzle;
+
+// Allow only legal moves
+function onDragStart(source, piece) {
+  if (game.game_over()) return false;
+  if ((game.turn() === 'w' && piece.startsWith('b')) ||
+      (game.turn() === 'b' && piece.startsWith('w'))) {
+    return false;
+  }
 }
 
-// Initialize board
-window.onload = function () {
-  board = Chessboard("board", {
-    draggable: true,
-    position: "start",
-    onDrop: (source, target) => {
-      let move = game.move({ from: source, to: target, promotion: "q" });
-      if (move === null) return "snapback"; // illegal move
-    }
+function onDrop(source, target) {
+  let move = game.move({
+    from: source,
+    to: target,
+    promotion: "q"
   });
 
-  document.getElementById("newPuzzle").addEventListener("click", loadPuzzle);
-  document.getElementById("hintBtn").addEventListener("click", showHint);
+  if (move === null) return "snapback";
+  document.getElementById("turnText").innerText =
+    game.turn() === "w" ? "White to move" : "Black to move";
+}
 
-  loadPuzzle();
-};
+function initBoard() {
+  board = Chessboard('board', {
+    draggable: true,
+    position: 'start',
+    onDragStart: onDragStart,
+    onDrop: onDrop
+  });
+  currentPuzzle = loadPuzzle();
+}
+
+// Buttons
+document.addEventListener("DOMContentLoaded", () => {
+  initBoard();
+
+  document.getElementById("newPuzzle").addEventListener("click", () => {
+    currentPuzzle = loadPuzzle();
+  });
+
+  document.getElementById("hint").addEventListener("click", () => {
+    if (currentPuzzle && currentPuzzle.moves.length > 0) {
+      alert("Hint: Try move " + currentPuzzle.moves[0]);
+    }
+  });
+});
