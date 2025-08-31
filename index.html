@@ -20,9 +20,20 @@
       font-size: 2em;
       margin: 0.5em 0;
     }
-    .knight {
-      font-size: 15em;
+    .knight-circle {
+      width: 150px;
+      height: 150px;
+      background: #9c27b0;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto 20px;
       animation: bounce 1s infinite alternate;
+    }
+    .knight-circle span {
+      font-size: 5em;
+      color: #FFD700; /* Gold color */
     }
     @keyframes bounce {
       from { transform: translateY(0); }
@@ -48,7 +59,9 @@
 </head>
 <body>
   <div>
-    <div class="knight">♞</div>
+    <div class="knight-circle">
+      <span>♞</span>
+    </div>
     <h1>CHESS ARENA <span style="color:purple;">for</span> PI</h1>
     <button class="btn" onclick="login()">Login</button>
   </div>
