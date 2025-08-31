@@ -1,152 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Chess Arena Pi – Classic</title>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena for PI</title>
+
+  <!-- Chessboard.js CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/css/chessboard-1.0.0.min.css">
+
   <style>
     body {
-      background-color: #4caf50;
-      color: #fff;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       margin: 0;
-      padding: 10px;
-    }
-
-    h2 {
-      margin-bottom: 10px;
-    }
-
-    /* Responsive 8x8 board */
-    #board {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      grid-template-rows: repeat(8, 1fr);
-      width: 95vw;       /* scale to screen */
-      max-width: 480px;  /* cap on large screens */
-      aspect-ratio: 1;   /* keep square */
-      border: 4px solid #ccc;
-    }
-
-    .square {
+      padding: 0;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: calc(9vw); /* big pieces */
-      line-height: 1;
-      cursor: pointer;
-      user-select: none;
+      height: 100vh;
+      background: #d18b47; /* wood brown */
     }
-
-    .white-square { background-color: #f0f0f0; }
-    .green-square { background-color: #b1e59f; }
-
-    .white-piece {
-      color: #b8860b; /* golden khaki */
-      font-weight: 900;
-      text-shadow: 1px 1px 0 black;
-    }
-
-    .black-piece { color: black; }
-
-    .highlight { outline: 3px solid yellow; }
-
-    #status {
-      margin-top: 15px;
-      font-weight: bold;
-      text-align: center;
+    #board {
+      width: 95vmin;
+      max-width: 500px;
     }
   </style>
 </head>
 <body>
 
-<h2>Chess Arena Pi</h2>
 <div id="board"></div>
-<div id="status">White to move</div>
 
-<!-- chess.js FIDE rules engine -->
+<!-- Chess.js rules engine -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<!-- Chessboard.js display/drag -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/js/chessboard-1.0.0.min.js"></script>
+
 <script>
-  const boardEl = document.getElementById("board");
-  const statusEl = document.getElementById("status");
+  var game = new Chess();
 
-  const PIECES = {
-    r: "♜", n: "♞", b: "♝", q: "♛", k: "♚", p: "♟",
-    R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔", P: "♙"
-  };
-
-  const game = new Chess(); // standard start
-  let selected = null;
-
-  function renderBoard() {
-    boardEl.innerHTML = "";
-    const board = game.board();
-
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        const square = document.createElement("div");
-        square.classList.add("square");
-        square.classList.add((row + col) % 2 === 0 ? "white-square" : "green-square");
-
-        const squareName = "abcdefgh"[col] + (8 - row);
-        square.dataset.square = squareName;
-
-        const piece = board[row][col];
-        if (piece) {
-          const symbol = piece.type;
-          const color = piece.color === "w" ? symbol.toUpperCase() : symbol;
-          square.textContent = PIECES[color];
-          square.classList.add(piece.color === "w" ? "white-piece" : "black-piece");
-        }
-
-        if (selected === squareName) square.classList.add("highlight");
-
-        boardEl.appendChild(square);
-      }
-    }
-
-    if (game.in_checkmate()) {
-      statusEl.textContent = `Checkmate! ${game.turn() === "w" ? "Black" : "White"} wins`;
-    } else if (game.in_draw()) {
-      statusEl.textContent = "Draw!";
-    } else if (game.in_check()) {
-      statusEl.textContent = `${game.turn() === "w" ? "White" : "Black"} to move (Check!)`;
-    } else {
-      statusEl.textContent = `${game.turn() === "w" ? "White" : "Black"} to move`;
-    }
-  }
-
-  boardEl.addEventListener("click", (e) => {
-    if (!e.target.classList.contains("square")) return;
-    const square = e.target.dataset.square;
-
-    if (selected) {
-      const move = game.move({ from: selected, to: square, promotion: "q" });
-      if (move) {
-        selected = null;
-        renderBoard();
-      } else {
-        if (game.get(square) && game.get(square).color === game.turn()) {
-          selected = square;
-          renderBoard();
-        } else {
-          selected = null;
-          renderBoard();
-        }
-      }
-    } else {
-      const piece = game.get(square);
-      if (piece && piece.color === game.turn()) {
-        selected = square;
-        renderBoard();
-      }
-    }
+  var board = Chessboard('board', {
+    draggable: true,
+    position: 'start',
+    onDrop: onDrop
   });
 
-  renderBoard();
+  function onDrop(source, target) {
+    var move = game.move({
+      from: source,
+      to: target,
+      promotion: 'q' // auto promote to queen
+    });
+
+    if (move === null) return 'snapback'; // illegal move
+  }
 </script>
 
 </body>
