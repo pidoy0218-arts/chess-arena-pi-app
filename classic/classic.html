@@ -1,0 +1,216 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi – Classic Mode</title>
+
+  <!-- Chessboard.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
+  <!-- Chess.js rules engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #deb887; /* light wooden */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      margin: 10px;
+      color: #2c2c2c;
+    }
+    #board {
+      width: 90vw;
+      max-width: 400px;
+      margin: 10px auto;
+      border: 5px solid #4b2e2e;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+    .timers {
+      display: flex;
+      justify-content: space-between;
+      width: 90vw;
+      max-width: 400px;
+      margin: 5px auto;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .buttons {
+      margin: 10px;
+    }
+    .buttons button {
+      margin: 5px;
+      padding: 8px 15px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .resign { background: #d9534f; color: white; }
+    .draw { background: #f0ad4e; color: white; }
+    .rematch { background: #5cb85c; color: white; }
+    .captured {
+      margin: 10px;
+      display: flex;
+      justify-content: space-between;
+      width: 90vw;
+      max-width: 400px;
+      font-size: 20px;
+    }
+    #history {
+      margin: 10px;
+      width: 90vw;
+      max-width: 400px;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 5px;
+      height: 100px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>♟ Chess Arena Pi – Classic</h1>
+
+  <div class="timers">
+    <div id="timerWhite">White: 05:00</div>
+    <div id="timerBlack">Black: 05:00</div>
+  </div>
+
+  <div id="board"></div>
+
+  <div class="captured">
+    <div id="capturedWhite"></div>
+    <div id="capturedBlack"></div>
+  </div>
+
+  <div id="history"></div>
+
+  <div class="buttons">
+    <button class="resign" onclick="resign()">Resign</button>
+    <button class="draw" onclick="offerDraw()">Offer Draw</button>
+    <button class="rematch" onclick="rematch()">Rematch</button>
+  </div>
+
+  <script>
+    var board = null;
+    var game = new Chess();
+    var capturedWhite = [];
+    var capturedBlack = [];
+
+    // --- Timer setup ---
+    var whiteTime = 300; // 5 min
+    var blackTime = 300;
+    var timerInterval = null;
+    var currentTurn = 'w';
+
+    function updateTimers() {
+      document.getElementById("timerWhite").innerText = "White: " +
+        Math.floor(whiteTime/60).toString().padStart(2,'0') + ":" +
+        (whiteTime%60).toString().padStart(2,'0');
+      document.getElementById("timerBlack").innerText = "Black: " +
+        Math.floor(blackTime/60).toString().padStart(2,'0') + ":" +
+        (blackTime%60).toString().padStart(2,'0');
+    }
+
+    function switchTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(function() {
+        if (currentTurn === 'w') {
+          whiteTime--;
+          if (whiteTime <= 0) { alert("Black wins on time!"); clearInterval(timerInterval); }
+        } else {
+          blackTime--;
+          if (blackTime <= 0) { alert("White wins on time!"); clearInterval(timerInterval); }
+        }
+        updateTimers();
+      }, 1000);
+    }
+
+    updateTimers();
+    switchTimer();
+
+    // --- Capture display ---
+    function updateCaptured() {
+      document.getElementById("capturedWhite").innerText = "White taken: " + capturedWhite.join(" ");
+      document.getElementById("capturedBlack").innerText = "Black taken: " + capturedBlack.join(" ");
+    }
+
+    // --- Move handling ---
+    function onDrop(source, target) {
+      var move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q' // always promote to queen
+      });
+
+      if (move === null) return 'snapback';
+
+      // Capture?
+      if (move.captured) {
+        if (move.color === 'w') {
+          capturedWhite.push(move.captured);
+        } else {
+          capturedBlack.push(move.captured);
+        }
+        updateCaptured();
+      }
+
+      // Update move history
+      var history = game.history();
+      document.getElementById("history").innerText = history.join(" ");
+
+      currentTurn = game.turn();
+      switchTimer();
+
+      // Check game over
+      if (game.in_checkmate()) {
+        alert((currentTurn === 'w' ? "Black" : "White") + " wins by checkmate!");
+        clearInterval(timerInterval);
+      } else if (game.in_draw()) {
+        alert("Game drawn!");
+        clearInterval(timerInterval);
+      }
+    }
+
+    function onSnapEnd() {
+      board.position(game.fen());
+    }
+
+    board = Chessboard('board', {
+      draggable: true,
+      position: 'start',
+      onDrop: onDrop,
+      onSnapEnd: onSnapEnd
+    });
+
+    // --- Buttons ---
+    function resign() {
+      alert((game.turn() === 'w' ? "White resigns. Black wins!" : "Black resigns. White wins!"));
+    }
+    function offerDraw() {
+      alert("Draw offered! (auto-accepted for demo)");
+    }
+    function rematch() {
+      game.reset();
+      board.start();
+      capturedWhite = [];
+      capturedBlack = [];
+      updateCaptured();
+      document.getElementById("history").innerText = "";
+      whiteTime = 300;
+      blackTime = 300;
+      currentTurn = 'w';
+      updateTimers();
+      switchTimer();
+    }
+  </script>
+</body>
+</html>
