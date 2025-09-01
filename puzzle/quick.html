@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi – Puzzle Mode</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #ff9800; /* Amber theme */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+    }
+    header {
+      width: 100%;
+      background: #2196f3; /* Dropdown bar */
+      color: white;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    select {
+      padding: 5px;
+      border-radius: 6px;
+    }
+    #board {
+      width: 90vw;
+      max-width: 400px;
+      margin-top: 20px;
+    }
+    #puzzle-controls {
+      margin-top: 15px;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      background: #2196f3;
+      color: white;
+      font-size: 16px;
+    }
+    button:disabled {
+      background: gray;
+      opacity: 0.7;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+  </style>
+  <!-- chessboard.js + chess.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.css"/>
+</head>
+<body>
+  <header>
+    <div>Puzzle Mode</div>
+    <select>
+      <option>Player123</option>
+      <option>Player456</option>
+    </select>
+  </header>
+
+  <div id="board"></div>
+  <div id="puzzle-controls">
+    <button id="p1">Puzzle 1</button>
+    <button id="p2" disabled>🔒 Puzzle 2</button>
+    <button id="p3" disabled>🔒 Puzzle 3</button>
+  </div>
+  <div id="status">Select a puzzle to start.</div>
+  <canvas id="confetti"></canvas>
+  <audio id="winSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+<script>
+const puzzles = [
+  {fen: "8/8/8/8/3k4/8/3Q4/4K3 w - - 0 1", solutionMoves: 3}, 
+  {fen: "r1bqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 2", solutionMoves: 3},
+  {fen: "8/8/8/8/8/3k4/8/4K3 w - - 0 1", solutionMoves: 3}
+];
+let board, game, currentPuzzle = null, solvedCount = 0;
+
+function initBoard(fen) {
+  game = new Chess(fen);
+  board = Chessboard('board', {
+    draggable: true,
+    position: fen,
+    onDrop: onDrop
+  });
+  document.getElementById("status").textContent = "Solve: Mate in 3 moves!";
+}
+
+function onDrop(source, target) {
+  let move = game.move({from: source, to: target, promotion: 'q'});
+  if (!move) return 'snapback';
+  board.position(game.fen());
+  if (game.in_checkmate()) {
+    solvedCount++;
+    document.getElementById("status").textContent = "Puzzle solved!";
+    unlockNextPuzzle();
+    if (solvedCount === puzzles.length) {
+      celebrate();
+    }
+  }
+}
+
+function unlockNextPuzzle() {
+  if (solvedCount === 1) {
+    document.getElementById("p2").disabled = false;
+    document.getElementById("p2").textContent = "Puzzle 2";
+  } else if (solvedCount === 2) {
+    document.getElementById("p3").disabled = false;
+    document.getElementById("p3").textContent = "Puzzle 3";
+  }
+}
+
+function celebrate() {
+  document.getElementById("status").textContent = "🎉 All puzzles solved!";
+  document.getElementById("winSound").play();
+  launchConfetti();
+}
+
+// Puzzle buttons
+document.getElementById("p1").onclick = () => initBoard(puzzles[0].fen);
+document.getElementById("p2").onclick = () => initBoard(puzzles[1].fen);
+document.getElementById("p3").onclick = () => initBoard(puzzles[2].fen);
+
+// Simple confetti
+function launchConfetti() {
+  const canvas = document.getElementById("confetti");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const pieces = Array.from({length: 200}, () => ({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height - canvas.height,
+    w: 5,
+    h: 10,
+    c: `hsl(${Math.random()*360},100%,50%)`,
+    s: Math.random()*3+2,
+    a: Math.random()*360
+  }));
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for (let p of pieces) {
+      ctx.fillStyle = p.c;
+      ctx.fillRect(p.x,p.y,p.w,p.h);
+      p.y += p.s;
+      if (p.y > canvas.height) p.y = -10;
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+</script>
+</body>
+</html>
