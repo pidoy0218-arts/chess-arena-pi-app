@@ -1,3 +1,4 @@
+
 const boardElement = document.getElementById("board");
 const statusElement = document.getElementById("status");
 const turnInfo = document.getElementById("turnInfo");
