@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Classic — Chess Arena for Pi</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="style.css">
+  <!-- chess.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.0.0/chess.min.js"></script>
+</head>
+<body>
+  <main class="root">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">♞</div>
+        <div class="title">CHESS ARENA <span class="for">for</span> PI</div>
+      </div>
+      <div class="controls">
+        <input id="playerWhite" placeholder="White ID (guest)" />
+        <input id="playerBlack" placeholder="Black ID (guest)" />
+        <button id="btnBack" class="small">← Menu</button>
+      </div>
+    </header>
+
+    <section class="board-area">
+      <div class="top-info">
+        <div class="player-info" id="whiteInfo">
+          <div class="name" id="whiteName">White</div>
+          <div class="timer" id="whiteTimer">15:00</div>
+        </div>
+
+        <div class="game-actions">
+          <button id="btnDraw" class="small">Offer Draw</button>
+          <button id="btnResign" class="small danger">Resign</button>
+          <button id="btnRematch" class="small">Rematch</button>
+        </div>
+
+        <div class="player-info" id="blackInfo">
+          <div class="name" id="blackName">Black</div>
+          <div class="timer" id="blackTimer">15:00</div>
+        </div>
+      </div>
+
+      <div id="board" class="board" role="grid" aria-label="Chess board"></div>
+
+      <div class="bottom-row">
+        <div id="moveHistory" class="moves" aria-hidden="true"></div>
+        <div id="status" class="status" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+
+  <canvas id="confetti"></canvas>
+
+  <script src="script.js"></script>
+</body>
+</html>
