@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi – Blitz 60s</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #3e2723; /* dark wood background */
+      color: white;
+    }
+    h2 {
+      margin: 10px 0;
+    }
+    .players {
+      display: flex;
+      justify-content: space-between;
+      width: 90%;
+      max-width: 420px;
+      margin: 5px;
+      font-size: 14px;
+    }
+    .timer {
+      font-size: 16px;
+      font-weight: bold;
+      margin: 5px;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 90vw;
+      max-width: 420px;
+      aspect-ratio: 1;
+      border: 12px solid #4e342e; /* dark wood frame */
+      box-shadow: 0 0 15px rgba(0,0,0,0.7);
+    }
+    .square {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2rem;
+    }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+    .buttons {
+      margin: 8px;
+      display: flex;
+      gap: 8px;
+    }
+    button {
+      padding: 6px 10px;
+      font-size: 13px;
+      border: none;
+      border-radius: 6px;
+      background: #2196f3;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.85;
+    }
+    #history {
+      display: none;
+      margin-top: 10px;
+      font-size: 13px;
+      background: rgba(255,255,255,0.1);
+      padding: 8px;
+      border-radius: 6px;
+      width: 90%;
+      max-width: 420px;
+    }
+  </style>
+</head>
+<body>
+  <h2>♟ Chess Arena Pi – Blitz</h2>
+
+  <div class="players">
+    <span id="playerWhite">White: [SDK_Player_1]</span>
+    <span id="playerBlack">Black: [SDK_Player_2]</span>
+  </div>
+
+  <div class="timer">⏱ Time: <span id="time">60</span>s</div>
+
+  <div class="board" id="board"></div>
+
+  <div class="buttons">
+    <button onclick="toggleHistory()">Analyze</button>
+    <button onclick="rematch()">Rematch</button>
+    <button onclick="offerDraw()">Draw</button>
+    <button onclick="resign()">Resign</button>
+  </div>
+
+  <div id="history"></div>
+
+  <audio id="moveSound" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_c0b9fb33ba.mp3?filename=click-124467.mp3"></audio>
+  <audio id="warnSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_3a8c2f2f26.mp3?filename=warning-2-46134.mp3"></audio>
+  <audio id="winSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1a69a44a47.mp3?filename=success-1-6297.mp3"></audio>
+  <audio id="loseSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_29b369f9e2.mp3?filename=negative_beeps-6008.mp3"></audio>
+
+  <script>
+    const boardEl = document.getElementById("board");
+    const timeEl = document.getElementById("time");
+    const moveSound = document.getElementById("moveSound");
+    const warnSound = document.getElementById("warnSound");
+    const winSound = document.getElementById("winSound");
+    const loseSound = document.getElementById("loseSound");
+    const historyEl = document.getElementById("history");
+
+    let time = 60;
+    let timer;
+    let currentPlayer = "white";
+    let history = [];
+
+    // Chessboard layout (basic)
+    const initialBoard = [
+      "r","n","b","q","k","b","n","r",
+      "p","p","p","p","p","p","p","p",
+      "","","","","","","","",
+      "","","","","","","","",
+      "","","","","","","","",
+      "","","","","","","","",
+      "P","P","P","P","P","P","P","P",
+      "R","N","B","Q","K","B","N","R"
+    ];
+
+    function createBoard() {
+      boardEl.innerHTML = "";
+      for (let i = 0; i < 64; i++) {
+        const square = document.createElement("div");
+        square.classList.add("square", (Math.floor(i/8)+i)%2===0 ? "light":"dark");
+        square.textContent = pieceToChar(initialBoard[i]);
+        square.dataset.index = i;
+        boardEl.appendChild(square);
+      }
+    }
+
+    function pieceToChar(p) {
+      const map = {
+        "r":"♜","n":"♞","b":"♝","q":"♛","k":"♚","p":"♟",
+        "R":"♖","N":"♘","B":"♗","Q":"♕","K":"♔","P":"♙"
+      };
+      return map[p] || "";
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      time = 60;
+      timeEl.textContent = time;
+      timer = setInterval(()=>{
+        time--;
+        timeEl.textContent = time;
+        if (time === 15) warnSound.play();
+        if (time <= 0) {
+          clearInterval(timer);
+          endGame(currentPlayer + " loses on time!");
+        }
+      },1000);
+    }
+
+    function makeMove(move) {
+      moveSound.play();
+      history.push(move);
+      currentPlayer = currentPlayer === "white" ? "black" : "white";
+      startTimer();
+    }
+
+    function endGame(msg) {
+      loseSound.play();
+      alert("Game Over: " + msg);
+    }
+
+    function toggleHistory() {
+      if (historyEl.style.display === "none") {
+        historyEl.style.display = "block";
+        historyEl.innerHTML = "<b>Moves:</b><br>" + history.join("<br>");
+      } else {
+        historyEl.style.display = "none";
+      }
+    }
+
+    function rematch() {
+      winSound.play();
+      history = [];
+      createBoard();
+      startTimer();
+    }
+
+    function offerDraw() {
+      alert("Draw offered.");
+    }
+
+    function resign() {
+      endGame(currentPlayer + " resigns");
+    }
+
+    // Init
+    createBoard();
+    startTimer();
+  </script>
+</body>
+</html>
