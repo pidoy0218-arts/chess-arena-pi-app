@@ -3,36 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi — Blitz 60s</title>
+  <title>Chess Arena Pi — Quick Match</title>
   <style>
     /* Chessboard styling */
-    #board { 
-      width: 90vw; 
-      max-width: 400px; 
-      margin: 20px auto; 
-    }
+    #board { width: 90vw; max-width: 400px; margin: 20px auto; }
     .square-55d63 { width: 12.5%; height: 12.5%; }
     .black-3c85d { background-color: #769656; }
     .white-1e1d7 { background-color: #eeeed2; }
     .piece-417db { cursor: grab; }
 
-    /* General styles */
     body {
       margin: 0;
       padding: 0;
       font-family: Arial, sans-serif;
-      background: #2196f3;
+      background: #4caf50;
       color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-    header {
-      width: 100%;
-      background: #388e3c;
-      padding: 10px;
-      text-align: center;
-    }
+    header { width: 100%; background: #388e3c; padding: 10px; text-align: center; }
     .dropdown { margin: 10px; }
     select { padding: 5px; border-radius: 5px; border: none; }
     .timer { margin: 10px; font-size: 18px; font-weight: bold; }
@@ -51,15 +41,15 @@
 </head>
 <body>
   <header>
-    <h2>Chess Arena Pi — Blitz 60s</h2>
+    <h2>Chess Arena Pi — Quick Match (60s Rule)</h2>
   </header>
 
   <div class="dropdown">
     <label>Match: </label>
     <select id="matchSelect">
-      <option>Player1 (White) vs Player2 (Black)</option>
+      <option>Solo Mode</option>
       <option>Guest1 vs Guest2</option>
-      <option>Anon123 vs Anon456</option>
+      <option>Player1 vs Player2</option>
     </select>
   </div>
 
@@ -83,7 +73,6 @@
     !function(){function e(){/* minimal chessboard.js code for draggable board */}window.Chessboard=e}();
   </script>
 
-  <!-- Game logic -->
   <script>
     const game = new Chess();
     let board = Chessboard('board', {
@@ -115,7 +104,9 @@
     function onDrop(source, target) {
       const move = game.move({ from: source, to: target, promotion: 'q' });
       if (move === null) return 'snapback';
-      startTimer(); // reset timer on valid move
+      startTimer(); // reset timer
+      // Placeholder for multiplayer sync:
+      // sendMoveToServer(move);
     }
 
     function resign() {
@@ -123,6 +114,7 @@
       game.reset();
       board.start();
       clearInterval(timer);
+      // Placeholder: notify server
     }
 
     function rematch() {
@@ -130,19 +122,24 @@
       game.reset();
       board.start();
       startTimer();
+      // Placeholder: notify server
     }
 
-    // Dropdown selection
+    // Dropdown (cosmetic / future multiplayer assignment)
     const matchSelect = document.getElementById("matchSelect");
     matchSelect.addEventListener("change", () => {
-      alert("Selected match: " + matchSelect.value);
+      console.log("Selected match: " + matchSelect.value);
       game.reset();
       board.start();
       startTimer();
     });
 
-    // Start initial timer
-    startTimer();
+    // Auto-start solo game
+    window.addEventListener('load', () => {
+      game.reset();
+      board.start();
+      startTimer();
+    });
   </script>
 </body>
 </html>
