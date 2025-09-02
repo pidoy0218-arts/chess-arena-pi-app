@@ -1,0 +1,96 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: #3e2c1c; /* Dark wood background */
+  color: white;
+  text-align: center;
+}
+
+/* Loader */
+#loader {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #3e2c1c;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.circle {
+  width: 15px;
+  height: 15px;
+  margin: 5px;
+  border-radius: 50%;
+  background: #ffcc00;
+  animation: bounce 1.2s infinite ease-in-out;
+}
+
+.circle:nth-child(1) { animation-delay: -0.32s; }
+.circle:nth-child(2) { animation-delay: -0.16s; }
+
+.pi-symbol {
+  font-size: 40px;
+  margin-top: 20px;
+  color: #ffcc00;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+/* Popup */
+#popup {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #222;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+#popup button {
+  margin: 5px;
+  padding: 10px 20px;
+  border: none;
+  background: #2196f3;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.hidden { display: none; }
+
+/* Game */
+.game-container {
+  max-width: 500px;
+  margin: auto;
+  padding: 20px;
+}
+#timer {
+  font-size: 20px;
+  margin: 10px 0;
+}
+#board {
+  width: 100%;
+  max-width: 400px;
+  margin: auto;
+  border: 5px solid #8b5a2b; /* Wooden frame */
+}
+.controls button {
+  margin: 5px;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  background: #444;
+  color: white;
+  border: none;
+}
+#move-history {
+  margin-top: 15px;
+  font-size: 14px;
+  background: rgba(255,255,255,0.1);
+  padding: 10px;
+  border-radius: 6px;
+}
