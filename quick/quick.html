@@ -3,205 +3,198 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi – Blitz 60s</title>
+  <title>Chess Arena Pi – Matchmaking</title>
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
+      background: #2c2c2c;
+      color: white;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
-      background: #3e2723; /* dark wood background */
+      height: 100vh;
+    }
+    /* Matchmaking screen */
+    #matchmaking {
+      text-align: center;
+    }
+    select, button {
+      font-size: 1rem;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin: 10px;
+    }
+    select {
+      background: #444;
       color: white;
     }
-    h2 {
-      margin: 10px 0;
+    button {
+      background: #2196f3;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    /* Game screen */
+    #game {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 50px);
+      grid-template-rows: repeat(8, 50px);
+      border: 8px solid #3e2723;
+      margin: 20px 0;
+    }
+    .cell {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+    .dark {
+      background: #6d4c41;
+    }
+    .light {
+      background: #d7ccc8;
     }
     .players {
       display: flex;
       justify-content: space-between;
       width: 90%;
       max-width: 420px;
-      margin: 5px;
-      font-size: 14px;
+      margin: 5px 0;
     }
     .timer {
-      font-size: 16px;
+      font-size: 1.2rem;
       font-weight: bold;
-      margin: 5px;
     }
-    .board {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      grid-template-rows: repeat(8, 1fr);
-      width: 90vw;
-      max-width: 420px;
-      aspect-ratio: 1;
-      border: 12px solid #4e342e; /* dark wood frame */
-      box-shadow: 0 0 15px rgba(0,0,0,0.7);
-    }
-    .square {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 2rem;
-    }
-    .light { background: #f0d9b5; }
-    .dark { background: #b58863; }
-    .buttons {
-      margin: 8px;
-      display: flex;
-      gap: 8px;
-    }
-    button {
-      padding: 6px 10px;
-      font-size: 13px;
-      border: none;
-      border-radius: 6px;
-      background: #2196f3;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      opacity: 0.85;
-    }
-    #history {
-      display: none;
+    .controls {
       margin-top: 10px;
-      font-size: 13px;
-      background: rgba(255,255,255,0.1);
-      padding: 8px;
-      border-radius: 6px;
-      width: 90%;
-      max-width: 420px;
+    }
+    .controls button {
+      margin: 0 5px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      background: #555;
+    }
+    .controls button:hover {
+      background: #777;
+    }
+    .warning {
+      color: #ff9800;
     }
   </style>
 </head>
 <body>
-  <h2>♟ Chess Arena Pi – Blitz</h2>
 
-  <div class="players">
-    <span id="playerWhite">White: [SDK_Player_1]</span>
-    <span id="playerBlack">Black: [SDK_Player_2]</span>
+  <!-- Matchmaking Screen -->
+  <div id="matchmaking">
+    <h2>Choose Game Mode</h2>
+    <select id="modeSelect">
+      <option value="random">Quick Match (Random Opponent)</option>
+      <option value="invite">Invite a Friend</option>
+      <option value="ai">Play vs AI</option>
+    </select>
+    <br>
+    <button onclick="startGame()">OK</button>
   </div>
 
-  <div class="timer">⏱ Time: <span id="time">60</span>s</div>
+  <!-- Game Screen -->
+  <div id="game">
+    <div class="players">
+      <div>Player A (ID: #123)</div>
+      <div class="timer" id="timerA">60</div>
+    </div>
 
-  <div class="board" id="board"></div>
+    <div class="board" id="board"></div>
 
-  <div class="buttons">
-    <button onclick="toggleHistory()">Analyze</button>
-    <button onclick="rematch()">Rematch</button>
-    <button onclick="offerDraw()">Draw</button>
-    <button onclick="resign()">Resign</button>
+    <div class="players">
+      <div>Player B (ID: #456)</div>
+      <div class="timer" id="timerB">60</div>
+    </div>
+
+    <div class="controls">
+      <button onclick="resign()">Resign</button>
+      <button onclick="offerDraw()">Draw</button>
+      <button onclick="rematch()">Rematch</button>
+    </div>
   </div>
 
-  <div id="history"></div>
+<script>
+  let board = document.getElementById("board");
+  let timerA = document.getElementById("timerA");
+  let timerB = document.getElementById("timerB");
+  let turn = "A";
+  let interval;
+  let timeA = 60, timeB = 60;
 
-  <audio id="moveSound" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_c0b9fb33ba.mp3?filename=click-124467.mp3"></audio>
-  <audio id="warnSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_3a8c2f2f26.mp3?filename=warning-2-46134.mp3"></audio>
-  <audio id="winSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1a69a44a47.mp3?filename=success-1-6297.mp3"></audio>
-  <audio id="loseSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_29b369f9e2.mp3?filename=negative_beeps-6008.mp3"></audio>
-
-  <script>
-    const boardEl = document.getElementById("board");
-    const timeEl = document.getElementById("time");
-    const moveSound = document.getElementById("moveSound");
-    const warnSound = document.getElementById("warnSound");
-    const winSound = document.getElementById("winSound");
-    const loseSound = document.getElementById("loseSound");
-    const historyEl = document.getElementById("history");
-
-    let time = 60;
-    let timer;
-    let currentPlayer = "white";
-    let history = [];
-
-    // Chessboard layout (basic)
-    const initialBoard = [
-      "r","n","b","q","k","b","n","r",
-      "p","p","p","p","p","p","p","p",
-      "","","","","","","","",
-      "","","","","","","","",
-      "","","","","","","","",
-      "","","","","","","","",
-      "P","P","P","P","P","P","P","P",
-      "R","N","B","Q","K","B","N","R"
-    ];
-
-    function createBoard() {
-      boardEl.innerHTML = "";
-      for (let i = 0; i < 64; i++) {
-        const square = document.createElement("div");
-        square.classList.add("square", (Math.floor(i/8)+i)%2===0 ? "light":"dark");
-        square.textContent = pieceToChar(initialBoard[i]);
-        square.dataset.index = i;
-        boardEl.appendChild(square);
+  // Create board
+  function createBoard() {
+    board.innerHTML = "";
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        let cell = document.createElement("div");
+        cell.className = "cell " + ((r + c) % 2 === 0 ? "light" : "dark");
+        board.appendChild(cell);
       }
     }
+  }
 
-    function pieceToChar(p) {
-      const map = {
-        "r":"♜","n":"♞","b":"♝","q":"♛","k":"♚","p":"♟",
-        "R":"♖","N":"♘","B":"♗","Q":"♕","K":"♔","P":"♙"
-      };
-      return map[p] || "";
-    }
-
-    function startTimer() {
-      clearInterval(timer);
-      time = 60;
-      timeEl.textContent = time;
-      timer = setInterval(()=>{
-        time--;
-        timeEl.textContent = time;
-        if (time === 15) warnSound.play();
-        if (time <= 0) {
-          clearInterval(timer);
-          endGame(currentPlayer + " loses on time!");
-        }
-      },1000);
-    }
-
-    function makeMove(move) {
-      moveSound.play();
-      history.push(move);
-      currentPlayer = currentPlayer === "white" ? "black" : "white";
-      startTimer();
-    }
-
-    function endGame(msg) {
-      loseSound.play();
-      alert("Game Over: " + msg);
-    }
-
-    function toggleHistory() {
-      if (historyEl.style.display === "none") {
-        historyEl.style.display = "block";
-        historyEl.innerHTML = "<b>Moves:</b><br>" + history.join("<br>");
-      } else {
-        historyEl.style.display = "none";
-      }
-    }
-
-    function rematch() {
-      winSound.play();
-      history = [];
-      createBoard();
-      startTimer();
-    }
-
-    function offerDraw() {
-      alert("Draw offered.");
-    }
-
-    function resign() {
-      endGame(currentPlayer + " resigns");
-    }
-
-    // Init
+  // Start game
+  function startGame() {
+    document.getElementById("matchmaking").style.display = "none";
+    document.getElementById("game").style.display = "flex";
     createBoard();
     startTimer();
-  </script>
+  }
+
+  // Timer
+  function startTimer() {
+    clearInterval(interval);
+    interval = setInterval(() => {
+      if (turn === "A") {
+        timeA--;
+        timerA.textContent = timeA;
+        timerA.className = timeA <= 15 ? "timer warning" : "timer";
+        if (timeA <= 0) endGame("Player B wins (timeout)");
+      } else {
+        timeB--;
+        timerB.textContent = timeB;
+        timerB.className = timeB <= 15 ? "timer warning" : "timer";
+        if (timeB <= 0) endGame("Player A wins (timeout)");
+      }
+    }, 1000);
+  }
+
+  // Simulate move (for demo, just switch turns)
+  board?.addEventListener("click", () => {
+    turn = (turn === "A") ? "B" : "A";
+    startTimer();
+  });
+
+  // End game
+  function endGame(msg) {
+    clearInterval(interval);
+    alert(msg);
+  }
+
+  // Controls
+  function resign() { endGame("Player " + turn + " resigned"); }
+  function offerDraw() { endGame("Game drawn by agreement"); }
+  function rematch() {
+    timeA = 60; timeB = 60; turn = "A";
+    timerA.textContent = timeA; timerB.textContent = timeB;
+    startTimer();
+  }
+</script>
+
 </body>
 </html>
