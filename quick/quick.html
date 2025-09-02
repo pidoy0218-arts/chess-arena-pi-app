@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi – Quick Match</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: #222;
+      color: #fff;
+    }
+
+    /* Loading screen */
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .circle {
+      width: 80px;
+      height: 80px;
+      border: 5px solid rgba(255, 255, 255, 0.2);
+      border-top: 5px solid #fdb913; /* Pi gold */
+      border-radius: 50%;
+      animation: spin 2s linear infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: #fdb913;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Menu buttons */
+    #menu {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      text-align: center;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #2196f3;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1976d2;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading screen -->
+  <div id="loading">
+    <div class="circle">π</div>
+    <p>Connecting to Pi Network...</p>
+  </div>
+
+  <!-- Menu after loading -->
+  <div id="menu">
+    <button onclick="startGame('invite')">Invite Friend</button>
+    <button onclick="startGame('random')">Random Match</button>
+    <button onclick="startGame('ai')">Play with AI</button>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    // After 5s, hide loading and show menu
+    setTimeout(() => {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('menu').style.display = 'flex';
+    }, 5000);
+
+    function startGame(mode) {
+      // For now: simulate redirect with confirm
+      if (confirm("Proceed with " + mode + " match?")) {
+        window.location.href = "game.html?mode=" + mode;
+      }
+    }
+  </script>
+
+</body>
+</html>
