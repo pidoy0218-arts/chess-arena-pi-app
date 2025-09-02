@@ -1,0 +1,28 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi – Quick Start</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="common.js" defer></script>
+</head>
+<body>
+  <!-- Loader -->
+  <div id="loader">
+    <div class="circle"></div>
+    <div class="circle"></div>
+    <div class="circle"></div>
+    <div class="pi-symbol">π</div>
+  </div>
+
+  <!-- Popup -->
+  <div id="popup" class="hidden">
+    <h2>Select Mode</h2>
+    <button onclick="startGame('invite')">© Invite</button>
+    <button onclick="startGame('random')">© Random</button>
+    <button onclick="startGame('ai')">© AI</button>
+  </div>
+</body>
+</html>
