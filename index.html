@@ -3,76 +3,137 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena for PI</title>
+  <title>Quick Game</title>
   <style>
     body {
       margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 80vh;
-      background: #4b0082;
-      color: #ffd700;
       font-family: Arial, sans-serif;
-      text-align: center;
-    }
-    h1 {
-      font-size: 2.25em;
-      margin: 0.5em 0;
-    }
-    .knight-circle {
-      width: 220px;
-      height: 220px;
-      background: #ffd700;
-      border-radius: 50%;
+      background: #4caf50; /* green theme */
+      color: white;
       display: flex;
       justify-content: center;
       align-items: center;
-      margin: 0 auto 20px;
-      animation: bounce 1s infinite alternate;
+      height: 100vh;
+      overflow: hidden;
+      flex-direction: column;
     }
-    .knight-circle span {
-      font-size: 14em;
-      color: #676569; /* iron gray color */
+
+    /* Loader container */
+    .loader {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      margin-bottom: 25px;
     }
-    @keyframes bounce {
-      from { transform: translateY(0); }
-      to { transform: translateY(-20px); }
-    }
-    .btn {
-      display: inline-block;
-      padding: 12px 24px;
-      margin-top: 20px;
-      font-size: 1em;
+
+    /* Pi symbol */
+    .pi-symbol {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 22px;
+      color: gold;
       font-weight: bold;
-      color: #480082;
-      background: #FFD700;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: 0.3s;
     }
-    .btn:hover {
-      transform: scale(1.05);
+
+    /* Orbit dots */
+    .orbit-dot {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: gold;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(0deg) translate(35px);
+      animation: orbit 3s linear infinite;
+    }
+
+    /* 9 dots with delay */
+    .orbit-dot:nth-child(2) { animation-delay: -0.3s; }
+    .orbit-dot:nth-child(3) { animation-delay: -0.6s; }
+    .orbit-dot:nth-child(4) { animation-delay: -0.9s; }
+    .orbit-dot:nth-child(5) { animation-delay: -1.2s; }
+    .orbit-dot:nth-child(6) { animation-delay: -1.5s; }
+    .orbit-dot:nth-child(7) { animation-delay: -1.8s; }
+    .orbit-dot:nth-child(8) { animation-delay: -2.1s; }
+    .orbit-dot:nth-child(9) { animation-delay: -2.4s; }
+    .orbit-dot:nth-child(10) { animation-delay: -2.7s; }
+
+    @keyframes orbit {
+      from { transform: translate(-50%, -50%) rotate(0deg) translate(35px); }
+      to   { transform: translate(-50%, -50%) rotate(360deg) translate(35px); }
+    }
+
+    /* Hide initially */
+    .hidden { display: none; }
+
+    /* Buttons */
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      align-items: center;
+      margin-top: -40px; /* lift buttons higher */
+      opacity: 0;
+      transition: opacity 1s ease-in;
+    }
+
+    .buttons.show {
+      opacity: 1;
+    }
+
+    button {
+      background: #2196f3; /* blue */
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+      width: 220px;
+    }
+
+    button:hover {
+      background: #1976d2;
     }
   </style>
 </head>
 <body>
-  <div>
-    <div class="knight-circle">
-      <span>♞</span>
-    </div>
-    <h1>CHESS ARENA <span style="color:#676569;">for</span> PI</h1>
-    <button class="btn" onclick="login()">Login</button>
+  <!-- Loader -->
+  <div id="loader" class="loader">
+    <div class="pi-symbol">π</div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+  </div>
+
+  <!-- Buttons -->
+  <div id="buttons" class="buttons hidden">
+    <button onclick="alert('Classic Selected')">Classic</button>
+    <button onclick="alert('Quick 60s Selected')">Quick 60s Blitz</button>
+    <button onclick="alert('Puzzle Selected')">Puzzle</button>
+    <button onclick="alert('Vs AI Selected')">Vs AI</button>
+    <button onclick="alert('Invite Selected')">Invite</button>
+    <button onclick="alert('Tournament Coming Soon')">Tournament</button>
   </div>
 
   <script>
-    function login() {
-      // Local login first
-      alert("Local login successful. (Pi SDK placeholder here)");
-      // After login go to menu
-      window.location.href = "menu.html";
-    }
+    // After 5s, hide loader, fade in buttons
+    setTimeout(() => {
+      document.getElementById("loader").classList.add("hidden");
+      const btns = document.getElementById("buttons");
+      btns.classList.remove("hidden");
+      setTimeout(() => btns.classList.add("show"), 50);
+    }, 5000);
   </script>
 </body>
 </html>
