@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi – Quick Match</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #222;
+      color: white;
+      flex-direction: column;
+    }
+
+    /* Loader */
+    .loader {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 25px;
+    }
+
+    .pi-symbol {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      color: gold;
+      font-weight: bold;
+    }
+
+    .orbit-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: gold;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(0deg) translate(45px);
+      animation: orbit 2s linear infinite;
+    }
+
+    /* Multiple chasing dots */
+    .orbit-dot:nth-child(2) { animation-delay: -0.2s; }
+    .orbit-dot:nth-child(3) { animation-delay: -0.4s; }
+    .orbit-dot:nth-child(4) { animation-delay: -0.6s; }
+    .orbit-dot:nth-child(5) { animation-delay: -0.8s; }
+
+    @keyframes orbit {
+      from { transform: translate(-50%, -50%) rotate(0deg) translate(45px); }
+      to   { transform: translate(-50%, -50%) rotate(360deg) translate(45px); }
+    }
+
+    /* Buttons */
+    .button-container {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      width: 180px; /* fixed width for same size buttons */
+    }
+
+    button {
+      padding: 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #2196f3;
+      color: white;
+      transition: 0.3s;
+      width: 100%;
+    }
+
+    button:hover {
+      background: #0b79d0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mock Loader -->
+  <div class="loader">
+    <div class="pi-symbol">π</div>
+    <!-- Chasing dots -->
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+  </div>
+
+  <!-- Buttons (show after 5s) -->
+  <div class="button-container" id="buttons">
+    <button onclick="goToGame('invite')">© Invite</button>
+    <button onclick="goToGame('random')">© Random</button>
+    <button onclick="goToGame('ai')">© AI</button>
+  </div>
+
+  <script>
+    setTimeout(() => {
+      document.querySelector('.loader').style.display = 'none';
+      document.getElementById('buttons').style.display = 'flex';
+    }, 5000); // 5 seconds
+
+    function goToGame(mode) {
+      window.location.href = "game.html?mode=" + mode;
+    }
+  </script>
+
+</body>
+</html>
