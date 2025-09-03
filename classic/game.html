@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi – Tournament Board</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #d2b48c; /* wooden board theme */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    #board {
+      width: 90vmin;
+      max-width: 500px;
+    }
+    .timer-container {
+      display: flex;
+      justify-content: space-between;
+      width: 90vmin;
+      max-width: 500px;
+      margin-top: 15px;
+    }
+    .timer {
+      background: #333;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+  </style>
+  <!-- chessboard.js and chess.js from CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/css/chessboard.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/js/chessboard.min.js"></script>
+</head>
+<body>
+  <h1 style="color:#4b0082; margin-bottom: 15px;">♞ Chess Arena Pi – FIDE Match</h1>
+
+  <div id="board"></div>
+
+  <div class="timer-container">
+    <div id="white-timer" class="timer">10:00</div>
+    <div id="black-timer" class="timer">10:00</div>
+  </div>
+
+  <script>
+    const game = new Chess();
+    const board = Chessboard('board', {
+      draggable: true,
+      position: 'start',
+      onDrop: onDrop
+    });
+
+    // Timers
+    let whiteTime = 600; // 10 min in seconds
+    let blackTime = 600;
+    let interval = null;
+    let turn = 'w';
+
+    function updateTimers() {
+      if (turn === 'w') {
+        whiteTime--;
+      } else {
+        blackTime--;
+      }
+      document.getElementById("white-timer").textContent =
+        Math.floor(whiteTime / 60) + ":" + String(whiteTime % 60).padStart(2, '0');
+      document.getElementById("black-timer").textContent =
+        Math.floor(blackTime / 60) + ":" + String(blackTime % 60).padStart(2, '0');
+
+      if (whiteTime <= 0) {
+        alert("Black wins on time!");
+        clearInterval(interval);
+      }
+      if (blackTime <= 0) {
+        alert("White wins on time!");
+        clearInterval(interval);
+      }
+    }
+
+    function startClock() {
+      if (interval) clearInterval(interval);
+      interval = setInterval(updateTimers, 1000);
+    }
+
+    function onDrop(source, target) {
+      const move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q' // auto promote to queen
+      });
+
+      if (move === null) return 'snapback'; // illegal move
+
+      turn = game.turn();
+      startClock();
+
+      if (game.in_checkmate()) {
+        alert((turn === 'w' ? "Black" : "White") + " wins by checkmate!");
+        clearInterval(interval);
+      }
+      if (game.in_draw()) {
+        alert("Game drawn!");
+        clearInterval(interval);
+      }
+    }
+  </script>
+</body>
+</html>
