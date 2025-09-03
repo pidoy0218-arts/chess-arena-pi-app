@@ -1,61 +1,128 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Classic — Chess Arena for Pi</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi – Quick Match</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #222;
+      color: white;
+      flex-direction: column;
+    }
+
+    /* Loader */
+    .loader {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 25px;
+    }
+
+    .pi-symbol {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      color: gold;
+      font-weight: bold;
+    }
+
+    .orbit-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: gold;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(0deg) translate(45px);
+      animation: orbit 2s linear infinite;
+    }
+
+    /* Multiple chasing dots */
+    .orbit-dot:nth-child(2) { animation-delay: -0.2s; }
+    .orbit-dot:nth-child(3) { animation-delay: -0.4s; }
+    .orbit-dot:nth-child(4) { animation-delay: -0.6s; }
+    .orbit-dot:nth-child(5) { animation-delay: -0.8s; }
+    .orbit-dot:nth-child(6) { animation-delay: -0.10s; }
+    .orbit-dot:nth-child(7) { animation-delay: -0.12s; }
+    .orbit-dot:nth-child(8) { animation-delay: -0.14s; }  
+    
+    @keyframes orbit {
+      from { transform: translate(-50%, -50%) rotate(0deg) translate(45px); }
+      to   { transform: translate(-50%, -50%) rotate(360deg) translate(45px); }
+    }
+
+    /* Buttons */
+    .button-container {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      width: 180px; /* fixed width for same size buttons */
+    }
+
+    button {
+      padding: 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #2196f3;
+      color: white;
+      transition: 0.5s;
+      width: 100%;
+    }
+
+    button:hover {
+      background: #0b79d0;
+    }
+  </style>
 </head>
 <body>
-  <main class="root">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo" aria-hidden="true">♞</div>
-        <div class="title">CHESS ARENA <span class="for">for</span> PI</div>
-      </div>
-      <div class="controls">
-        <input id="playerWhite" placeholder="White ID (guest)" />
-        <input id="playerBlack" placeholder="Black ID (guest)" />
-        <button id="btnBack" class="small">← Menu</button>
-      </div>
-    </header>
 
-    <section class="board-area">
-      <div class="top-info">
-        <div class="player-info" id="whiteInfo">
-          <div class="name" id="whiteName">White</div>
-          <div class="timer" id="whiteTimer">15:00</div>
-        </div>
+  <!-- Mock Loader -->
+  <div class="loader">
+    <div class="pi-symbol">π</div>
+    <!-- Chasing dots -->
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+  
+  </div>
 
-        <div class="game-actions">
-          <button id="btnDraw" class="small">Offer Draw</button>
-          <button id="btnResign" class="small danger">Resign</button>
-          <button id="btnRematch" class="small">Rematch</button>
-        </div>
+  <!-- Buttons (show after 5s) -->
+  <div class="button-container" id="buttons">
+    <button onclick="goToGame('invite')">© Invite</button>
+    <button onclick="goToGame('random')">© Random</button>
+    <button onclick="goToGame('ai')">© AI</button>
+  </div>
 
-        <div class="player-info" id="blackInfo">
-          <div class="name" id="blackName">Black</div>
-          <div class="timer" id="blackTimer">15:00</div>
-        </div>
-      </div>
-
-      <div id="board" class="board" role="grid" aria-label="Chess board"></div>
-
-      <div class="bottom-row">
-        <div id="moveHistory" class="moves" aria-hidden="true"></div>
-        <div id="status" class="status" aria-live="polite"></div>
-      </div>
-    </section>
-  </main>
-
-  <canvas id="confetti"></canvas>
-
-  <!-- chess.js embedded directly -->
   <script>
-  /*! chess.js 1.0.0 | MIT License | https://github.com/jhlywa/chess.js */
-  (function(){/* Full chess.js source code goes here */})();
+    setTimeout(() => {
+      document.querySelector('.loader').style.display = 'none';
+      document.getElementById('buttons').style.display = 'flex';
+    }, 5000); // 5 seconds
+
+    function goToGame(mode) {
+      window.location.href = "game.html?mode=" + mode;
+    }
   </script>
 
-  <script src="script.js"></script>
 </body>
 </html>
