@@ -5,24 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chess Arena Pi – Game</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboardjs/1.0.0/chessboard-1.0.0.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboardjs/1.0.0/chessboard-1.0.0.min.css"/>
-  <script src="common.js" defer></script>
 </head>
 <body>
-  <div class="game-container">
-    <h2 id="player-info">Player vs Opponent</h2>
-    <div id="timer">01:00</div>
-    <div id="board"></div>
-
-    <div class="controls">
-      <button onclick="resignGame()">Resign</button>
-      <button onclick="offerDraw()">Draw</button>
-      <button onclick="rematchGame()">Rematch</button>
+  <div id="game-container">
+    <h2>Chess Arena Pi</h2>
+    <div id="status-bar">
+      <span id="player1">White (You)</span>
+      <span id="timer">05:00</span>
+      <span id="player2">Black (Opponent)</span>
     </div>
-
-    <div id="move-history"></div>
+    <div id="chess-board"></div>
+    <div id="controls">
+      <button onclick="resign()">Resign</button>
+      <button onclick="offerDraw()">Draw</button>
+      <button onclick="rematch()">Rematch</button>
+    </div>
   </div>
+
+  <script src="common.js"></script>
 </body>
 </html>
