@@ -1,80 +1,37 @@
-// Loader logic
-window.onload = function () {
-  const loader = document.getElementById('loader');
-  const popup = document.getElementById('popup');
-  if (loader && popup) {
-    setTimeout(() => {
-      loader.style.display = 'none';
-      popup.classList.remove('hidden');
-    }, 3000);
-  }
-};
+const boardElement = document.getElementById("chess-board");
 
-// Start game placeholder (later wired to Pi SDK)
-function startGame(mode) {
-  alert("Mode selected: " + mode + "\n(Will connect via Pi SDK later)");
-  window.location.href = "game.html";
-}
+// Generate 8x8 board
+function createBoard() {
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const square = document.createElement("div");
+      square.classList.add("square");
 
-// Timer
-let timerInterval;
-let timeLeft = 60;
-function startTimer() {
-  const timerEl = document.getElementById('timer');
-  if (!timerEl) return;
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    let minutes = Math.floor(timeLeft / 60);
-    let seconds = timeLeft % 60;
-    timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      alert("Time up! You lose.");
+      // color alternation
+      if ((row + col) % 2 === 0) {
+        square.classList.add("light");
+      } else {
+        square.classList.add("dark");
+      }
+
+      // demo piece placement (pawns only for now)
+      if (row === 1) square.textContent = "♟";
+      if (row === 6) square.textContent = "♙";
+
+      boardElement.appendChild(square);
     }
-  }, 1000);
-}
-
-// Chess game
-let board, game;
-function initChess() {
-  game = new Chess();
-  board = Chessboard('board', {
-    draggable: true,
-    position: 'start',
-    onDrop: handleMove
-  });
-  startTimer();
-}
-
-function handleMove(source, target) {
-  let move = game.move({ from: source, to: target, promotion: 'q' });
-  if (move === null) return 'snapback';
-  updateHistory();
-  if (game.game_over()) {
-    setTimeout(() => alert("Game Over!"), 500);
   }
 }
 
-function updateHistory() {
-  let history = game.history();
-  document.getElementById('move-history').innerHTML = history.join(', ');
-}
-
-// Control buttons
-function resignGame() {
-  alert("You resigned.");
+// Dummy functions for buttons
+function resign() {
+  alert("You resigned!");
 }
 function offerDraw() {
-  alert("Draw offered.");
+  alert("Draw offer sent!");
 }
-function rematchGame() {
-  alert("Rematch started.");
-  location.reload();
+function rematch() {
+  alert("Rematch requested!");
 }
 
-// Run chess init when in game.html
-document.addEventListener("DOMContentLoaded", () => {
-  if (document.getElementById("board")) {
-    initChess();
-  }
-});
+createBoard();
