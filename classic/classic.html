@@ -1,139 +1,291 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi – Lobby</title>
+  <title>Chess Arena Pi – Quick Match</title>
   <style>
     body {
       margin: 0;
+      padding: 0;
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       height: 100vh;
-      text-align: center;
+      background: #222;
+      color: white;
+      flex-direction: column;
     }
 
+    /* Loader */
     .loader {
       position: relative;
-      width: 60px;
-      height: 60px;
-      margin-bottom: 20px;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 10px;
     }
 
     .pi-symbol {
-      font-size: 28px;
-      color: #6a0dad;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
+      font-size: 32px;
+      color: gold;
+      font-weight: bold;
     }
 
-    .dot {
+    .orbit-dot {
+      position: absolute;
       width: 6px;
       height: 6px;
       background: gold;
       border-radius: 50%;
-      position: absolute;
       top: 50%;
       left: 50%;
-      transform-origin: -25px;
+      transform: translate(-50%, -50%) rotate(0deg) translate(45px);
       animation: orbit 2s linear infinite;
     }
 
-    .dot:nth-child(2) { animation-delay: 0.2s; }
-    .dot:nth-child(3) { animation-delay: 0.4s; }
-    .dot:nth-child(4) { animation-delay: 0.6s; }
+    /* 8 chasing dots */
+    .orbit-dot:nth-child(2) { animation-delay: -0.25s; }
+    .orbit-dot:nth-child(3) { animation-delay: -0.5s; }
+    .orbit-dot:nth-child(4) { animation-delay: -0.75s; }
+    .orbit-dot:nth-child(5) { animation-delay: -1s; }
+    .orbit-dot:nth-child(6) { animation-delay: -1.25s; }
+    .orbit-dot:nth-child(7) { animation-delay: -1.5s; }
+    .orbit-dot:nth-child(8) { animation-delay: -1.75s; }
 
     @keyframes orbit {
-      from { transform: rotate(0deg) translateX(25px) rotate(0deg); }
-      to { transform: rotate(360deg) translateX(25px) rotate(-360deg); }
+      from { transform: translate(-50%, -50%) rotate(0deg) translate(45px); }
+      to   { transform: translate(-50%, -50%) rotate(360deg) translate(45px); }
     }
 
-    .loading-text {
+    /* Loader text */
+    .loader-text {
       font-size: 14px;
-      color: #444;
+      color: gold;
       margin-bottom: 20px;
     }
 
-    .btn {
-      display: block;
+    /* Buttons */
+    .button-container {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
       width: 220px;
-      margin: 8px auto;
+    }
+
+    button {
       padding: 12px;
-      font-size: 16px;
-      font-weight: bold;
+      font-size: 14px;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      color: #fff;
+      background: #2196f3;
+      color: white;
+      transition: 0.3s;
+      width: 100%;
     }
 
-    .invite { background: #2196f3; }
-    .random { background: #4caf50; }
-    .ai { background: #ff9800; }
+    button:hover {
+      background: #0b79d0;
+    }
+
+    /* Invite popup */
+    #inviteModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      color: white;
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    #inviteModal input {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      width: 200px;
+      text-align: center;
+    }
+
+    #inviteModal button {
+      background: gold;
+      color: #222;
+      font-weight: bold;
+    }
+
+    /* Fake ad screen */
+    #adScreen {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.9);
+      color: gold;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
 
+  <!-- Loader -->
   <div class="loader">
     <div class="pi-symbol">π</div>
-    <div class="dot"></div>
-    <div class="dot"></div>
-    <div class="dot"></div>
-    <div class="dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
   </div>
-  <div class="loading-text">Loading Pi Network SDK</div>
+  <div class="loader-text">Loading Pi Network SDK...</div>
 
-  <button class="btn invite" onclick="inviteFriend()">Invite Friend</button>
-  <button class="btn random" onclick="randomMatch()">Random Match</button>
-  <button class="btn ai" onclick="playAI()">Play with AI</button>
+  <!-- Buttons -->
+  <div class="button-container" id="buttons">
+    <button onclick="openInvite()">© Invite</button>
+    <button onclick="startMatch('random')">© Random</button>
+    <button onclick="startMatch('ai')">© AI (Pay)</button>
+    <button onclick="watchAdForAI()">© AI (Watch Ad)</button>
+  </div>
 
+  <!-- Invite Modal -->
+  <div id="inviteModal">
+    <h3>Invite Player</h3>
+    <input type="text" id="inviteeId" placeholder="Enter Pi Username">
+    <button onclick="sendInvite()">Send Invite & Pay</button>
+    <button onclick="closeInvite()">Cancel</button>
+  </div>
+
+  <!-- Fake Ad Screen -->
+  <div id="adScreen">
+    <p>🎥 Watching Ad... Please wait</p>
+    <p id="adCountdown">5</p>
+  </div>
+
+  <!-- Pi SDK -->
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script>
-    // Mock payment popup
-    function fakePayment(mode, callback) {
-      if (confirm(`Confirm Payment of 0.25 Pi for ${mode}?`)) {
-        setTimeout(callback, 1000); // Simulate processing
-      } else {
-        alert("Payment cancelled.");
+    // Show buttons after 5s
+    setTimeout(() => {
+      document.querySelector('.loader').style.display = 'none';
+      document.querySelector('.loader-text').style.display = 'none';
+      document.getElementById('buttons').style.display = 'flex';
+    }, 5000);
+
+    // Init Pi SDK
+    Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
+
+    // Invite popup controls
+    function openInvite() {
+      document.getElementById('inviteModal').style.display = 'flex';
+    }
+    function closeInvite() {
+      document.getElementById('inviteModal').style.display = 'none';
+    }
+
+    async function sendInvite() {
+      const invitee = document.getElementById('inviteeId').value.trim();
+      if (!invitee) {
+        alert("Please enter a Pi username.");
+        return;
+      }
+
+      try {
+        const payment = await Pi.createPayment({
+          amount: 0.25,
+          memo: "Invite " + invitee + " to Chess Arena Pi",
+          metadata: { mode: "invite", invitee: invitee }
+        }, {
+          onReadyForServerApproval: function(paymentId) {
+            console.log("Ready for server approval:", paymentId);
+          },
+          onReadyForServerCompletion: function(paymentId, txid) {
+            console.log("Ready for server completion:", paymentId, txid);
+          },
+          onCancel: function(paymentId) {
+            alert("Invite cancelled.");
+          },
+          onError: function(error, payment) {
+            alert("Payment error: " + error);
+          }
+        });
+
+        if (payment) {
+          window.location.href = "game.html?mode=invite&user=" + encodeURIComponent(invitee);
+        }
+
+      } catch (err) {
+        console.error("Invite flow failed:", err);
+        alert("Something went wrong. Try again.");
       }
     }
 
-    // Invite flow
-    function inviteFriend() {
-      let invitee = prompt("Enter Pi Username of your friend:");
-      if (!invitee) return;
+    // Normal match (Random / AI Pay)
+    async function startMatch(mode) {
+      try {
+        const payment = await Pi.createPayment({
+          amount: 0.25,
+          memo: "Join " + mode + " match in Chess Arena Pi",
+          metadata: { mode: mode }
+        }, {
+          onReadyForServerApproval: function(paymentId) {
+            console.log("Ready for server approval:", paymentId);
+          },
+          onReadyForServerCompletion: function(paymentId, txid) {
+            console.log("Ready for server completion:", paymentId, txid);
+          },
+          onCancel: function(paymentId) {
+            alert("Payment cancelled.");
+          },
+          onError: function(error, payment) {
+            alert("Payment error: " + error);
+          }
+        });
 
-      fakePayment("Invite Match", () => {
-        // Simulate invitee confirmation
-        if (confirm(`${invitee} received your invite. Accept and Pay?`)) {
-          window.location.href = "game.html?mode=invite&pair=" + invitee;
-        } else {
-          alert(invitee + " declined your invite.");
+        if (payment) {
+          window.location.href = "game.html?mode=" + mode;
         }
-      });
+
+      } catch (err) {
+        console.error("Payment flow failed:", err);
+        alert("Something went wrong. Try again.");
+      }
     }
 
-    // Random flow
-    function randomMatch() {
-      fakePayment("Random Match", () => {
-        alert("Pairing with another player...");
-        setTimeout(() => {
-          window.location.href = "game.html?mode=random&pair=Player123";
-        }, 2000);
-      });
-    }
+    // Mock ad system for AI
+    function watchAdForAI() {
+      const adScreen = document.getElementById('adScreen');
+      const adCountdown = document.getElementById('adCountdown');
+      adScreen.style.display = 'flex';
 
-    // AI flow
-    function playAI() {
-      fakePayment("AI Match", () => {
-        window.location.href = "game.html?mode=ai";
-      });
+      let timeLeft = 5;
+      adCountdown.textContent = timeLeft;
+
+      const timer = setInterval(() => {
+        timeLeft--;
+        adCountdown.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          adScreen.style.display = 'none';
+          window.location.href = "game.html?mode=ai";
+        }
+      }, 1000);
     }
   </script>
+
 </body>
 </html>
