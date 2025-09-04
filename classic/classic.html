@@ -16,13 +16,33 @@
     background: #222;
     color: white;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Watermark */
+  .watermark {
+    position: fixed;
+    bottom: 5px;
+    right: 10px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* Welcome Text */
+  .welcome-text {
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    color: gold;
   }
 
   /* Loader */
   .loader {
     position: relative;
-    width: 100px;
-    height: 100px;
+    width: 80px;
+    height: 80px;
     margin-bottom: 10px;
   }
 
@@ -34,33 +54,34 @@
     font-size: 32px;
     color: gold;
     font-weight: bold;
+    z-index: 2;
   }
 
   .orbit-dot {
     position: absolute;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     background: gold;
     border-radius: 50%;
     top: 50%;
     left: 50%;
-    transform-origin: center -45px;
+    transform-origin: center center;
     animation: orbit 4s linear infinite;
   }
 
   /* 8 dots equally spaced */
-  .orbit-dot:nth-child(1) { transform: rotate(0deg) translate(45px); animation-delay: 0s; }
-  .orbit-dot:nth-child(2) { transform: rotate(45deg) translate(45px); animation-delay: -0.5s; }
-  .orbit-dot:nth-child(3) { transform: rotate(90deg) translate(45px); animation-delay: -1s; }
-  .orbit-dot:nth-child(4) { transform: rotate(135deg) translate(45px); animation-delay: -1.5s; }
-  .orbit-dot:nth-child(5) { transform: rotate(180deg) translate(45px); animation-delay: -2s; }
-  .orbit-dot:nth-child(6) { transform: rotate(225deg) translate(45px); animation-delay: -2.5s; }
-  .orbit-dot:nth-child(7) { transform: rotate(270deg) translate(45px); animation-delay: -3s; }
-  .orbit-dot:nth-child(8) { transform: rotate(315deg) translate(45px); animation-delay: -3.5s; }
+  .orbit-dot:nth-child(1) { transform: rotate(0deg) translate(30px); animation-delay: 0s; }
+  .orbit-dot:nth-child(2) { transform: rotate(45deg) translate(30px); animation-delay: -0.5s; }
+  .orbit-dot:nth-child(3) { transform: rotate(90deg) translate(30px); animation-delay: -1s; }
+  .orbit-dot:nth-child(4) { transform: rotate(135deg) translate(30px); animation-delay: -1.5s; }
+  .orbit-dot:nth-child(5) { transform: rotate(180deg) translate(30px); animation-delay: -2s; }
+  .orbit-dot:nth-child(6) { transform: rotate(225deg) translate(30px); animation-delay: -2.5s; }
+  .orbit-dot:nth-child(7) { transform: rotate(270deg) translate(30px); animation-delay: -3s; }
+  .orbit-dot:nth-child(8) { transform: rotate(315deg) translate(30px); animation-delay: -3.5s; }
 
   @keyframes orbit {
-    from { transform: rotate(0deg) translate(45px); }
-    to { transform: rotate(360deg) translate(45px); }
+    from { transform: rotate(0deg) translate(30px); }
+    to { transform: rotate(360deg) translate(30px); }
   }
 
   .sdk-text {
@@ -75,6 +96,7 @@
     flex-direction: column;
     gap: 12px;
     width: 220px;
+    margin-top: 15px;
   }
 
   button {
@@ -139,6 +161,8 @@
 </head>
 <body>
 
+<div class="welcome-text">WELCOME CHESS ARENA for PI</div>
+
 <!-- Loader -->
 <div id="loaderWrapper" style="display:flex; flex-direction:column; align-items:center;">
   <div class="loader">
@@ -201,9 +225,10 @@
   </div>
 </div>
 
+<div class="watermark">*Powered by PI NETWORK</div>
+
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <script>
-  // Show buttons after loader
   setTimeout(() => {
     document.getElementById('loaderWrapper').style.display = 'none';
     document.getElementById('buttons').style.display = 'flex';
@@ -211,7 +236,6 @@
 
   Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
 
-  // --- Modal functions ---
   function showModal(id) {
     const modal = document.getElementById(id);
     modal.style.display = 'flex';
@@ -223,48 +247,25 @@
     setTimeout(() => modal.style.display = 'none', 300);
   }
 
-  // --- Invite Flow ---
   async function payInvite() {
-    await Pi.createPayment({
-      amount: 0.25,
-      memo: "Join Invite Match",
-      metadata: { mode: "invite" }
-    });
+    await Pi.createPayment({amount:0.25, memo:"Join Invite Match", metadata:{mode:"invite"}});
     alert("Payment successful. Now type invitee ID.");
-  }
-
-  function showInviteeConfirm() {
-    showModal('inviteeConfirmModal');
   }
 
   async function payInvitee() {
     const invitee = document.getElementById('inviteeId').value.trim();
     if(!invitee) return alert("Enter invitee ID");
-    await Pi.createPayment({
-      amount: 0.25,
-      memo: "Invitee joining match",
-      metadata: { mode: "invite", invitee: invitee }
-    });
+    await Pi.createPayment({amount:0.25, memo:"Invitee joining match", metadata:{mode:"invite", invitee:invitee}});
     window.location.href = "game.html?mode=invite&with=" + encodeURIComponent(invitee);
   }
 
-  // --- Random Flow ---
   async function payRandom() {
-    await Pi.createPayment({
-      amount: 0.25,
-      memo: "Join Random Match",
-      metadata: { mode: "random" }
-    });
+    await Pi.createPayment({amount:0.25, memo:"Join Random Match", metadata:{mode:"random"}});
     window.location.href = "game.html?mode=random";
   }
 
-  // --- AI Flow ---
   async function payAI() {
-    await Pi.createPayment({
-      amount: 0.25,
-      memo: "AI Match Payment",
-      metadata: { mode: "ai" }
-    });
+    await Pi.createPayment({amount:0.25, memo:"AI Match Payment", metadata:{mode:"ai"}});
     window.location.href = "game.html?mode=ai&method=pay";
   }
 
