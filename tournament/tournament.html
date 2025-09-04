@@ -1,22 +1,280 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tournament - Coming Soon</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Arena Pi – Quick Match</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #222;
+    color: white;
+    flex-direction: column;
+  }
+
+  /* Loader */
+  .loader {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 10px;
+  }
+
+  .pi-symbol {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 32px;
+    color: gold;
+    font-weight: bold;
+  }
+
+  .orbit-dot {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: gold;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform-origin: center -45px;
+    animation: orbit 4s linear infinite;
+  }
+
+  /* 8 dots equally spaced */
+  .orbit-dot:nth-child(1) { transform: rotate(0deg) translate(45px); animation-delay: 0s; }
+  .orbit-dot:nth-child(2) { transform: rotate(45deg) translate(45px); animation-delay: -0.5s; }
+  .orbit-dot:nth-child(3) { transform: rotate(90deg) translate(45px); animation-delay: -1s; }
+  .orbit-dot:nth-child(4) { transform: rotate(135deg) translate(45px); animation-delay: -1.5s; }
+  .orbit-dot:nth-child(5) { transform: rotate(180deg) translate(45px); animation-delay: -2s; }
+  .orbit-dot:nth-child(6) { transform: rotate(225deg) translate(45px); animation-delay: -2.5s; }
+  .orbit-dot:nth-child(7) { transform: rotate(270deg) translate(45px); animation-delay: -3s; }
+  .orbit-dot:nth-child(8) { transform: rotate(315deg) translate(45px); animation-delay: -3.5s; }
+
+  @keyframes orbit {
+    from { transform: rotate(0deg) translate(45px); }
+    to { transform: rotate(360deg) translate(45px); }
+  }
+
+  .sdk-text {
+    font-size: 12px;
+    color: #ccc;
+    margin-top: 10px;
+  }
+
+  /* Buttons */
+  .button-container {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    width: 220px;
+  }
+
+  button {
+    padding: 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #2196f3;
+    color: white;
+    transition: 0.3s;
+    width: 100%;
+  }
+
+  button:hover {
+    background: #0b79d0;
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    color: white;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    flex-direction: column;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .modal.show { opacity: 1; }
+
+  .modal-content {
+    background: #333;
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  }
+
+  .modal-content input {
+    width: 100%;
+    padding: 8px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: none;
+  }
+
+  .modal-content button {
+    margin-top: 6px;
+    width: 100%;
+  }
+</style>
 </head>
 <body>
-  <div class="menu">
-    <img src="knight.png" alt="Chess Knight" class="logo">
 
-    <div class="menu-frame">
-      <p>🏆 Tournament Mode<br><br>Coming Soon</p>
-    </div>
-
-    <div class="menu-frame">
-      <a href="menu.html">⬅ Back to Menu</a>
-    </div>
+<!-- Loader -->
+<div id="loaderWrapper" style="display:flex; flex-direction:column; align-items:center;">
+  <div class="loader">
+    <div class="pi-symbol">π</div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
   </div>
+  <div class="sdk-text">Loading Pi Network SDK...</div>
+</div>
+
+<!-- Buttons -->
+<div class="button-container" id="buttons">
+  <button onclick="showModal('inviteModal')">© Invite</button>
+  <button onclick="showModal('randomModal')">© Random</button>
+  <button onclick="showModal('aiModal')">© AI</button>
+</div>
+
+<!-- Invite Modal -->
+<div class="modal" id="inviteModal">
+  <div class="modal-content">
+    <p>Payment to join Invite Match</p>
+    <button onclick="payInvite()">Pay with Pi</button>
+    <input id="inviteeId" placeholder="Type invitee ID" />
+    <button onclick="showModal('inviteeConfirmModal')">Send Invite</button>
+    <button onclick="closeModal('inviteModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Invitee Confirmation Modal -->
+<div class="modal" id="inviteeConfirmModal">
+  <div class="modal-content">
+    <p>Invitee: Accept & pay?</p>
+    <button onclick="payInvitee()">OK</button>
+    <button onclick="closeModal('inviteeConfirmModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Random Modal -->
+<div class="modal" id="randomModal">
+  <div class="modal-content">
+    <p>Payment to join Random Match</p>
+    <button onclick="payRandom()">Pay with Pi</button>
+    <button onclick="closeModal('randomModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- AI Modal -->
+<div class="modal" id="aiModal">
+  <div class="modal-content">
+    <p>AI Match</p>
+    <button onclick="payAI()">Pay with Pi</button>
+    <button onclick="watchAdAI()">Watch Ad</button>
+    <button onclick="closeModal('aiModal')">Cancel</button>
+  </div>
+</div>
+
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<script>
+  // Show buttons after loader
+  setTimeout(() => {
+    document.getElementById('loaderWrapper').style.display = 'none';
+    document.getElementById('buttons').style.display = 'flex';
+  }, 5000);
+
+  Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
+
+  // --- Modal functions ---
+  function showModal(id) {
+    const modal = document.getElementById(id);
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('show'), 10);
+  }
+  function closeModal(id) {
+    const modal = document.getElementById(id);
+    modal.classList.remove('show');
+    setTimeout(() => modal.style.display = 'none', 300);
+  }
+
+  // --- Invite Flow ---
+  async function payInvite() {
+    await Pi.createPayment({
+      amount: 0.25,
+      memo: "Join Invite Match",
+      metadata: { mode: "invite" }
+    });
+    alert("Payment successful. Now type invitee ID.");
+  }
+
+  function showInviteeConfirm() {
+    showModal('inviteeConfirmModal');
+  }
+
+  async function payInvitee() {
+    const invitee = document.getElementById('inviteeId').value.trim();
+    if(!invitee) return alert("Enter invitee ID");
+    await Pi.createPayment({
+      amount: 0.25,
+      memo: "Invitee joining match",
+      metadata: { mode: "invite", invitee: invitee }
+    });
+    window.location.href = "game.html?mode=invite&with=" + encodeURIComponent(invitee);
+  }
+
+  // --- Random Flow ---
+  async function payRandom() {
+    await Pi.createPayment({
+      amount: 0.25,
+      memo: "Join Random Match",
+      metadata: { mode: "random" }
+    });
+    window.location.href = "game.html?mode=random";
+  }
+
+  // --- AI Flow ---
+  async function payAI() {
+    await Pi.createPayment({
+      amount: 0.25,
+      memo: "AI Match Payment",
+      metadata: { mode: "ai" }
+    });
+    window.location.href = "game.html?mode=ai&method=pay";
+  }
+
+  function watchAdAI() {
+    alert("🎥 Watching Ad...");
+    setTimeout(() => {
+      alert("✅ Ad finished.");
+      window.location.href = "game.html?mode=ai&method=ad";
+    }, 5000);
+  }
+</script>
 </body>
 </html>
