@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,7 +49,6 @@
       animation: orbit 2s linear infinite;
     }
 
-    /* 8 chasing dots */
     .orbit-dot:nth-child(1) { animation-delay: 0s; }
     .orbit-dot:nth-child(2) { animation-delay: -0.25s; }
     .orbit-dot:nth-child(3) { animation-delay: -0.5s; }
@@ -86,20 +86,6 @@
     button:hover {
       background: #0b79d0;
     }
-
-    /* Hidden ad screen */
-    #adScreen {
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: rgba(0,0,0,0.9);
-      color: gold;
-      position: fixed;
-      inset: 0;
-      z-index: 999;
-      font-size: 18px;
-    }
   </style>
 </head>
 <body>
@@ -119,85 +105,53 @@
 
   <!-- Buttons -->
   <div class="button-container" id="buttons">
-    <button onclick="startMatch('invite')">© Invite</button>
-    <button onclick="startMatch('random')">© Random</button>
-    <button onclick="startMatch('ai')">© AI (Pay)</button>
-    <button onclick="watchAdForAI()">© AI (Watch Ad)</button>
+    <button onclick="inviteMatch()">© Invite</button>
+    <button onclick="randomMatch()">© Random</button>
+    <button onclick="aiMatch()">© AI</button>
   </div>
 
-  <!-- Fake Ad Screen -->
-  <div id="adScreen">
-    <p>🎥 Watching Ad... Please wait</p>
-    <p id="adCountdown">5</p>
-  </div>
-
-  <!-- Pi SDK -->
-  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script>
-    // Show buttons after 5s
+    // Show buttons after loader
     setTimeout(() => {
       document.querySelector('.loader').style.display = 'none';
       document.getElementById('buttons').style.display = 'flex';
     }, 5000);
 
-    // Init Pi SDK (replace appId with real one)
-    Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
-
-    async function startMatch(mode) {
-      if (!window.Pi) {
-        alert("Pi SDK not available. Open in Pi Browser.");
-        return;
-      }
-
-      try {
-        const payment = await Pi.createPayment({
-          amount: 0.25,   // adjust cost
-          memo: "Join " + mode + " match in Chess Arena Pi",
-          metadata: { mode: mode }
-        }, {
-          onReadyForServerApproval: function(paymentId) {
-            console.log("Ready for server approval:", paymentId);
-          },
-          onReadyForServerCompletion: function(paymentId, txid) {
-            console.log("Ready for server completion:", paymentId, txid);
-          },
-          onCancel: function(paymentId) {
-            alert("Payment cancelled.");
-          },
-          onError: function(error, payment) {
-            alert("Payment error: " + error);
+    // === Invite Match ===
+    function inviteMatch() {
+      alert("💰 Payment ping... please confirm in wallet.");
+      const invitee = prompt("Type invitee's Pi ID:");
+      if (invitee) {
+        alert("📨 Invite sent to " + invitee);
+        setTimeout(() => {
+          const ok = confirm("📩 Invite received. Accept and pay?");
+          if (ok) {
+            alert("💰 Wallet ping for invitee...");
+            window.location.href = "game.html?mode=invite&with=" + encodeURIComponent(invitee);
           }
-        });
-
-        if (payment) {
-          window.location.href = "game.html?mode=" + mode;
-        }
-
-      } catch (err) {
-        console.error("Payment flow failed:", err);
-        alert("Something went wrong. Try again.");
+        }, 2000);
       }
     }
 
-    // Mock ad system for AI
-    function watchAdForAI() {
-      const adScreen = document.getElementById('adScreen');
-      const adCountdown = document.getElementById('adCountdown');
-      adScreen.style.display = 'flex';
+    // === Random Match ===
+    function randomMatch() {
+      alert("💰 Payment ping... please confirm in wallet.");
+      window.location.href = "game.html?mode=random";
+    }
 
-      let timeLeft = 5;
-      adCountdown.textContent = timeLeft;
-
-      const timer = setInterval(() => {
-        timeLeft--;
-        adCountdown.textContent = timeLeft;
-
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          adScreen.style.display = 'none';
-          window.location.href = "game.html?mode=ai";
-        }
-      }, 1000);
+    // === AI Match ===
+    function aiMatch() {
+      const choice = confirm("🤖 AI Match\n\nOK = Pay with Pi\nCancel = Watch Ad");
+      if (choice) {
+        alert("💰 Payment ping... please confirm in wallet.");
+        window.location.href = "game.html?mode=ai&method=pay";
+      } else {
+        alert("🎥 Watching Ad...");
+        setTimeout(() => {
+          alert("✅ Ad finished.");
+          window.location.href = "game.html?mode=ai&method=ad";
+        }, 5000);
+      }
     }
   </script>
 
