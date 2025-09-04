@@ -1,169 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi – Puzzle Mode</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #ff9800; /* Amber theme */
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100vh;
-    }
-    header {
-      width: 100%;
-      background: #2196f3; /* Dropdown bar */
-      color: white;
-      padding: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    select {
-      padding: 5px;
-      border-radius: 6px;
-    }
-    #board {
-      width: 90vw;
-      max-width: 400px;
-      margin-top: 20px;
-    }
-    #puzzle-controls {
-      margin-top: 15px;
-    }
-    button {
-      margin: 5px;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 6px;
-      background: #2196f3;
-      color: white;
-      font-size: 16px;
-    }
-    button:disabled {
-      background: gray;
-      opacity: 0.7;
-    }
-    #status {
-      margin-top: 15px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    canvas {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none;
-    }
-  </style>
-  <!-- chessboard.js + chess.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.css"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Arena Pi – Quick Match</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #222;
+    color: white;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Watermark */
+  .watermark {
+    position: fixed;
+    bottom: 5px;
+    right: 10px;
+    font-size: 16px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* Loader */
+  .loader {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 15px;
+  }
+
+  .pi-symbol {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 38px;
+    color: gold;
+    font-weight: bold;
+    z-index: 2;
+  }
+
+  .orbit-dot {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: gold;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform-origin: center center;
+    animation: orbit 4s linear infinite;
+  }
+
+  /* 8 dots equally spaced */
+  .orbit-dot:nth-child(1) { transform: rotate(0deg) translate(35px); animation-delay: 0s; }
+  .orbit-dot:nth-child(2) { transform: rotate(45deg) translate(35px); animation-delay: -0.5s; }
+  .orbit-dot:nth-child(3) { transform: rotate(90deg) translate(35px); animation-delay: -1s; }
+  .orbit-dot:nth-child(4) { transform: rotate(135deg) translate(35px); animation-delay: -1.5s; }
+  .orbit-dot:nth-child(5) { transform: rotate(180deg) translate(35px); animation-delay: -2s; }
+  .orbit-dot:nth-child(6) { transform: rotate(225deg) translate(35px); animation-delay: -2.5s; }
+  .orbit-dot:nth-child(7) { transform: rotate(270deg) translate(35px); animation-delay: -3s; }
+  .orbit-dot:nth-child(8) { transform: rotate(315deg) translate(35px); animation-delay: -3.5s; }
+
+  @keyframes orbit {
+    from { transform: rotate(0deg) translate(35px); }
+    to { transform: rotate(360deg) translate(35px); }
+  }
+
+  .sdk-text {
+    font-size: 14px;
+    color: #ccc;
+    margin-top: 10px;
+  }
+
+  /* Buttons */
+  .button-container {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    width: 260px;
+    margin-top: 20px;
+    align-items: center;
+  }
+
+  .welcome-frame {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
+  .welcome-frame .welcome-top {
+    font-size: 18px;
+    font-weight: bold;
+    color: gold;
+  }
+
+  .welcome-frame .welcome-bottom {
+    font-size: 20px;
+    font-weight: bold;
+    color: gold;
+  }
+
+  button {
+    padding: 14px;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #2196f3;
+    color: white;
+    transition: 0.3s;
+    width: 100%;
+  }
+
+  button:hover {
+    background: #0b79d0;
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    color: white;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    flex-direction: column;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .modal.show { opacity: 1; }
+
+  .modal-content {
+    background: #333;
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  }
+
+  .modal-content input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 6px;
+    border: none;
+  }
+
+  .modal-content button {
+    margin-top: 8px;
+    width: 100%;
+    font-size: 16px;
+  }
+
+</style>
 </head>
 <body>
-  <header>
-    <div>Puzzle Mode</div>
-    <select>
-      <option>Player123</option>
-      <option>Player456</option>
-    </select>
-  </header>
 
-  <div id="board"></div>
-  <div id="puzzle-controls">
-    <button id="p1">Puzzle 1</button>
-    <button id="p2" disabled>🔒 Puzzle 2</button>
-    <button id="p3" disabled>🔒 Puzzle 3</button>
+<!-- Loader -->
+<div id="loaderWrapper" style="display:flex; flex-direction:column; align-items:center;">
+  <div class="loader">
+    <div class="pi-symbol">π</div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
   </div>
-  <div id="status">Select a puzzle to start.</div>
-  <canvas id="confetti"></canvas>
-  <audio id="winSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+  <div class="sdk-text">Loading Pi Network SDK...</div>
+</div>
 
+<!-- Buttons -->
+<div class="button-container" id="buttons">
+  <div class="welcome-frame">
+    <div class="welcome-top">WELCOME</div>
+    <div class="welcome-bottom">CHESS ARENA for PI</div>
+  </div>
+  <button onclick="showModal('inviteModal')">© Invite</button>
+  <button onclick="showModal('randomModal')">© Random</button>
+  <button onclick="showModal('aiModal')">© AI</button>
+</div>
+
+<!-- Invite Modal -->
+<div class="modal" id="inviteModal">
+  <div class="modal-content">
+    <p>Payment to join Invite Match</p>
+    <button onclick="payInvite()">Pay with Pi</button>
+    <input id="inviteeId" placeholder="Type invitee ID" />
+    <button onclick="showModal('inviteeConfirmModal')">Send Invite</button>
+    <button onclick="closeModal('inviteModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Invitee Confirmation Modal -->
+<div class="modal" id="inviteeConfirmModal">
+  <div class="modal-content">
+    <p>Invitee: Accept & pay?</p>
+    <button onclick="payInvitee()">OK</button>
+    <button onclick="closeModal('inviteeConfirmModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Random Modal -->
+<div class="modal" id="randomModal">
+  <div class="modal-content">
+    <p>Payment to join Random Match</p>
+    <button onclick="payRandom()">Pay with Pi</button>
+    <button onclick="closeModal('randomModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- AI Modal -->
+<div class="modal" id="aiModal">
+  <div class="modal-content">
+    <p>AI Match</p>
+    <button onclick="payAI()">Pay with Pi</button>
+    <button onclick="watchAdAI()">Watch Ad</button>
+    <button onclick="closeModal('aiModal')">Cancel</button>
+  </div>
+</div>
+
+<div class="watermark">*Powered by PI NETWORK</div>
+
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <script>
-const puzzles = [
-  {fen: "8/8/8/8/3k4/8/3Q4/4K3 w - - 0 1", solutionMoves: 3}, 
-  {fen: "r1bqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 2", solutionMoves: 3},
-  {fen: "8/8/8/8/8/3k4/8/4K3 w - - 0 1", solutionMoves: 3}
-];
-let board, game, currentPuzzle = null, solvedCount = 0;
+  // Show buttons after loader
+  setTimeout(() => {
+    document.getElementById('loaderWrapper').style.display = 'none';
+    document.getElementById('buttons').style.display = 'flex';
+  }, 5000);
 
-function initBoard(fen) {
-  game = new Chess(fen);
-  board = Chessboard('board', {
-    draggable: true,
-    position: fen,
-    onDrop: onDrop
-  });
-  document.getElementById("status").textContent = "Solve: Mate in 3 moves!";
-}
+  // Initialize Pi SDK
+  try {
+    Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
+  } catch(e){ console.warn("Pi SDK not loaded."); }
 
-function onDrop(source, target) {
-  let move = game.move({from: source, to: target, promotion: 'q'});
-  if (!move) return 'snapback';
-  board.position(game.fen());
-  if (game.in_checkmate()) {
-    solvedCount++;
-    document.getElementById("status").textContent = "Puzzle solved!";
-    unlockNextPuzzle();
-    if (solvedCount === puzzles.length) {
-      celebrate();
-    }
+  function showModal(id){
+    const modal = document.getElementById(id);
+    modal.style.display = 'flex';
+    setTimeout(()=>modal.classList.add('show'),10);
   }
-}
-
-function unlockNextPuzzle() {
-  if (solvedCount === 1) {
-    document.getElementById("p2").disabled = false;
-    document.getElementById("p2").textContent = "Puzzle 2";
-  } else if (solvedCount === 2) {
-    document.getElementById("p3").disabled = false;
-    document.getElementById("p3").textContent = "Puzzle 3";
+  function closeModal(id){
+    const modal = document.getElementById(id);
+    modal.classList.remove('show');
+    setTimeout(()=>modal.style.display='none',300);
   }
-}
 
-function celebrate() {
-  document.getElementById("status").textContent = "🎉 All puzzles solved!";
-  document.getElementById("winSound").play();
-  launchConfetti();
-}
-
-// Puzzle buttons
-document.getElementById("p1").onclick = () => initBoard(puzzles[0].fen);
-document.getElementById("p2").onclick = () => initBoard(puzzles[1].fen);
-document.getElementById("p3").onclick = () => initBoard(puzzles[2].fen);
-
-// Simple confetti
-function launchConfetti() {
-  const canvas = document.getElementById("confetti");
-  const ctx = canvas.getContext("2d");
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const pieces = Array.from({length: 200}, () => ({
-    x: Math.random()*canvas.width,
-    y: Math.random()*canvas.height - canvas.height,
-    w: 5,
-    h: 10,
-    c: `hsl(${Math.random()*360},100%,50%)`,
-    s: Math.random()*3+2,
-    a: Math.random()*360
-  }));
-  function draw() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    for (let p of pieces) {
-      ctx.fillStyle = p.c;
-      ctx.fillRect(p.x,p.y,p.w,p.h);
-      p.y += p.s;
-      if (p.y > canvas.height) p.y = -10;
-    }
-    requestAnimationFrame(draw);
+  async function payInvite(){
+    try{
+      await Pi.createPayment({amount:0.25,memo:"Join Invite Match",metadata:{mode:"invite"}});
+      alert("Payment successful. Now type invitee ID.");
+    } catch(e){ console.error(e); alert("Payment failed."); }
   }
-  draw();
-}
+
+  async function payInvitee(){
+    const invitee = document.getElementById('inviteeId').value.trim();
+    if(!invitee) return alert("Enter invitee ID");
+    try{
+      await Pi.createPayment({amount:0.25,memo:"Invitee joining match",metadata:{mode:"invite",invitee:invitee}});
+      window.location.href = "game.html?mode=invite&with="+encodeURIComponent(invitee);
+    } catch(e){ console.error(e); alert("Payment failed."); }
+  }
+
+  async function payRandom(){
+    try{
+      await Pi.createPayment({amount:0.25,memo:"Join Random Match",metadata:{mode:"random"}});
+      window.location.href = "game.html?mode=random";
+    } catch(e){ console.error(e); alert("Payment failed."); }
+  }
+
+  async function payAI(){
+    try{
+      await Pi.createPayment({amount:0.25,memo:"AI Match Payment",metadata:{mode:"ai"}});
+      window.location.href = "game.html?mode=ai&method=pay";
+    } catch(e){ console.error(e); alert("Payment failed."); }
+  }
+
+  function watchAdAI(){
+    alert("🎥 Watching Ad...");
+    setTimeout(()=>{
+      alert("✅ Ad finished. Loading AI Match...");
+      window.location.href = "game.html?mode=ai&method=ad";
+    }, 5000);
+  }
 </script>
+
 </body>
 </html>
