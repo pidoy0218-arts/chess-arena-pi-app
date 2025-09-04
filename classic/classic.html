@@ -44,22 +44,23 @@
     border-radius: 50%;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(0deg) translate(45px);
+    transform-origin: center -45px;
     animation: orbit 4s linear infinite;
   }
 
-  .orbit-dot:nth-child(2) { animation-delay: -0.25s; }
-  .orbit-dot:nth-child(3) { animation-delay: -0.5s; }
-  .orbit-dot:nth-child(4) { animation-delay: -0.75s; }
-  .orbit-dot:nth-child(5) { animation-delay: -1s; }
-  .orbit-dot:nth-child(6) { animation-delay: -1.25s; }
-  .orbit-dot:nth-child(7) { animation-delay: -1.5s; }
-  .orbit-dot:nth-child(8) { animation-delay: -1.75s; }
-  .orbit-dot:nth-child(9) { animation-delay: -2s; }
+  /* 8 dots equally spaced */
+  .orbit-dot:nth-child(1) { transform: rotate(0deg) translate(45px); animation-delay: 0s; }
+  .orbit-dot:nth-child(2) { transform: rotate(45deg) translate(45px); animation-delay: -0.5s; }
+  .orbit-dot:nth-child(3) { transform: rotate(90deg) translate(45px); animation-delay: -1s; }
+  .orbit-dot:nth-child(4) { transform: rotate(135deg) translate(45px); animation-delay: -1.5s; }
+  .orbit-dot:nth-child(5) { transform: rotate(180deg) translate(45px); animation-delay: -2s; }
+  .orbit-dot:nth-child(6) { transform: rotate(225deg) translate(45px); animation-delay: -2.5s; }
+  .orbit-dot:nth-child(7) { transform: rotate(270deg) translate(45px); animation-delay: -3s; }
+  .orbit-dot:nth-child(8) { transform: rotate(315deg) translate(45px); animation-delay: -3.5s; }
 
   @keyframes orbit {
-    from { transform: translate(-50%, -50%) rotate(0deg) translate(45px); }
-    to { transform: translate(-50%, -50%) rotate(360deg) translate(45px); }
+    from { transform: rotate(0deg) translate(45px); }
+    to { transform: rotate(360deg) translate(45px); }
   }
 
   .sdk-text {
@@ -134,7 +135,6 @@
     margin-top: 6px;
     width: 100%;
   }
-
 </style>
 </head>
 <body>
@@ -168,8 +168,17 @@
     <p>Payment to join Invite Match</p>
     <button onclick="payInvite()">Pay with Pi</button>
     <input id="inviteeId" placeholder="Type invitee ID" />
-    <button onclick="sendInvite()">Send to Invitee</button>
+    <button onclick="showModal('inviteeConfirmModal')">Send Invite</button>
     <button onclick="closeModal('inviteModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Invitee Confirmation Modal -->
+<div class="modal" id="inviteeConfirmModal">
+  <div class="modal-content">
+    <p>Invitee: Accept & pay?</p>
+    <button onclick="payInvitee()">OK</button>
+    <button onclick="closeModal('inviteeConfirmModal')">Cancel</button>
   </div>
 </div>
 
@@ -221,21 +230,22 @@
       memo: "Join Invite Match",
       metadata: { mode: "invite" }
     });
-    alert("Payment successful. Now send invite.");
+    alert("Payment successful. Now type invitee ID.");
   }
 
-  async function sendInvite() {
+  function showInviteeConfirm() {
+    showModal('inviteeConfirmModal');
+  }
+
+  async function payInvitee() {
     const invitee = document.getElementById('inviteeId').value.trim();
     if(!invitee) return alert("Enter invitee ID");
-    const accepted = confirm(invitee + ": Accept & pay?");
-    if(accepted) {
-      await Pi.createPayment({
-        amount: 0.25,
-        memo: "Invitee joining match",
-        metadata: { mode: "invite", invitee: invitee }
-      });
-      window.location.href = "game.html?mode=invite&with=" + encodeURIComponent(invitee);
-    }
+    await Pi.createPayment({
+      amount: 0.25,
+      memo: "Invitee joining match",
+      metadata: { mode: "invite", invitee: invitee }
+    });
+    window.location.href = "game.html?mode=invite&with=" + encodeURIComponent(invitee);
   }
 
   // --- Random Flow ---
