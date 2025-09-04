@@ -29,21 +29,12 @@
     color: rgba(255,255,255,0.3);
   }
 
-  /* Welcome Text */
-  .welcome-text {
-    font-size: 18px;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 20px;
-    color: gold;
-  }
-
   /* Loader */
   .loader {
     position: relative;
-    width: 80px;
-    height: 80px;
-    margin-bottom: 10px;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 15px;
   }
 
   .pi-symbol {
@@ -51,7 +42,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 32px;
+    font-size: 42px;
     color: gold;
     font-weight: bold;
     z-index: 2;
@@ -59,8 +50,8 @@
 
   .orbit-dot {
     position: absolute;
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     background: gold;
     border-radius: 50%;
     top: 50%;
@@ -70,22 +61,22 @@
   }
 
   /* 8 dots equally spaced */
-  .orbit-dot:nth-child(1) { transform: rotate(0deg) translate(30px); animation-delay: 0s; }
-  .orbit-dot:nth-child(2) { transform: rotate(45deg) translate(30px); animation-delay: -0.5s; }
-  .orbit-dot:nth-child(3) { transform: rotate(90deg) translate(30px); animation-delay: -1s; }
-  .orbit-dot:nth-child(4) { transform: rotate(135deg) translate(30px); animation-delay: -1.5s; }
-  .orbit-dot:nth-child(5) { transform: rotate(180deg) translate(30px); animation-delay: -2s; }
-  .orbit-dot:nth-child(6) { transform: rotate(225deg) translate(30px); animation-delay: -2.5s; }
-  .orbit-dot:nth-child(7) { transform: rotate(270deg) translate(30px); animation-delay: -3s; }
-  .orbit-dot:nth-child(8) { transform: rotate(315deg) translate(30px); animation-delay: -3.5s; }
+  .orbit-dot:nth-child(1) { transform: rotate(0deg) translate(35px); animation-delay: 0s; }
+  .orbit-dot:nth-child(2) { transform: rotate(45deg) translate(35px); animation-delay: -0.5s; }
+  .orbit-dot:nth-child(3) { transform: rotate(90deg) translate(35px); animation-delay: -1s; }
+  .orbit-dot:nth-child(4) { transform: rotate(135deg) translate(35px); animation-delay: -1.5s; }
+  .orbit-dot:nth-child(5) { transform: rotate(180deg) translate(35px); animation-delay: -2s; }
+  .orbit-dot:nth-child(6) { transform: rotate(225deg) translate(35px); animation-delay: -2.5s; }
+  .orbit-dot:nth-child(7) { transform: rotate(270deg) translate(35px); animation-delay: -3s; }
+  .orbit-dot:nth-child(8) { transform: rotate(315deg) translate(35px); animation-delay: -3.5s; }
 
   @keyframes orbit {
-    from { transform: rotate(0deg) translate(30px); }
-    to { transform: rotate(360deg) translate(30px); }
+    from { transform: rotate(0deg) translate(35px); }
+    to { transform: rotate(360deg) translate(35px); }
   }
 
   .sdk-text {
-    font-size: 12px;
+    font-size: 14px;
     color: #ccc;
     margin-top: 10px;
   }
@@ -94,16 +85,34 @@
   .button-container {
     display: none;
     flex-direction: column;
-    gap: 12px;
-    width: 220px;
-    margin-top: 15px;
+    gap: 16px;
+    width: 260px;
+    margin-top: 20px;
+    align-items: center;
+  }
+
+  .welcome-frame {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
+  .welcome-frame .welcome-top {
+    font-size: 18px;
+    font-weight: bold;
+    color: gold;
+  }
+
+  .welcome-frame .welcome-bottom {
+    font-size: 20px;
+    font-weight: bold;
+    color: gold;
   }
 
   button {
-    padding: 12px;
-    font-size: 14px;
+    padding: 14px;
+    font-size: 16px;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     background: #2196f3;
     color: white;
@@ -138,7 +147,7 @@
     padding: 20px;
     border-radius: 12px;
     width: 90%;
-    max-width: 300px;
+    max-width: 320px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -147,21 +156,21 @@
 
   .modal-content input {
     width: 100%;
-    padding: 8px;
-    margin: 8px 0;
+    padding: 10px;
+    margin: 10px 0;
     border-radius: 6px;
     border: none;
   }
 
   .modal-content button {
-    margin-top: 6px;
+    margin-top: 8px;
     width: 100%;
+    font-size: 16px;
   }
+
 </style>
 </head>
 <body>
-
-<div class="welcome-text">WELCOME CHESS ARENA for PI</div>
 
 <!-- Loader -->
 <div id="loaderWrapper" style="display:flex; flex-direction:column; align-items:center;">
@@ -181,6 +190,10 @@
 
 <!-- Buttons -->
 <div class="button-container" id="buttons">
+  <div class="welcome-frame">
+    <div class="welcome-top">WELCOME</div>
+    <div class="welcome-bottom">CHESS ARENA for PI</div>
+  </div>
   <button onclick="showModal('inviteModal')">© Invite</button>
   <button onclick="showModal('randomModal')">© Random</button>
   <button onclick="showModal('aiModal')">© AI</button>
@@ -229,53 +242,66 @@
 
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <script>
+  // Show buttons after loader
   setTimeout(() => {
     document.getElementById('loaderWrapper').style.display = 'none';
     document.getElementById('buttons').style.display = 'flex';
   }, 5000);
 
-  Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
+  // Initialize Pi SDK
+  try {
+    Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
+  } catch(e){ console.warn("Pi SDK not loaded."); }
 
-  function showModal(id) {
+  function showModal(id){
     const modal = document.getElementById(id);
     modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('show'), 10);
+    setTimeout(()=>modal.classList.add('show'),10);
   }
-  function closeModal(id) {
+  function closeModal(id){
     const modal = document.getElementById(id);
     modal.classList.remove('show');
-    setTimeout(() => modal.style.display = 'none', 300);
+    setTimeout(()=>modal.style.display='none',300);
   }
 
-  async function payInvite() {
-    await Pi.createPayment({amount:0.25, memo:"Join Invite Match", metadata:{mode:"invite"}});
-    alert("Payment successful. Now type invitee ID.");
+  async function payInvite(){
+    try{
+      await Pi.createPayment({amount:0.25,memo:"Join Invite Match",metadata:{mode:"invite"}});
+      alert("Payment successful. Now type invitee ID.");
+    } catch(e){ console.error(e); alert("Payment failed."); }
   }
 
-  async function payInvitee() {
+  async function payInvitee(){
     const invitee = document.getElementById('inviteeId').value.trim();
     if(!invitee) return alert("Enter invitee ID");
-    await Pi.createPayment({amount:0.25, memo:"Invitee joining match", metadata:{mode:"invite", invitee:invitee}});
-    window.location.href = "game.html?mode=invite&with=" + encodeURIComponent(invitee);
+    try{
+      await Pi.createPayment({amount:0.25,memo:"Invitee joining match",metadata:{mode:"invite",invitee:invitee}});
+      window.location.href = "game.html?mode=invite&with="+encodeURIComponent(invitee);
+    } catch(e){ console.error(e); alert("Payment failed."); }
   }
 
-  async function payRandom() {
-    await Pi.createPayment({amount:0.25, memo:"Join Random Match", metadata:{mode:"random"}});
-    window.location.href = "game.html?mode=random";
+  async function payRandom(){
+    try{
+      await Pi.createPayment({amount:0.25,memo:"Join Random Match",metadata:{mode:"random"}});
+      window.location.href = "game.html?mode=random";
+    } catch(e){ console.error(e); alert("Payment failed."); }
   }
 
-  async function payAI() {
-    await Pi.createPayment({amount:0.25, memo:"AI Match Payment", metadata:{mode:"ai"}});
-    window.location.href = "game.html?mode=ai&method=pay";
+  async function payAI(){
+    try{
+      await Pi.createPayment({amount:0.25,memo:"AI Match Payment",metadata:{mode:"ai"}});
+      window.location.href = "game.html?mode=ai&method=pay";
+    } catch(e){ console.error(e); alert("Payment failed."); }
   }
 
-  function watchAdAI() {
+  function watchAdAI(){
     alert("🎥 Watching Ad...");
-    setTimeout(() => {
-      alert("✅ Ad finished.");
+    setTimeout(()=>{
+      alert("✅ Ad finished. Loading AI Match...");
       window.location.href = "game.html?mode=ai&method=ad";
     }, 5000);
   }
 </script>
+
 </body>
 </html>
