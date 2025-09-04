@@ -1,148 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi – Quick Match</title>
+  <title>Chess Arena Pi – Lobby</title>
   <style>
     body {
       margin: 0;
-      padding: 0;
       font-family: Arial, sans-serif;
+      background: #f4f4f4;
       display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: #222;
-      color: white;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
     }
 
-    /* Loader */
     .loader {
       position: relative;
-      width: 100px;
-      height: 100px;
-      margin-bottom: 25px;
+      width: 60px;
+      height: 60px;
+      margin-bottom: 20px;
     }
 
     .pi-symbol {
+      font-size: 28px;
+      color: #6a0dad;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 32px;
-      color: gold;
-      font-weight: bold;
     }
 
-    .orbit-dot {
-      position: absolute;
-      width: 10px;
-      height: 10px;
+    .dot {
+      width: 6px;
+      height: 6px;
       background: gold;
       border-radius: 50%;
+      position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%) rotate(0deg) translate(45px);
+      transform-origin: -25px;
       animation: orbit 2s linear infinite;
     }
 
-    /* 8 chasing dots */
-    .orbit-dot:nth-child(1) { animation-delay: 0s; }
-    .orbit-dot:nth-child(2) { animation-delay: -0.25s; }
-    .orbit-dot:nth-child(3) { animation-delay: -0.5s; }
-    .orbit-dot:nth-child(4) { animation-delay: -0.75s; }
-    .orbit-dot:nth-child(5) { animation-delay: -1s; }
-    .orbit-dot:nth-child(6) { animation-delay: -1.25s; }
-    .orbit-dot:nth-child(7) { animation-delay: -1.5s; }
-    .orbit-dot:nth-child(8) { animation-delay: -1.75s; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    .dot:nth-child(4) { animation-delay: 0.6s; }
 
     @keyframes orbit {
-      from { transform: translate(-50%, -50%) rotate(0deg) translate(45px); }
-      to   { transform: translate(-50%, -50%) rotate(360deg) translate(45px); }
+      from { transform: rotate(0deg) translateX(25px) rotate(0deg); }
+      to { transform: rotate(360deg) translateX(25px) rotate(-360deg); }
     }
 
-    /* Buttons */
-    .button-container {
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      width: 180px;
-    }
-
-    button {
-      padding: 12px;
+    .loading-text {
       font-size: 14px;
+      color: #444;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      display: block;
+      width: 220px;
+      margin: 8px auto;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      background: #2196f3;
-      color: white;
-      transition: 0.3s;
-      width: 100%;
+      color: #fff;
     }
 
-    button:hover {
-      background: #0b79d0;
-    }
+    .invite { background: #2196f3; }
+    .random { background: #4caf50; }
+    .ai { background: #ff9800; }
   </style>
 </head>
 <body>
 
-  <!-- Loader -->
   <div class="loader">
     <div class="pi-symbol">π</div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
   </div>
+  <div class="loading-text">Loading Pi Network SDK</div>
 
-  <!-- Buttons -->
-  <div class="button-container" id="buttons">
-    <button onclick="goToPi('invite')">© Invite</button>
-    <button onclick="goToPi('random')">© Random</button>
-    <button onclick="goToPi('ai')">© AI</button>
-  </div>
+  <button class="btn invite" onclick="inviteFriend()">Invite Friend</button>
+  <button class="btn random" onclick="randomMatch()">Random Match</button>
+  <button class="btn ai" onclick="playAI()">Play with AI</button>
 
-  <!-- Pi SDK (placeholder for testing) -->
-  <script src="https://cdn.jsdelivr.net/npm/pi-network-sdk/dist/pi-sdk.min.js"></script>
   <script>
-    // Show buttons after 5 seconds
-    setTimeout(() => {
-      document.querySelector('.loader').style.display = 'none';
-      document.getElementById('buttons').style.display = 'flex';
-    }, 5000);
-
-    // Pi SDK function mapping
-    function goToPi(mode) {
-      // Make sure Pi SDK is available
-      if (!window.Pi) {
-        alert("Pi SDK not loaded. Running in mock mode: " + mode);
-        return;
-      }
-
-      // Example: call Pi SDK function based on mode
-      switch(mode) {
-        case 'invite':
-          Pi.inviteFriend().then(res => console.log('Invite result:', res));
-          break;
-        case 'random':
-          Pi.joinRandomGame().then(res => console.log('Random game result:', res));
-          break;
-        case 'ai':
-          Pi.playWithAI().then(res => console.log('AI game result:', res));
-          break;
-        default:
-          console.log('Unknown mode:', mode);
+    // Mock payment popup
+    function fakePayment(mode, callback) {
+      if (confirm(`Confirm Payment of 0.25 Pi for ${mode}?`)) {
+        setTimeout(callback, 1000); // Simulate processing
+      } else {
+        alert("Payment cancelled.");
       }
     }
-  </script>
 
+    // Invite flow
+    function inviteFriend() {
+      let invitee = prompt("Enter Pi Username of your friend:");
+      if (!invitee) return;
+
+      fakePayment("Invite Match", () => {
+        // Simulate invitee confirmation
+        if (confirm(`${invitee} received your invite. Accept and Pay?`)) {
+          window.location.href = "game.html?mode=invite&pair=" + invitee;
+        } else {
+          alert(invitee + " declined your invite.");
+        }
+      });
+    }
+
+    // Random flow
+    function randomMatch() {
+      fakePayment("Random Match", () => {
+        alert("Pairing with another player...");
+        setTimeout(() => {
+          window.location.href = "game.html?mode=random&pair=Player123";
+        }, 2000);
+      });
+    }
+
+    // AI flow
+    function playAI() {
+      fakePayment("AI Match", () => {
+        window.location.href = "game.html?mode=ai";
+      });
+    }
+  </script>
 </body>
 </html>
