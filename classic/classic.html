@@ -1,145 +1,146 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi – Quick Match</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: #222;
-      color: white;
-      flex-direction: column;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Arena Pi – Quick Match</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #222;
+    color: white;
+    flex-direction: column;
+  }
 
-    /* Loader */
-    .loader {
-      position: relative;
-      width: 100px;
-      height: 100px;
-      margin-bottom: 10px;
-    }
+  /* Loader */
+  .loader {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 10px;
+  }
 
-    .pi-symbol {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 32px;
-      color: gold;
-      font-weight: bold;
-    }
+  .pi-symbol {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 32px;
+    color: gold;
+    font-weight: bold;
+  }
 
-    .orbit-dot {
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: gold;
-      border-radius: 50%;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(0deg) translate(45px);
-      animation: orbit 2s linear infinite;
-    }
+  .orbit-dot {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: gold;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg) translate(45px);
+    animation: orbit 4s linear infinite;
+  }
 
-    /* 8 chasing dots */
-    .orbit-dot:nth-child(2) { animation-delay: -0.25s; }
-    .orbit-dot:nth-child(3) { animation-delay: -0.5s; }
-    .orbit-dot:nth-child(4) { animation-delay: -0.75s; }
-    .orbit-dot:nth-child(5) { animation-delay: -1s; }
-    .orbit-dot:nth-child(6) { animation-delay: -1.25s; }
-    .orbit-dot:nth-child(7) { animation-delay: -1.5s; }
-    .orbit-dot:nth-child(8) { animation-delay: -1.75s; }
+  .orbit-dot:nth-child(2) { animation-delay: -0.25s; }
+  .orbit-dot:nth-child(3) { animation-delay: -0.5s; }
+  .orbit-dot:nth-child(4) { animation-delay: -0.75s; }
+  .orbit-dot:nth-child(5) { animation-delay: -1s; }
+  .orbit-dot:nth-child(6) { animation-delay: -1.25s; }
+  .orbit-dot:nth-child(7) { animation-delay: -1.5s; }
+  .orbit-dot:nth-child(8) { animation-delay: -1.75s; }
+  .orbit-dot:nth-child(9) { animation-delay: -2s; }
 
-    @keyframes orbit {
-      from { transform: translate(-50%, -50%) rotate(0deg) translate(45px); }
-      to   { transform: translate(-50%, -50%) rotate(360deg) translate(45px); }
-    }
+  @keyframes orbit {
+    from { transform: translate(-50%, -50%) rotate(0deg) translate(45px); }
+    to { transform: translate(-50%, -50%) rotate(360deg) translate(45px); }
+  }
 
-    /* Loader text */
-    .loader-text {
-      font-size: 14px;
-      color: gold;
-      margin-bottom: 20px;
-    }
+  .sdk-text {
+    font-size: 12px;
+    color: #ccc;
+    margin-top: 10px;
+  }
 
-    /* Buttons */
-    .button-container {
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      width: 220px;
-    }
+  /* Buttons */
+  .button-container {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    width: 220px;
+  }
 
-    button {
-      padding: 12px;
-      font-size: 14px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      background: #2196f3;
-      color: white;
-      transition: 0.3s;
-      width: 100%;
-    }
+  button {
+    padding: 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #2196f3;
+    color: white;
+    transition: 0.3s;
+    width: 100%;
+  }
 
-    button:hover {
-      background: #0b79d0;
-    }
+  button:hover {
+    background: #0b79d0;
+  }
 
-    /* Invite popup */
-    #inviteModal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      color: white;
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      padding: 20px;
-    }
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    color: white;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    flex-direction: column;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
 
-    #inviteModal input {
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      margin-bottom: 12px;
-      width: 200px;
-      text-align: center;
-    }
+  .modal.show { opacity: 1; }
 
-    #inviteModal button {
-      background: gold;
-      color: #222;
-      font-weight: bold;
-    }
+  .modal-content {
+    background: #333;
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  }
 
-    /* Fake ad screen */
-    #adScreen {
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: rgba(0,0,0,0.9);
-      color: gold;
-      position: fixed;
-      inset: 0;
-      z-index: 999;
-      font-size: 18px;
-    }
-  </style>
+  .modal-content input {
+    width: 100%;
+    padding: 8px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: none;
+  }
+
+  .modal-content button {
+    margin-top: 6px;
+    width: 100%;
+  }
+
+</style>
 </head>
 <body>
 
-  <!-- Loader -->
+<!-- Loader -->
+<div id="loaderWrapper" style="display:flex; flex-direction:column; align-items:center;">
   <div class="loader">
     <div class="pi-symbol">π</div>
     <div class="orbit-dot"></div>
@@ -151,141 +152,119 @@
     <div class="orbit-dot"></div>
     <div class="orbit-dot"></div>
   </div>
-  <div class="loader-text">Loading Pi Network SDK...</div>
+  <div class="sdk-text">Loading Pi Network SDK...</div>
+</div>
 
-  <!-- Buttons -->
-  <div class="button-container" id="buttons">
-    <button onclick="openInvite()">© Invite</button>
-    <button onclick="startMatch('random')">© Random</button>
-    <button onclick="startMatch('ai')">© AI (Pay)</button>
-    <button onclick="watchAdForAI()">© AI (Watch Ad)</button>
+<!-- Buttons -->
+<div class="button-container" id="buttons">
+  <button onclick="showModal('inviteModal')">© Invite</button>
+  <button onclick="showModal('randomModal')">© Random</button>
+  <button onclick="showModal('aiModal')">© AI</button>
+</div>
+
+<!-- Invite Modal -->
+<div class="modal" id="inviteModal">
+  <div class="modal-content">
+    <p>Payment to join Invite Match</p>
+    <button onclick="payInvite()">Pay with Pi</button>
+    <input id="inviteeId" placeholder="Type invitee ID" />
+    <button onclick="sendInvite()">Send to Invitee</button>
+    <button onclick="closeModal('inviteModal')">Cancel</button>
   </div>
+</div>
 
-  <!-- Invite Modal -->
-  <div id="inviteModal">
-    <h3>Invite Player</h3>
-    <input type="text" id="inviteeId" placeholder="Enter Pi Username">
-    <button onclick="sendInvite()">Send Invite & Pay</button>
-    <button onclick="closeInvite()">Cancel</button>
+<!-- Random Modal -->
+<div class="modal" id="randomModal">
+  <div class="modal-content">
+    <p>Payment to join Random Match</p>
+    <button onclick="payRandom()">Pay with Pi</button>
+    <button onclick="closeModal('randomModal')">Cancel</button>
   </div>
+</div>
 
-  <!-- Fake Ad Screen -->
-  <div id="adScreen">
-    <p>🎥 Watching Ad... Please wait</p>
-    <p id="adCountdown">5</p>
+<!-- AI Modal -->
+<div class="modal" id="aiModal">
+  <div class="modal-content">
+    <p>AI Match</p>
+    <button onclick="payAI()">Pay with Pi</button>
+    <button onclick="watchAdAI()">Watch Ad</button>
+    <button onclick="closeModal('aiModal')">Cancel</button>
   </div>
+</div>
 
-  <!-- Pi SDK -->
-  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-  <script>
-    // Show buttons after 5s
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<script>
+  // Show buttons after loader
+  setTimeout(() => {
+    document.getElementById('loaderWrapper').style.display = 'none';
+    document.getElementById('buttons').style.display = 'flex';
+  }, 5000);
+
+  Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
+
+  // --- Modal functions ---
+  function showModal(id) {
+    const modal = document.getElementById(id);
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('show'), 10);
+  }
+  function closeModal(id) {
+    const modal = document.getElementById(id);
+    modal.classList.remove('show');
+    setTimeout(() => modal.style.display = 'none', 300);
+  }
+
+  // --- Invite Flow ---
+  async function payInvite() {
+    await Pi.createPayment({
+      amount: 0.25,
+      memo: "Join Invite Match",
+      metadata: { mode: "invite" }
+    });
+    alert("Payment successful. Now send invite.");
+  }
+
+  async function sendInvite() {
+    const invitee = document.getElementById('inviteeId').value.trim();
+    if(!invitee) return alert("Enter invitee ID");
+    const accepted = confirm(invitee + ": Accept & pay?");
+    if(accepted) {
+      await Pi.createPayment({
+        amount: 0.25,
+        memo: "Invitee joining match",
+        metadata: { mode: "invite", invitee: invitee }
+      });
+      window.location.href = "game.html?mode=invite&with=" + encodeURIComponent(invitee);
+    }
+  }
+
+  // --- Random Flow ---
+  async function payRandom() {
+    await Pi.createPayment({
+      amount: 0.25,
+      memo: "Join Random Match",
+      metadata: { mode: "random" }
+    });
+    window.location.href = "game.html?mode=random";
+  }
+
+  // --- AI Flow ---
+  async function payAI() {
+    await Pi.createPayment({
+      amount: 0.25,
+      memo: "AI Match Payment",
+      metadata: { mode: "ai" }
+    });
+    window.location.href = "game.html?mode=ai&method=pay";
+  }
+
+  function watchAdAI() {
+    alert("🎥 Watching Ad...");
     setTimeout(() => {
-      document.querySelector('.loader').style.display = 'none';
-      document.querySelector('.loader-text').style.display = 'none';
-      document.getElementById('buttons').style.display = 'flex';
+      alert("✅ Ad finished.");
+      window.location.href = "game.html?mode=ai&method=ad";
     }, 5000);
-
-    // Init Pi SDK
-    Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
-
-    // Invite popup controls
-    function openInvite() {
-      document.getElementById('inviteModal').style.display = 'flex';
-    }
-    function closeInvite() {
-      document.getElementById('inviteModal').style.display = 'none';
-    }
-
-    async function sendInvite() {
-      const invitee = document.getElementById('inviteeId').value.trim();
-      if (!invitee) {
-        alert("Please enter a Pi username.");
-        return;
-      }
-
-      try {
-        const payment = await Pi.createPayment({
-          amount: 0.25,
-          memo: "Invite " + invitee + " to Chess Arena Pi",
-          metadata: { mode: "invite", invitee: invitee }
-        }, {
-          onReadyForServerApproval: function(paymentId) {
-            console.log("Ready for server approval:", paymentId);
-          },
-          onReadyForServerCompletion: function(paymentId, txid) {
-            console.log("Ready for server completion:", paymentId, txid);
-          },
-          onCancel: function(paymentId) {
-            alert("Invite cancelled.");
-          },
-          onError: function(error, payment) {
-            alert("Payment error: " + error);
-          }
-        });
-
-        if (payment) {
-          window.location.href = "game.html?mode=invite&user=" + encodeURIComponent(invitee);
-        }
-
-      } catch (err) {
-        console.error("Invite flow failed:", err);
-        alert("Something went wrong. Try again.");
-      }
-    }
-
-    // Normal match (Random / AI Pay)
-    async function startMatch(mode) {
-      try {
-        const payment = await Pi.createPayment({
-          amount: 0.25,
-          memo: "Join " + mode + " match in Chess Arena Pi",
-          metadata: { mode: mode }
-        }, {
-          onReadyForServerApproval: function(paymentId) {
-            console.log("Ready for server approval:", paymentId);
-          },
-          onReadyForServerCompletion: function(paymentId, txid) {
-            console.log("Ready for server completion:", paymentId, txid);
-          },
-          onCancel: function(paymentId) {
-            alert("Payment cancelled.");
-          },
-          onError: function(error, payment) {
-            alert("Payment error: " + error);
-          }
-        });
-
-        if (payment) {
-          window.location.href = "game.html?mode=" + mode;
-        }
-
-      } catch (err) {
-        console.error("Payment flow failed:", err);
-        alert("Something went wrong. Try again.");
-      }
-    }
-
-    // Mock ad system for AI
-    function watchAdForAI() {
-      const adScreen = document.getElementById('adScreen');
-      const adCountdown = document.getElementById('adCountdown');
-      adScreen.style.display = 'flex';
-
-      let timeLeft = 5;
-      adCountdown.textContent = timeLeft;
-
-      const timer = setInterval(() => {
-        timeLeft--;
-        adCountdown.textContent = timeLeft;
-
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          adScreen.style.display = 'none';
-          window.location.href = "game.html?mode=ai";
-        }
-      }, 1000);
-    }
-  </script>
-
+  }
+</script>
 </body>
 </html>
