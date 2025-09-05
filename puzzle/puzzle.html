@@ -1,167 +1,196 @@
-6<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi – Game</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css" />
+  <title>Puzzle Mode – Chess Arena Pi</title>
   <style>
     body {
       margin: 0;
-      padding: 0;
       font-family: Arial, sans-serif;
-      background: #f3e5ab; /* light wood */
+      background: #111;
+      color: white;
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       height: 100vh;
+      overflow: hidden;
     }
 
     /* Loader */
     .loader {
       position: absolute;
-      width: 120px;
-      height: 120px;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 40%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .pi-symbol {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 32px;
-      color: gold;
+      font-size: 50px;
       font-weight: bold;
+      color: gold;
+      position: relative;
+      z-index: 2;
     }
 
-    .orbit-dot {
+    .orbit {
       position: absolute;
-      width: 10px;
-      height: 10px;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      animation: spin 6s linear infinite;
+      top: -15px;
+      left: -15px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
       background: gold;
       border-radius: 50%;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(0deg) translate(35px);
-      animation: orbit 4s linear infinite;
+      position: absolute;
     }
 
-    .orbit-dot:nth-child(2) { animation-delay: -0.5s; }
-    .orbit-dot:nth-child(3) { animation-delay: -1s; }
-    .orbit-dot:nth-child(4) { animation-delay: -1.5s; }
-    .orbit-dot:nth-child(5) { animation-delay: -2s; }
-    .orbit-dot:nth-child(6) { animation-delay: -2.5s; }
-    .orbit-dot:nth-child(7) { animation-delay: -3s; }
-    .orbit-dot:nth-child(8) { animation-delay: -3.5s; }
+    /* Place 8 dots around circle */
+    .dot:nth-child(1) { top: 0; left: 36px; }
+    .dot:nth-child(2) { top: 12px; left: 62px; }
+    .dot:nth-child(3) { top: 36px; left: 74px; }
+    .dot:nth-child(4) { top: 62px; left: 62px; }
+    .dot:nth-child(5) { top: 74px; left: 36px; }
+    .dot:nth-child(6) { top: 62px; left: 10px; }
+    .dot:nth-child(7) { top: 36px; left: -2px; }
+    .dot:nth-child(8) { top: 12px; left: 10px; }
 
-    @keyframes orbit {
-      from { transform: translate(-50%, -50%) rotate(0deg) translate(35px); }
-      to   { transform: translate(-50%, -50%) rotate(360deg) translate(35px); }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
-    /* Hidden until loader finishes */
-    #gameContainer {
+    .loading-text {
+      margin-top: 70px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    /* Main button */
+    .container {
       display: none;
       flex-direction: column;
       align-items: center;
-      width: 100%;
+      margin-top: 100px;
     }
 
-    h1 {
-      margin: 15px 0;
-      font-size: 24px;
+    button {
+      background: #2196f3;
+      border: none;
+      color: white;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 15px 40px;
+      margin: 15px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover { background: #1976d2; }
+
+    /* Popup */
+    .popup {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+    }
+    .popup-content {
+      background: #222;
+      padding: 25px;
+      border-radius: 12px;
       text-align: center;
+      width: 280px;
+    }
+    .popup-content button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px;
+      font-size: 18px;
     }
 
-    #board {
-      width: 90vw;
-      max-width: 400px;
-      margin: 10px auto;
-    }
-
+    /* Watermark */
     .watermark {
       position: fixed;
-      bottom: 5px;
+      bottom: 10px;
       right: 10px;
-      font-size: 12px;
-      color: rgba(0,0,0,0.5);
+      font-size: 20px;
+      color: rgba(255,215,0,0.3);
+      user-select: none;
     }
   </style>
 </head>
 <body>
-
   <!-- Loader -->
   <div class="loader" id="loader">
-    <div class="pi-symbol">π</div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
+    <div class="pi-symbol">π
+      <div class="orbit">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+    <div class="loading-text">Loading Pi Network SDK...</div>
   </div>
 
-  <!-- Game Container -->
-  <div id="gameContainer">
-    <h1>WELCOME<br>CHESS ARENA for PI</h1>
-    <div id="board"></div>
-    <div class="watermark">* Powered by PI NETWORK</div>
+  <!-- Main container -->
+  <div class="container" id="mainContent">
+    <button onclick="openPopup()">© Puzzle</button>
   </div>
 
-  <!-- Pi SDK -->
-  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-  <!-- Chess libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+  <!-- Popup -->
+  <div class="popup" id="popup">
+    <div class="popup-content">
+      <h3>Continue Puzzle</h3>
+      <button onclick="tipToContinue()">Tip to Continue</button>
+      <button onclick="watchAd()">Watch Ad</button>
+      <button onclick="closePopup()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Watermark -->
+  <div class="watermark">Powered by PI NETWORK</div>
 
   <script>
-    // Show game after 5s loader
+    // Loader timeout
     setTimeout(() => {
       document.getElementById("loader").style.display = "none";
-      document.getElementById("gameContainer").style.display = "flex";
-    }, 5000);
+      document.getElementById("mainContent").style.display = "flex";
+    }, 2500);
 
-    // Pi SDK init
-    Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
-
-    // Chessboard setup
-    var board = null;
-    var game = new Chess();
-
-    function onDragStart (source, piece, position, orientation) {
-      if (game.game_over()) return false;
-      if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-          (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
-        return false;
-      }
+    // Popup controls
+    function openPopup() {
+      document.getElementById("popup").style.display = "flex";
+    }
+    function closePopup() {
+      document.getElementById("popup").style.display = "none";
     }
 
-    function onDrop (source, target) {
-      var move = game.move({
-        from: source,
-        to: target,
-        promotion: 'q'
-      });
-      if (move === null) return 'snapback';
+    // Placeholder functions
+    function tipToContinue() {
+      closePopup();
+      alert("Puzzle game coming soon (after Pi payment).");
     }
-
-    function onSnapEnd () {
-      board.position(game.fen());
+    function watchAd() {
+      closePopup();
+      alert("Puzzle game coming soon (after watching ad).");
     }
-
-    board = Chessboard('board', {
-      draggable: true,
-      position: 'start',
-      onDragStart: onDragStart,
-      onDrop: onDrop,
-      onSnapEnd: onSnapEnd
-    });
   </script>
 </body>
 </html>
