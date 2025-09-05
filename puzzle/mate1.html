@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mate in 1 – Puzzle</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #222;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    #board {
+      width: 90vw;
+      max-width: 400px;
+      margin-bottom: 20px;
+    }
+    #status {
+      margin: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      color: gold;
+    }
+    button {
+      padding: 10px 18px;
+      background: #2196f3;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0b79d0;
+    }
+    canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.css"/>
+</head>
+<body>
+
+  <h2>♟ WELCOME – Mate in 1</h2>
+  <div id="board"></div>
+  <div id="status">Your move…</div>
+  <button onclick="exitPuzzle()">Exit</button>
+  <canvas id="confetti"></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
+  <script>
+    const puzzles = [
+      { fen: "6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1", solution: "g2g3" },
+      { fen: "7k/6pp/8/8/8/8/6PP/7K w - - 0 1", solution: "g2g3" },
+      { fen: "6k1/5ppp/8/8/8/8/4QPPP/6K1 w - - 0 1", solution: "e2e8" },
+      { fen: "6k1/5ppp/8/8/8/8/5PPP/4Q1K1 w - - 0 1", solution: "e1e8" },
+      { fen: "6k1/5ppp/8/8/8/8/4BPPP/6K1 w - - 0 1", solution: "e2e8" }
+    ];
+
+    let board, game, currentPuzzle;
+
+    function loadPuzzle() {
+      currentPuzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
+      game = new Chess(currentPuzzle.fen);
+      board = Chessboard('board', {
+        position: currentPuzzle.fen,
+        draggable: true,
+        onDrop: onDrop
+      });
+      document.getElementById("status").textContent = "Your move…";
+    }
+
+    function onDrop(source, target) {
+      const move = game.move({ from: source, to: target, promotion: "q" });
+      if (move === null) return "snapback";
+
+      const uci = source + target;
+      if (uci === currentPuzzle.solution) {
+        document.getElementById("status").textContent = "✅ Checkmate!";
+        triggerConfetti();
+        setTimeout(loadPuzzle, 3000); // auto load next puzzle after 3s
+      } else {
+        document.getElementById("status").textContent = "❌ Try again!";
+      }
+    }
+
+    // Confetti
+    function triggerConfetti() {
+      const canvas = document.getElementById("confetti");
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const confetti = [];
+      for (let i = 0; i < 150; i++) {
+        confetti.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          r: Math.random() * 6 + 4,
+          d: Math.random() * 50,
+          color: "hsl(" + Math.random() * 360 + ",100%,50%)",
+          tilt: Math.random() * 10 - 10
+        });
+      }
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        confetti.forEach(c => {
+          ctx.beginPath();
+          ctx.arc(c.x, c.y, c.r, 0, 2 * Math.PI);
+          ctx.fillStyle = c.color;
+          ctx.fill();
+        });
+        update();
+      }
+      function update() {
+        confetti.forEach(c => {
+          c.y += Math.cos(c.d) + 2 + c.r / 2;
+          c.x += Math.sin(c.d);
+          if (c.y > canvas.height) c.y = -10;
+        });
+      }
+      let animation = setInterval(draw, 20);
+      setTimeout(() => {
+        clearInterval(animation);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }, 2000);
+    }
+
+    function exitPuzzle() {
+      window.location.href = "puzzle.html";
+    }
+
+    loadPuzzle();
+  </script>
+</body>
+</html>
