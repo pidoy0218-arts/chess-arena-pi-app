@@ -107,7 +107,6 @@
     <button onclick="openPopup('mate1.html')">♟ Mate in 1</button>
     <button onclick="openPopup('mate2.html')">♞ Mate in 2</button>
     <button onclick="openPopup('mate3.html')">♜ Mate in 3</button>
-    <button onclick="exitGame()">❌ Exit</button>
   </div>
 
   <!-- Popup -->
@@ -155,7 +154,7 @@
       document.getElementById("popup").style.display = "none";
     }
 
-    // Full exit (back to home or close session)
+    // Full exit
     function exitGame() {
       alert("👋 Exiting Puzzle Mode...");
       window.location.href = "index.html"; // or your home screen
