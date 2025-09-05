@@ -3,194 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Puzzle Mode – Chess Arena Pi</title>
+  <title>Chess Arena Pi – Puzzle Mode</title>
   <style>
     body {
       margin: 0;
+      padding: 0;
       font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      overflow: hidden;
+      background: #ff9800;
+      color: white;
+      flex-direction: column;
     }
 
     /* Loader */
     .loader {
-      position: absolute;
-      top: 40%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .pi-symbol {
-      font-size: 50px;
-      font-weight: bold;
-      color: gold;
       position: relative;
-      z-index: 2;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 25px;
     }
-
-    .orbit {
+    .pi-symbol {
       position: absolute;
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      animation: spin 6s linear infinite;
-      top: -15px;
-      left: -15px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      color: gold;
+      font-weight: bold;
     }
-
-    .dot {
-      width: 8px;
-      height: 8px;
+    .orbit-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
       background: gold;
       border-radius: 50%;
-      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(0deg) translate(45px);
+      animation: orbit 2s linear infinite;
+    }
+    .orbit-dot:nth-child(1) { animation-delay: 0s; }
+    .orbit-dot:nth-child(2) { animation-delay: -0.25s; }
+    .orbit-dot:nth-child(3) { animation-delay: -0.5s; }
+    .orbit-dot:nth-child(4) { animation-delay: -0.75s; }
+    .orbit-dot:nth-child(5) { animation-delay: -1s; }
+    .orbit-dot:nth-child(6) { animation-delay: -1.25s; }
+    .orbit-dot:nth-child(7) { animation-delay: -1.5s; }
+    .orbit-dot:nth-child(8) { animation-delay: -1.75s; }
+    @keyframes orbit {
+      from { transform: translate(-50%, -50%) rotate(0deg) translate(45px); }
+      to   { transform: translate(-50%, -50%) rotate(360deg) translate(45px); }
     }
 
-    /* Place 8 dots around circle */
-    .dot:nth-child(1) { top: 0; left: 36px; }
-    .dot:nth-child(2) { top: 12px; left: 62px; }
-    .dot:nth-child(3) { top: 36px; left: 74px; }
-    .dot:nth-child(4) { top: 62px; left: 62px; }
-    .dot:nth-child(5) { top: 74px; left: 36px; }
-    .dot:nth-child(6) { top: 62px; left: 10px; }
-    .dot:nth-child(7) { top: 36px; left: -2px; }
-    .dot:nth-child(8) { top: 12px; left: 10px; }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .loading-text {
-      margin-top: 70px;
-      font-size: 14px;
-      color: #ccc;
-    }
-
-    /* Main button */
-    .container {
+    /* Buttons */
+    .button-container {
       display: none;
       flex-direction: column;
-      align-items: center;
-      margin-top: 100px;
+      gap: 12px;
+      width: 220px;
     }
-
     button {
-      background: #2196f3;
+      padding: 12px;
+      font-size: 14px;
       border: none;
-      color: white;
-      font-size: 22px;
-      font-weight: bold;
-      padding: 15px 40px;
-      margin: 15px;
-      border-radius: 12px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: 0.2s;
+      background: #2196f3;
+      color: white;
+      transition: 0.3s;
+      width: 100%;
     }
-    button:hover { background: #1976d2; }
+    button:hover {
+      background: #0b79d0;
+    }
 
     /* Popup */
     .popup {
       display: none;
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background: rgba(0,0,0,0.6);
       justify-content: center;
       align-items: center;
     }
     .popup-content {
-      background: #222;
-      padding: 25px;
-      border-radius: 12px;
+      background: #333;
+      padding: 20px;
+      border-radius: 10px;
       text-align: center;
-      width: 280px;
+      width: 250px;
+    }
+    .popup-content h3 {
+      margin: 0 0 15px;
+      font-size: 18px;
+      color: gold;
     }
     .popup-content button {
-      width: 100%;
-      margin-top: 12px;
-      padding: 12px;
-      font-size: 18px;
-    }
-
-    /* Watermark */
-    .watermark {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      font-size: 20px;
-      color: rgba(255,215,0,0.3);
-      user-select: none;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
+
   <!-- Loader -->
-  <div class="loader" id="loader">
-    <div class="pi-symbol">π
-      <div class="orbit">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-      </div>
-    </div>
-    <div class="loading-text">Loading Pi Network SDK...</div>
+  <div class="loader">
+    <div class="pi-symbol">π</div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
   </div>
 
-  <!-- Main container -->
-  <div class="container" id="mainContent">
-    <button onclick="openPopup()">© Puzzle</button>
+  <!-- Puzzle Buttons -->
+  <div class="button-container" id="buttons">
+    <button onclick="openPopup(1)">♟ Mate in 1</button>
+    <button onclick="openPopup(2)">♞ Mate in 2</button>
+    <button onclick="openPopup(3)">♜ Mate in 3</button>
   </div>
 
   <!-- Popup -->
   <div class="popup" id="popup">
     <div class="popup-content">
-      <h3>Continue Puzzle</h3>
-      <button onclick="tipToContinue()">Tip to Continue</button>
-      <button onclick="watchAd()">Watch Ad</button>
+      <h3>Choose how to play</h3>
+      <button onclick="tipToPlay()">© Tip to Play</button>
+      <button onclick="watchAds()">© Watch Ads to Play</button>
       <button onclick="closePopup()">Cancel</button>
     </div>
   </div>
 
-  <!-- Watermark -->
-  <div class="watermark">Powered by PI NETWORK</div>
-
   <script>
-    // Loader timeout
+    let selectedPuzzle = null;
+
+    // Show buttons after loader
     setTimeout(() => {
-      document.getElementById("loader").style.display = "none";
-      document.getElementById("mainContent").style.display = "flex";
-    }, 2500);
+      document.querySelector('.loader').style.display = 'none';
+      document.getElementById('buttons').style.display = 'flex';
+    }, 5000);
 
-    // Popup controls
-    function openPopup() {
-      document.getElementById("popup").style.display = "flex";
+    // Open popup
+    function openPopup(puzzle) {
+      selectedPuzzle = puzzle;
+      document.getElementById('popup').style.display = 'flex';
     }
+
+    // Close popup
     function closePopup() {
-      document.getElementById("popup").style.display = "none";
+      document.getElementById('popup').style.display = 'none';
     }
 
-    // Placeholder functions
-    function tipToContinue() {
+    // Tip to Play
+    function tipToPlay() {
+      alert("💰 Payment ping... confirm in wallet.");
       closePopup();
-      alert("Puzzle game coming soon (after Pi payment).");
+      window.location.href = "puzzle-game.html?puzzle=" + selectedPuzzle + "&method=pay";
     }
-    function watchAd() {
-      closePopup();
-      alert("Puzzle game coming soon (after watching ad).");
+
+    // Watch Ads
+    function watchAds() {
+      alert("🎥 Watching Ad...");
+      setTimeout(() => {
+        alert("✅ Ad finished.");
+        closePopup();
+        window.location.href = "puzzle-game.html?puzzle=" + selectedPuzzle + "&method=ad";
+      }, 5000);
     }
   </script>
+
 </body>
 </html>
