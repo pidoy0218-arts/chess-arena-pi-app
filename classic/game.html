@@ -1,116 +1,308 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Arena Pi – Tournament Board</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #d2b48c; /* wooden board theme */
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    #board {
-      width: 90vmin;
-      max-width: 500px;
-    }
-    .timer-container {
-      display: flex;
-      justify-content: space-between;
-      width: 90vmin;
-      max-width: 500px;
-      margin-top: 15px;
-    }
-    .timer {
-      background: #333;
-      color: #fff;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 1.2em;
-      font-weight: bold;
-    }
-  </style>
-  <!-- chessboard.js and chess.js from CDN -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/css/chessboard.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/js/chessboard.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Arena – Classic Game</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #f0d9b5;
+    margin: 0;
+    padding: 20px;
+  }
+  #player2, #player1 {
+    font-weight: bold;
+    margin: 10px;
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, 60px);
+    grid-template-rows: repeat(8, 60px);
+    gap: 0;
+    border: 2px solid #333;
+  }
+  .square {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 36px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .light { background: #f0d9b5; }
+  .dark { background: #b58863; }
+  #timers {
+    display: flex;
+    justify-content: space-between;
+    width: 500px;
+    margin: 10px 0;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  #message {
+    margin-top: 15px;
+    font-size: 20px;
+    color: red;
+  }
+</style>
 </head>
 <body>
-  <h1 style="color:#4b0082; margin-bottom: 15px;">♞ Chess Arena Pi – FIDE Match</h1>
 
-  <div id="board"></div>
+<div id="player2">Player 2: [ID]</div>
+<div id="timers">
+  <div>Player1: <span id="timer1">10:00</span></div>
+  <div>Player2: <span id="timer2">10:00</span></div>
+</div>
+<div id="board"></div>
+<div id="player1">Player 1: [ID]</div>
+<div id="message"></div>
 
-  <div class="timer-container">
-    <div id="white-timer" class="timer">10:00</div>
-    <div id="black-timer" class="timer">10:00</div>
-  </div>
+<script>
+const boardEl = document.getElementById('board');
+const messageEl = document.getElementById('message');
+let selected = null;
+let turn = 'w';
+let timer1 = 600, timer2 = 600; // seconds
+let timerInterval = null;
 
-  <script>
-    const game = new Chess();
-    const board = Chessboard('board', {
-      draggable: true,
-      position: 'start',
-      onDrop: onDrop
-    });
+// Unicode pieces
+const pieces = {
+  w: { K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙' },
+  b: { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟︎' }
+};
 
-    // Timers
-    let whiteTime = 600; // 10 min in seconds
-    let blackTime = 600;
-    let interval = null;
-    let turn = 'w';
+// Initial board state
+let board = [
+  ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+  ['bP','bP','bP','bP','bP','bP','bP','bP'],
+  ['','','','','','','',''],
+  ['','','','','','','',''],
+  ['','','','','','','',''],
+  ['','','','','','','',''],
+  ['wP','wP','wP','wP','wP','wP','wP','wP'],
+  ['wR','wN','wB','wQ','wK','wB','wN','wR']
+];
 
-    function updateTimers() {
-      if (turn === 'w') {
-        whiteTime--;
-      } else {
-        blackTime--;
+// Draw board
+function drawBoard() {
+  boardEl.innerHTML = '';
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const sq = document.createElement('div');
+      sq.className = 'square ' + ((r+c)%2 === 0 ? 'light' : 'dark');
+      sq.dataset.row = r;
+      sq.dataset.col = c;
+      if(board[r][c]) {
+        const color = board[r][c][0];
+        const type = board[r][c][1];
+        sq.textContent = pieces[color][type];
       }
-      document.getElementById("white-timer").textContent =
-        Math.floor(whiteTime / 60) + ":" + String(whiteTime % 60).padStart(2, '0');
-      document.getElementById("black-timer").textContent =
-        Math.floor(blackTime / 60) + ":" + String(blackTime % 60).padStart(2, '0');
+      sq.addEventListener('click', () => clickSquare(r, c));
+      boardEl.appendChild(sq);
+    }
+  }
+}
 
-      if (whiteTime <= 0) {
-        alert("Black wins on time!");
-        clearInterval(interval);
-      }
-      if (blackTime <= 0) {
-        alert("White wins on time!");
-        clearInterval(interval);
+// Legal moves check (simplified for demo)
+function clickSquare(r, c) {
+  const piece = board[r][c];
+  if (selected) {
+    const [sr, sc] = selected;
+    if (isLegalMove(sr, sc, r, c)) {
+      movePiece(sr, sc, r, c);
+      selected = null;
+      drawBoard();
+      checkGameState();
+      switchTurn();
+    } else {
+      selected = null;
+    }
+  } else {
+    if (piece && piece[0] === turn) {
+      selected = [r, c];
+    }
+  }
+}
+
+function isLegalMove(sr, sc, r, c) {
+  const piece = board[sr][sc];
+  const target = board[r][c];
+  if(piece[0] !== turn) return false;
+  if(target && target[0] === turn) return false;
+
+  const type = piece[1];
+  const dr = r - sr, dc = c - sc;
+
+  switch(type) {
+    case 'P': // Pawn
+      const dir = piece[0] === 'w' ? -1 : 1;
+      if(dc===0 && dr===dir && !target) return true;
+      if(dc===0 && dr===2*dir && ((sr===6 && turn==='w')||(sr===1 && turn==='b')) && !target && !board[sr+dir][sc]) return true;
+      if(Math.abs(dc)===1 && dr===dir && target && target[0]!==turn) return true; // capture
+      // en passant can be added here
+      return false;
+    case 'R': // Rook
+      if(dr===0 || dc===0) return isClearPath(sr, sc, r, c);
+      return false;
+    case 'N': // Knight
+      return (Math.abs(dr)*Math.abs(dc)===2);
+    case 'B': // Bishop
+      if(Math.abs(dr)===Math.abs(dc)) return isClearPath(sr, sc, r, c);
+      return false;
+    case 'Q': // Queen
+      if(dr===0 || dc===0 || Math.abs(dr)===Math.abs(dc)) return isClearPath(sr, sc, r, c);
+      return false;
+    case 'K': // King
+      if(Math.abs(dr)<=1 && Math.abs(dc)<=1) return true;
+      // castling
+      if(dr===0 && Math.abs(dc)===2) return canCastle(sr, sc, dc>0);
+      return false;
+  }
+  return false;
+}
+
+function isClearPath(sr, sc, r, c) {
+  const dr = r-sr ? (r>sr?1:-1) : 0;
+  const dc = c-sc ? (c>sc?1:-1) : 0;
+  let x = sr + dr, y = sc + dc;
+  while(x!==r || y!==c){
+    if(board[x][y]) return false;
+    x+=dr; y+=dc;
+  }
+  return true;
+}
+
+function canCastle(r, c, kingside) {
+  // simplified: assume neither king nor rook has moved and no check
+  if(turn==='w' && r===7 && c===4){
+    if(kingside && !board[7][5] && !board[7][6] && board[7][7]==='wR') return true;
+    if(!kingside && !board[7][1] && !board[7][2] && !board[7][3] && board[7][0]==='wR') return true;
+  }
+  if(turn==='b' && r===0 && c===4){
+    if(kingside && !board[0][5] && !board[0][6] && board[0][7]==='bR') return true;
+    if(!kingside && !board[0][1] && !board[0][2] && !board[0][3] && board[0][0]==='bR') return true;
+  }
+  return false;
+}
+
+function movePiece(sr, sc, r, c){
+  const piece = board[sr][sc];
+  const type = piece[1];
+
+  // Castling
+  if(type==='K' && Math.abs(c-sc)===2){
+    if(c>sc){ // kingside
+      board[r][5]=board[r][7]; board[r][7]='';
+    } else { // queenside
+      board[r][3]=board[r][0]; board[r][0]='';
+    }
+  }
+
+  board[r][c] = piece;
+  board[sr][sc] = '';
+
+  // Pawn promotion
+  if(type==='P' && (r===0 || r===7)) board[r][c] = piece[0]+'Q';
+}
+
+function switchTurn(){
+  turn = turn==='w' ? 'b' : 'w';
+}
+
+function checkGameState(){
+  if(isCheckmate(turn)) messageEl.textContent = (turn==='w'?'Black':'White')+' wins by checkmate!';
+  else if(isStalemate(turn)) messageEl.textContent = 'Stalemate! Draw.';
+}
+
+function isCheckmate(color){
+  // simplified: checks if king exists and no legal moves
+  const moves = getAllLegalMoves(color);
+  if(moves.length===0 && isKingInCheck(color)) return true;
+  return false;
+}
+
+function isStalemate(color){
+  const moves = getAllLegalMoves(color);
+  if(moves.length===0 && !isKingInCheck(color)) return true;
+  return false;
+}
+
+function isKingInCheck(color){
+  // simplified: scan for attacks on king
+  let kr, kc;
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      if(board[r][c]===color+'K'){ kr=r; kc=c; }
+    }
+  }
+  const enemy = color==='w'?'b':'w';
+  const moves = getAllMoves(enemy);
+  for(const [sr,sc,r,c] of moves){
+    if(r===kr && c===kc) return true;
+  }
+  return false;
+}
+
+function getAllLegalMoves(color){
+  const moves=[];
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      if(board[r][c] && board[r][c][0]===color){
+        for(let i=0;i<8;i++){
+          for(let j=0;j<8;j++){
+            if(isLegalMove(r,c,i,j)) moves.push([r,c,i,j]);
+          }
+        }
       }
     }
+  }
+  return moves;
+}
 
-    function startClock() {
-      if (interval) clearInterval(interval);
-      interval = setInterval(updateTimers, 1000);
-    }
-
-    function onDrop(source, target) {
-      const move = game.move({
-        from: source,
-        to: target,
-        promotion: 'q' // auto promote to queen
-      });
-
-      if (move === null) return 'snapback'; // illegal move
-
-      turn = game.turn();
-      startClock();
-
-      if (game.in_checkmate()) {
-        alert((turn === 'w' ? "Black" : "White") + " wins by checkmate!");
-        clearInterval(interval);
-      }
-      if (game.in_draw()) {
-        alert("Game drawn!");
-        clearInterval(interval);
+function getAllMoves(color){
+  const moves=[];
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      if(board[r][c] && board[r][c][0]===color){
+        for(let i=0;i<8;i++){
+          for(let j=0;j<8;j++){
+            moves.push([r,c,i,j]);
+          }
+        }
       }
     }
-  </script>
+  }
+  return moves;
+}
+
+// Timer
+function startTimers(){
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    if(turn==='w') timer1--; else timer2--;
+    document.getElementById('timer1').textContent = formatTime(timer1);
+    document.getElementById('timer2').textContent = formatTime(timer2);
+    if(timer1<=0 || timer2<=0){
+      clearInterval(timerInterval);
+      messageEl.textContent = timer1<=0?'Player 2 wins on time':'Player 1 wins on time';
+    }
+  },1000);
+}
+
+function formatTime(sec){
+  const m = Math.floor(sec/60).toString().padStart(2,'0');
+  const s = (sec%60).toString().padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+drawBoard();
+startTimers();
+</script>
 </body>
 </html>
