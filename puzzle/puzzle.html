@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Puzzle Lobby</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    h2 {
+      margin-bottom: 30px;
+      color: gold;
+    }
+    button {
+      padding: 12px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #2196f3;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #0b79d0;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>♟ Puzzle Mode</h2>
+  <button onclick="playPuzzle()">© Puzzle</button>
+
+  <script>
+    function playPuzzle() {
+      // Popup options before entering puzzle
+      const choice = confirm("Puzzle Mode\n\nOK = Tip to Continue\nCancel = Watch Ad");
+      if (choice) {
+        alert("💰 Payment ping... please confirm in wallet.");
+        window.location.href = "mate1.html";
+      } else {
+        alert("🎥 Watching Ad...");
+        setTimeout(() => {
+          alert("✅ Ad finished.");
+          window.location.href = "mate1.html";
+        }, 3000);
+      }
+    }
+  </script>
+
+</body>
+</html>
