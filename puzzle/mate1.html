@@ -1,204 +1,329 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mate in 1 – Chess Arena Pi</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      background: #222;
-      color: white;
-      height: 100vh;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mate in 1 — Chess Arena Pi</title>
 
-    /* Loader */
-    .loader {
-      position: relative;
-      width: 80px;
-      height: 80px;
-      margin-bottom: 20px;
-    }
-    .pi-symbol {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 24px;
-      color: gold;
-      font-weight: bold;
-    }
-    .orbit-dot {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      background: gold;
-      border-radius: 50%;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%) rotate(0deg) translate(30px);
-      animation: orbit 4s linear infinite;
-    }
-    .orbit-dot:nth-child(2) { animation-delay: -0.25s; }
-    .orbit-dot:nth-child(3) { animation-delay: -0.5s; }
-    .orbit-dot:nth-child(4) { animation-delay: -0.75s; }
-    .orbit-dot:nth-child(5) { animation-delay: -1s; }
-    .orbit-dot:nth-child(6) { animation-delay: -1.25s; }
-    .orbit-dot:nth-child(7) { animation-delay: -1.5s; }
-    .orbit-dot:nth-child(8) { animation-delay: -1.75s; }
+<!-- chessboard.js CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css" />
 
-    @keyframes orbit {
-      from { transform: translate(-50%, -50%) rotate(0deg) translate(30px); }
-      to   { transform: translate(-50%, -50%) rotate(360deg) translate(30px); }
-    }
+<style>
+  :root{
+    --bg:#111;
+    --panel:#1f1f1f;
+    --accent:#f0c05a;
+    --btn:#2196f3;
+    --btn-hover:#0b79d0;
+  }
+  html,body{height:100%; margin:0; background:var(--bg); color:#fff; font-family:Arial,Helvetica,sans-serif}
+  .app {
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+    padding:20px;
+    box-sizing:border-box;
+  }
 
-    /* Buttons */
-    .popup {
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-      background: #333;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-    }
-    .popup button {
-      padding: 10px;
-      font-size: 14px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #2196f3;
-      color: white;
-      transition: 0.3s;
-    }
-    .popup button:hover { background: #0b79d0; }
-    .exit-btn {
-      margin-top: 20px;
-      background: #e53935;
-    }
+  h1 { margin:0; text-align:center; color:var(--accent); font-size:20px; }
+  .subtitle { color:#ddd; font-size:13px; margin-top:6px; }
 
-    /* Chessboard */
-    #board {
-      display: none;
-      width: 320px;
-      height: 320px;
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      grid-template-rows: repeat(8, 1fr);
-      border: 3px solid #444;
-    }
-    .square {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 28px;
-      cursor: pointer;
-    }
-    .light { background: #f0d9b5; }
-    .dark { background: #b58863; }
-  </style>
+  /* board area */
+  #boardWrap { display:flex; gap:18px; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
+  #board { width:360px; max-width:90vw; }
+
+  /* right panel */
+  .panel {
+    background:var(--panel);
+    padding:12px;
+    border-radius:10px;
+    min-width:200px;
+    color:#fff;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+  }
+  .status { color:var(--accent); font-weight:600; margin-bottom:8px; }
+  .meta { font-size:13px; color:#ddd; margin-bottom:6px; }
+
+  .big-btn{
+    display:block; width:100%; padding:10px 12px; border-radius:8px; border:none;
+    background:var(--btn); color:#fff; font-size:15px; cursor:pointer; margin-top:8px;
+  }
+  .big-btn:hover{ background:var(--btn-hover); }
+
+  .exit-btn { background:#c0392b; margin-top:10px; }
+  .exit-btn:hover{ background:#a02820; }
+
+  /* popup */
+  .overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.65); display:none;
+    align-items:center; justify-content:center; z-index:50;
+  }
+  .dialog {
+    width:320px; max-width:90%;
+    background:#222; padding:18px; border-radius:10px; text-align:center; color:#fff;
+    box-shadow:0 10px 30px rgba(0,0,0,0.7);
+  }
+  .dialog h3{ margin:0 0 10px 0; color:var(--accent) }
+  .dialog .dlg-btn { width:100%; padding:10px 12px; margin-top:8px; border-radius:8px; border:none; font-size:15px; cursor:pointer; }
+  .dlg-tip { background:linear-gradient(180deg,var(--btn),#1976d2); color:#fff; }
+  .dlg-ad { background:linear-gradient(180deg,#4caf50,#2e7d32); color:#fff; }
+  .dlg-cancel { background:#555; color:#fff; }
+  .dlg-exit { background:#c0392b; color:#fff; }
+
+  /* confetti canvas */
+  #confetti { position:fixed; inset:0; pointer-events:none; z-index:40; }
+
+  /* small helpers */
+  .row { display:flex; gap:8px; align-items:center; }
+  .note { font-size:12px; color:#bbb; margin-top:8px; }
+</style>
 </head>
 <body>
+<div class="app">
+  <h1>CHESS ARENA — Mate in 1</h1>
+  <div class="subtitle">Solve the mate-in-1. After success, choose again or exit.</div>
 
-  <!-- Loader -->
-  <div id="loader" class="loader">
-    <div class="pi-symbol">π</div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
+  <div id="boardWrap">
+    <div id="board"></div>
+
+    <div class="panel" aria-live="polite">
+      <div class="status" id="status">Waiting for you to start</div>
+      <div class="meta" id="puzzleMeta">Choose Tip or Ad to load a puzzle</div>
+      <button class="big-btn" id="startBtn">© Start (Tip / Ad)</button>
+      <button class="big-btn exit-btn" id="exitBtn">❌ Exit</button>
+      <div class="note">Tip triggers Pi SDK (if available). Ads are simulated for testing.</div>
+    </div>
   </div>
+</div>
 
-  <!-- Popup -->
-  <div id="popup" class="popup">
-    <p>Choose how to play:</p>
-    <button onclick="startPuzzle('pi')">© Tip to Play</button>
-    <button onclick="startPuzzle('ad')">© Watch Ad to Play</button>
-    <button class="exit-btn" onclick="exitGame()">❌ Exit</button>
+<!-- Popup overlay (appears before each puzzle) -->
+<div class="overlay" id="overlay">
+  <div class="dialog">
+    <h3>Choose how to play</h3>
+    <button class="dlg-btn dlg-tip" id="dlgTip">© Tip to play</button>
+    <button class="dlg-btn dlg-ad" id="dlgAd">© Watch ad to play</button>
+    <button class="dlg-btn dlg-cancel" id="dlgCancel">❌ Cancel</button>
+    <button class="dlg-btn dlg-exit" id="dlgExit">❌ Exit</button>
   </div>
+</div>
 
-  <!-- Chessboard -->
-  <div id="board"></div>
+<!-- confetti canvas provided by js-confetti for nicer confetti -->
+<canvas id="confetti"></canvas>
 
-  <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
-  <script>
-    const loader = document.getElementById("loader");
-    const popup = document.getElementById("popup");
-    const boardDiv = document.getElementById("board");
-    const jsConfetti = new JSConfetti();
+<!-- chess libs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+<!-- js-confetti for confetti -->
+<script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
 
-    // Puzzles (FEN + solution)
-    const puzzles = [
-      { fen: "8/8/8/8/8/5Q2/6K1/7k w - - 0 1", solution: "Qf1#" },
-      { fen: "6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1", solution: "f4#" },
-      { fen: "7k/5Q2/8/8/8/8/6PPP/7K w - - 0 1", solution: "Qf8#" },
-      { fen: "8/8/8/8/8/6R1/6K1/7k w - - 0 1", solution: "Rh6#" },
-      { fen: "6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1", solution: "f4#" }
-    ];
+<script>
+/* ========== Configuration & puzzles ========== */
 
-    let currentPuzzle = null;
+/*
+  5 real (simple) mate-in-1 puzzles.
+  FEN strings: side to move is White (w) and each puzzle is mate-in-1 for White.
+  You can replace/add puzzles as needed later.
+*/
+const puzzles = [
+  // 1) Classic simple: White Qh5# (Black king on g8/h7 etc)
+  { id:1, fen: "6k1/5ppp/8/7Q/8/8/6PP/6K1 w - - 0 1" },
 
-    // Show popup after loader
-    setTimeout(() => {
-      loader.style.display = "none";
-      popup.style.display = "flex";
-    }, 3000);
+  // 2) Back-rank style: Rf8#
+  { id:2, fen: "6k1/5ppp/8/8/8/8/5RPP/6K1 w - - 0 1" },
 
-    function startPuzzle(method) {
-      popup.style.display = "none";
+  // 3) Queen mate on last rank
+  { id:3, fen: "7k/5Q2/8/8/8/8/6PP/7K w - - 0 1" },
+
+  // 4) Simple rook mate
+  { id:4, fen: "6k1/8/8/8/8/6R1/6K1/7k w - - 0 1" },
+
+  // 5) Bishop/queen combo (a mate-in-1)
+  { id:5, fen: "6k1/5ppp/8/8/8/8/4BPPP/6K1 w - - 0 1" }
+];
+
+let currentPuzzle = null;
+let game = null;
+let board = null;
+let acceptingMoves = false; // block moves while solved or loading
+
+const jsConfetti = new JSConfetti({ canvas: document.getElementById('confetti') });
+
+/* ========== UI elements ========== */
+const overlay = document.getElementById('overlay');
+const dlgTip = document.getElementById('dlgTip');
+const dlgAd = document.getElementById('dlgAd');
+const dlgCancel = document.getElementById('dlgCancel');
+const dlgExit = document.getElementById('dlgExit');
+const startBtn = document.getElementById('startBtn');
+const exitBtn = document.getElementById('exitBtn');
+const statusEl = document.getElementById('status');
+const puzzleMeta = document.getElementById('puzzleMeta');
+
+/* ========== Helper functions ========== */
+
+function showOverlay() {
+  overlay.style.display = 'flex';
+}
+function hideOverlay() {
+  overlay.style.display = 'none';
+}
+
+function pickRandomPuzzle() {
+  const idx = Math.floor(Math.random() * puzzles.length);
+  return puzzles[idx];
+}
+
+function startRound(method) {
+  // method: "tip" or "ad"
+  hideOverlay();
+  // If method == "tip", attempt Pi payment flow (graceful fallback)
+  if (method === 'tip') {
+    // If Pi SDK available, attempt call. Otherwise, show informational alert and continue.
+    if (window.Pi && typeof Pi.createPayment === 'function') {
+      statusEl.textContent = 'Waiting for Pi payment...';
+      // minimal call - adapt amount/memo/metadata as needed
+      Pi.createPayment({
+        amount: 0.01, // placeholder test amount
+        memo: "Tip to play — Mate in 1",
+        metadata: { mode: 'puzzle', type: 'mate1' }
+      }).then(payment => {
+        // some Pi SDK versions return a promise; others use callbacks — continue anyway
+        loadRandomPuzzle();
+      }).catch(err=>{
+        console.warn('Pi payment failed or cancelled:', err);
+        alert('Payment cancelled or failed. Proceeding (sandbox).');
+        loadRandomPuzzle();
+      });
+      return;
+    } else {
+      // No Pi SDK — just notify and proceed (sandbox mode)
+      alert('Pi SDK not available — proceeding in sandbox/test mode.');
+    }
+  }
+
+  if (method === 'ad') {
+    statusEl.textContent = 'Watching ad...';
+    // Simulate ad (3 seconds)
+    setTimeout(()=>{
+      statusEl.textContent = 'Ad finished. Loading puzzle...';
       loadRandomPuzzle();
-    }
+    }, 3000);
+    return;
+  }
 
-    function loadRandomPuzzle() {
-      boardDiv.innerHTML = "";
-      boardDiv.style.display = "grid";
-      currentPuzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      drawBoard();
-    }
+  // default: load
+  loadRandomPuzzle();
+}
 
-    function drawBoard() {
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          const sq = document.createElement("div");
-          sq.className = "square " + ((r+c)%2 ? "dark":"light");
-          sq.textContent = ""; // simple placeholder
-          boardDiv.appendChild(sq);
-        }
-      }
-      // For now, just show text instead of real pieces
-      const text = document.createElement("p");
-      text.textContent = "Mate in 1 puzzle loaded!";
-      text.style.gridColumn = "1 / -1";
-      text.style.textAlign = "center";
-      text.style.fontSize = "20px";
-      text.style.color = "red";
-      boardDiv.appendChild(text);
+/* ========== Chessboard & chess.js integration ========== */
 
-      // Auto simulate puzzle solved after 5s
-      setTimeout(triggerWin, 5000);
-    }
+function initBoard() {
+  // initialize a dummy chessboard at start; we'll set positions later
+  game = new Chess();
+  board = Chessboard('board', {
+    draggable: true,
+    position: 'start',
+    onDragStart: onDragStart,
+    onDrop: onDrop,
+    onSnapEnd: onSnapEnd,
+    pieceTheme: 'https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/img/chesspieces/wikipedia/{piece}.png'
+  });
+}
 
-    function triggerWin() {
-      jsConfetti.addConfetti();
-      setTimeout(() => {
-        boardDiv.style.display = "none";
-        popup.style.display = "flex";
-      }, 3000);
-    }
+function loadRandomPuzzle() {
+  currentPuzzle = pickRandomPuzzle();
+  // set up game with FEN
+  game = new Chess(currentPuzzle.fen);
+  board.position(currentPuzzle.fen, false);
+  acceptingMoves = true;
+  statusEl.textContent = 'Your move — solve mate in 1';
+  puzzleMeta.textContent = `Puzzle #${currentPuzzle.id} — White to move`;
+}
 
-    function exitGame() {
-      alert("You exited the puzzle.");
-      window.location.href = "puzzle.html";
-    }
-  </script>
+/* chessboard.js handlers */
+
+function onDragStart(source, piece, position, orientation) {
+  if (!acceptingMoves) return false;
+  // Only allow moving white pieces (we only provide white-to-move puzzles)
+  if (piece && piece.startsWith('b')) return false;
+  // do not allow move if game over
+  if (game.game_over()) return false;
+}
+
+function onDrop(source, target) {
+  // attempt move in chess.js
+  const move = game.move({ from: source, to: target, promotion: 'q' });
+  if (!move) {
+    return 'snapback';
+  }
+  // update board to reflect legal move
+  board.position(game.fen());
+  // check for checkmate
+  if (game.in_checkmate()) {
+    acceptingMoves = false;
+    statusEl.textContent = '✅ Checkmate!';
+    // confetti + sound
+    triggerWinSequence();
+  } else {
+    // Not mate in 1 — give feedback
+    statusEl.textContent = 'Not mate — try again (or exit)';
+    // allow more moves (but puzzles are mate-in-1; user may make non-mate moves)
+  }
+}
+
+function onSnapEnd() {
+  board.position(game.fen());
+}
+
+/* ========== Win / confetti / after-win flow ========== */
+
+function triggerWinSequence() {
+  // Visual confetti
+  try { jsConfetti.addConfetti({ confettiColors: ['#ffcc00','#ff2d55','#00d084','#00aaff'] }); } catch(e){}
+  // Optional sound
+  try {
+    const s = new Audio('https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg');
+    s.play().catch(()=>{/* ignore */});
+  } catch(e){}
+
+  // After 3 seconds, show overlay (popup again) to allow Tip/Ad/Exit
+  setTimeout(()=>{
+    statusEl.textContent = 'Choose how to continue';
+    puzzleMeta.textContent = 'Play another Mate-in-1 or exit';
+    showOverlay();
+  }, 3000);
+}
+
+/* ========== UI events binding ========== */
+
+document.addEventListener('DOMContentLoaded', ()=> {
+  initBoard();
+  // show overlay immediately on load
+  showOverlay();
+});
+
+dlgTip.addEventListener('click', ()=> startRound('tip'));
+dlgAd.addEventListener('click', ()=> startRound('ad'));
+dlgCancel.addEventListener('click', ()=> hideOverlay());
+dlgExit.addEventListener('click', ()=> exitToLobby());
+
+startBtn.addEventListener('click', ()=> showOverlay());
+exitBtn.addEventListener('click', ()=> exitToLobby());
+
+function exitToLobby(){
+  // return to puzzle menu (puzzle.html)
+  window.location.href = 'puzzle.html';
+}
+
+/* ========== Responsive tweak: ensure board resizes with window ========== */
+window.addEventListener('resize', ()=> {
+  // chessboard.js auto-resizes based on container width if CSS allows it
+  // re-render current position to ensure visuals remain correct
+  if (board && game) board.position(game.fen(), false);
+});
+</script>
 </body>
 </html>
