@@ -3,144 +3,202 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mate in 1 – Puzzle</title>
+  <title>Mate in 1 – Chess Arena Pi</title>
   <style>
     body {
       margin: 0;
       padding: 0;
-      background: #222;
-      color: white;
       font-family: Arial, sans-serif;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
+      flex-direction: column;
+      background: #222;
+      color: white;
       height: 100vh;
     }
-    #board {
-      width: 90vw;
-      max-width: 400px;
+
+    /* Loader */
+    .loader {
+      position: relative;
+      width: 80px;
+      height: 80px;
       margin-bottom: 20px;
     }
-    #status {
-      margin: 10px;
-      font-size: 18px;
-      font-weight: bold;
+    .pi-symbol {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
       color: gold;
+      font-weight: bold;
     }
-    button {
-      padding: 10px 18px;
-      background: #2196f3;
-      border: none;
-      border-radius: 8px;
-      color: white;
+    .orbit-dot {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: gold;
+      border-radius: 50%;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) rotate(0deg) translate(30px);
+      animation: orbit 4s linear infinite;
+    }
+    .orbit-dot:nth-child(2) { animation-delay: -0.25s; }
+    .orbit-dot:nth-child(3) { animation-delay: -0.5s; }
+    .orbit-dot:nth-child(4) { animation-delay: -0.75s; }
+    .orbit-dot:nth-child(5) { animation-delay: -1s; }
+    .orbit-dot:nth-child(6) { animation-delay: -1.25s; }
+    .orbit-dot:nth-child(7) { animation-delay: -1.5s; }
+    .orbit-dot:nth-child(8) { animation-delay: -1.75s; }
+
+    @keyframes orbit {
+      from { transform: translate(-50%, -50%) rotate(0deg) translate(30px); }
+      to   { transform: translate(-50%, -50%) rotate(360deg) translate(30px); }
+    }
+
+    /* Buttons */
+    .popup {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      background: #333;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .popup button {
+      padding: 10px;
       font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #2196f3;
+      color: white;
+      transition: 0.3s;
+    }
+    .popup button:hover { background: #0b79d0; }
+    .exit-btn {
+      margin-top: 20px;
+      background: #e53935;
+    }
+
+    /* Chessboard */
+    #board {
+      display: none;
+      width: 320px;
+      height: 320px;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      border: 3px solid #444;
+    }
+    .square {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
       cursor: pointer;
     }
-    button:hover {
-      background: #0b79d0;
-    }
-    canvas {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none;
-    }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
   </style>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.css"/>
 </head>
 <body>
 
-  <h2>♟ WELCOME – Mate in 1</h2>
-  <div id="board"></div>
-  <div id="status">Your move…</div>
-  <button onclick="exitPuzzle()">Exit</button>
-  <canvas id="confetti"></canvas>
+  <!-- Loader -->
+  <div id="loader" class="loader">
+    <div class="pi-symbol">π</div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+  </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
+  <!-- Popup -->
+  <div id="popup" class="popup">
+    <p>Choose how to play:</p>
+    <button onclick="startPuzzle('pi')">© Tip to Play</button>
+    <button onclick="startPuzzle('ad')">© Watch Ad to Play</button>
+    <button class="exit-btn" onclick="exitGame()">❌ Exit</button>
+  </div>
+
+  <!-- Chessboard -->
+  <div id="board"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
   <script>
+    const loader = document.getElementById("loader");
+    const popup = document.getElementById("popup");
+    const boardDiv = document.getElementById("board");
+    const jsConfetti = new JSConfetti();
+
+    // Puzzles (FEN + solution)
     const puzzles = [
-      { fen: "6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1", solution: "g2g3" },
-      { fen: "7k/6pp/8/8/8/8/6PP/7K w - - 0 1", solution: "g2g3" },
-      { fen: "6k1/5ppp/8/8/8/8/4QPPP/6K1 w - - 0 1", solution: "e2e8" },
-      { fen: "6k1/5ppp/8/8/8/8/5PPP/4Q1K1 w - - 0 1", solution: "e1e8" },
-      { fen: "6k1/5ppp/8/8/8/8/4BPPP/6K1 w - - 0 1", solution: "e2e8" }
+      { fen: "8/8/8/8/8/5Q2/6K1/7k w - - 0 1", solution: "Qf1#" },
+      { fen: "6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1", solution: "f4#" },
+      { fen: "7k/5Q2/8/8/8/8/6PPP/7K w - - 0 1", solution: "Qf8#" },
+      { fen: "8/8/8/8/8/6R1/6K1/7k w - - 0 1", solution: "Rh6#" },
+      { fen: "6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1", solution: "f4#" }
     ];
 
-    let board, game, currentPuzzle;
+    let currentPuzzle = null;
 
-    function loadPuzzle() {
+    // Show popup after loader
+    setTimeout(() => {
+      loader.style.display = "none";
+      popup.style.display = "flex";
+    }, 3000);
+
+    function startPuzzle(method) {
+      popup.style.display = "none";
+      loadRandomPuzzle();
+    }
+
+    function loadRandomPuzzle() {
+      boardDiv.innerHTML = "";
+      boardDiv.style.display = "grid";
       currentPuzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      game = new Chess(currentPuzzle.fen);
-      board = Chessboard('board', {
-        position: currentPuzzle.fen,
-        draggable: true,
-        onDrop: onDrop
-      });
-      document.getElementById("status").textContent = "Your move…";
+      drawBoard();
     }
 
-    function onDrop(source, target) {
-      const move = game.move({ from: source, to: target, promotion: "q" });
-      if (move === null) return "snapback";
-
-      const uci = source + target;
-      if (uci === currentPuzzle.solution) {
-        document.getElementById("status").textContent = "✅ Checkmate!";
-        triggerConfetti();
-        setTimeout(loadPuzzle, 3000); // auto load next puzzle after 3s
-      } else {
-        document.getElementById("status").textContent = "❌ Try again!";
+    function drawBoard() {
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const sq = document.createElement("div");
+          sq.className = "square " + ((r+c)%2 ? "dark":"light");
+          sq.textContent = ""; // simple placeholder
+          boardDiv.appendChild(sq);
+        }
       }
+      // For now, just show text instead of real pieces
+      const text = document.createElement("p");
+      text.textContent = "Mate in 1 puzzle loaded!";
+      text.style.gridColumn = "1 / -1";
+      text.style.textAlign = "center";
+      text.style.fontSize = "20px";
+      text.style.color = "red";
+      boardDiv.appendChild(text);
+
+      // Auto simulate puzzle solved after 5s
+      setTimeout(triggerWin, 5000);
     }
 
-    // Confetti
-    function triggerConfetti() {
-      const canvas = document.getElementById("confetti");
-      const ctx = canvas.getContext("2d");
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const confetti = [];
-      for (let i = 0; i < 150; i++) {
-        confetti.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          r: Math.random() * 6 + 4,
-          d: Math.random() * 50,
-          color: "hsl(" + Math.random() * 360 + ",100%,50%)",
-          tilt: Math.random() * 10 - 10
-        });
-      }
-      function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        confetti.forEach(c => {
-          ctx.beginPath();
-          ctx.arc(c.x, c.y, c.r, 0, 2 * Math.PI);
-          ctx.fillStyle = c.color;
-          ctx.fill();
-        });
-        update();
-      }
-      function update() {
-        confetti.forEach(c => {
-          c.y += Math.cos(c.d) + 2 + c.r / 2;
-          c.x += Math.sin(c.d);
-          if (c.y > canvas.height) c.y = -10;
-        });
-      }
-      let animation = setInterval(draw, 20);
+    function triggerWin() {
+      jsConfetti.addConfetti();
       setTimeout(() => {
-        clearInterval(animation);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }, 2000);
+        boardDiv.style.display = "none";
+        popup.style.display = "flex";
+      }, 3000);
     }
 
-    function exitPuzzle() {
+    function exitGame() {
+      alert("You exited the puzzle.");
       window.location.href = "puzzle.html";
     }
-
-    loadPuzzle();
   </script>
 </body>
 </html>
