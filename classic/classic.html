@@ -1,308 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chess Arena Pi – Quick Match</title>
-<style>
-  body {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background: #222;
-    color: white;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* Watermark */
-  .watermark {
-    position: fixed;
-    bottom: 5px;
-    right: 10px;
-    font-size: 10px;
-    color: rgba(255,255,255,0.3);
-  }
-
-  /* Loader */
-  .loader {
-    position: relative;
-    width: 120px;
-    height: 120px;
-    margin-bottom: 15px;
-  }
-
-  .pi-symbol {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 42px;
-    color: gold;
-    font-weight: bold;
-    z-index: 2;
-  }
-
-  .orbit-dot {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background: gold;
-    border-radius: 50%;
-    top: 50%;
-    left: 50%;
-    transform-origin: center center;
-    animation: orbit 4s linear infinite;
-  }
-
-  /* 8 dots equally spaced */
-  .orbit-dot:nth-child(1) { transform: rotate(0deg) translate(35px); animation-delay: 0s; }
-  .orbit-dot:nth-child(2) { transform: rotate(45deg) translate(35px); animation-delay: -0.5s; }
-  .orbit-dot:nth-child(3) { transform: rotate(90deg) translate(35px); animation-delay: -1s; }
-  .orbit-dot:nth-child(4) { transform: rotate(135deg) translate(35px); animation-delay: -1.5s; }
-  .orbit-dot:nth-child(5) { transform: rotate(180deg) translate(35px); animation-delay: -2s; }
-  .orbit-dot:nth-child(6) { transform: rotate(225deg) translate(35px); animation-delay: -2.5s; }
-  .orbit-dot:nth-child(7) { transform: rotate(270deg) translate(35px); animation-delay: -3s; }
-  .orbit-dot:nth-child(8) { transform: rotate(315deg) translate(35px); animation-delay: -3.5s; }
-
-  @keyframes orbit {
-    from { transform: rotate(0deg) translate(35px); }
-    to { transform: rotate(360deg) translate(35px); }
-  }
-
-  .sdk-text {
-    font-size: 14px;
-    color: #ccc;
-    margin-top: 10px;
-  }
-
-  /* Buttons */
-  .button-container {
-    display: none;
-    flex-direction: column;
-    gap: 16px;
-    width: 260px;
-    margin-top: 20px;
-    align-items: center;
-  }
-
-  .welcome-frame {
-    text-align: center;
-    margin-bottom: 15px;
-  }
-
-  .welcome-frame .welcome-top {
-    font-size: 18px;
-    font-weight: bold;
-    color: gold;
-  }
-
-  .welcome-frame .welcome-bottom {
-    font-size: 20px;
-    font-weight: bold;
-    color: gold;
-  }
-
-  button {
-    padding: 14px;
-    font-size: 16px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    background: #2196f3;
-    color: white;
-    transition: 0.3s;
-    width: 100%;
-  }
-
-  button:hover {
-    background: #0b79d0;
-  }
-
-  /* Modal */
-  .modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    color: white;
-    justify-content: center;
-    align-items: center;
-    z-index: 999;
-    flex-direction: column;
-    padding: 20px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .modal.show { opacity: 1; }
-
-  .modal-content {
-    background: #333;
-    padding: 20px;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 320px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-  }
-
-  .modal-content input {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 6px;
-    border: none;
-  }
-
-  .modal-content button {
-    margin-top: 8px;
-    width: 100%;
-    font-size: 16px;
-  }
-
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Arena Pi – Classic Mode</title>
+  <style>
+    body {
+      background-color: #2c2c2c;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+    .button {
+      background-color: #2196f3;
+      border: none;
+      color: white;
+      padding: 15px 30px;
+      margin: 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background 0.3s;
+      width: 220px;
+    }
+    .button:hover {
+      background-color: #1976d2;
+    }
+    #loader {
+      display: none;
+      margin-top: 20px;
+    }
+    .dot {
+      height: 10px;
+      width: 10px;
+      margin: 0 5px;
+      background-color: #ffeb3b;
+      border-radius: 50%;
+      display: inline-block;
+      animation: bounce 1.5s infinite ease-in-out;
+    }
+    .dot:nth-child(2) { animation-delay: 0.3s; }
+    .dot:nth-child(3) { animation-delay: 0.6s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+  </style>
 </head>
 <body>
+  <h1>♟ Chess Arena Pi</h1>
 
-<!-- Loader -->
-<div id="loaderWrapper" style="display:flex; flex-direction:column; align-items:center;">
-  <div class="loader">
-    <div class="pi-symbol">π</div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
-    <div class="orbit-dot"></div>
+  <button class="button" onclick="playInvite()">© Invite</button>
+  <button class="button" onclick="playRandom()">© Random</button>
+  <button class="button" onclick="playAI()">© AI</button>
+
+  <div id="loader">
+    <span class="dot"></span>
+    <span class="dot"></span>
+    <span class="dot"></span>
   </div>
-  <div class="sdk-text">Loading Pi Network SDK...</div>
-</div>
 
-<!-- Buttons -->
-<div class="button-container" id="buttons">
-  <div class="welcome-frame">
-    <div class="welcome-top">WELCOME</div>
-    <div class="welcome-bottom">CHESS ARENA for PI</div>
-  </div>
-  <button onclick="showModal('inviteModal')">© Invite</button>
-  <button onclick="showModal('randomModal')">© Random</button>
-  <button onclick="showModal('aiModal')">© AI</button>
-</div>
-
-<!-- Invite Modal -->
-<div class="modal" id="inviteModal">
-  <div class="modal-content">
-    <p>Payment to join Invite Match</p>
-    <button onclick="payInvite()">Pay with Pi</button>
-    <input id="inviteeId" placeholder="Type invitee ID" />
-    <button onclick="showModal('inviteeConfirmModal')">Send Invite</button>
-    <button onclick="closeModal('inviteModal')">Cancel</button>
-  </div>
-</div>
-
-<!-- Invitee Confirmation Modal -->
-<div class="modal" id="inviteeConfirmModal">
-  <div class="modal-content">
-    <p>Invitee: Accept & pay?</p>
-    <button onclick="payInvitee()">OK</button>
-    <button onclick="closeModal('inviteeConfirmModal')">Cancel</button>
-  </div>
-</div>
-
-<!-- Random Modal -->
-<div class="modal" id="randomModal">
-  <div class="modal-content">
-    <p>Payment to join Random Match</p>
-    <button onclick="payRandom()">Pay with Pi</button>
-    <button onclick="closeModal('randomModal')">Cancel</button>
-  </div>
-</div>
-
-<!-- AI Modal -->
-<div class="modal" id="aiModal">
-  <div class="modal-content">
-    <p>AI Match</p>
-    <button onclick="payAI()">Pay with Pi</button>
-    <button onclick="watchAdAI()">Watch Ad</button>
-    <button onclick="closeModal('aiModal')">Cancel</button>
-  </div>
-</div>
-
-<div class="watermark">*Powered by PI NETWORK</div>
-
-<script src="https://sdk.minepi.com/pi-sdk.js"></script>
-<script>
-  // Show buttons after loader
-  setTimeout(() => {
-    document.getElementById('loaderWrapper').style.display = 'none';
-    document.getElementById('buttons').style.display = 'flex';
-  }, 5000);
-
-  // Initialize Pi SDK
-  try {
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script>
+    // Initialize Pi SDK
     Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
-  } catch(e){ console.warn("Pi SDK not loaded."); }
 
-  function showModal(id){
-    const modal = document.getElementById(id);
-    modal.style.display = 'flex';
-    setTimeout(()=>modal.classList.add('show'),10);
-  }
-  function closeModal(id){
-    const modal = document.getElementById(id);
-    modal.classList.remove('show');
-    setTimeout(()=>modal.style.display='none',300);
-  }
+    function showLoader() {
+      document.getElementById("loader").style.display = "block";
+    }
 
-  async function payInvite(){
-    try{
-      await Pi.createPayment({amount:0.25,memo:"Join Invite Match",metadata:{mode:"invite"}});
-      alert("Payment successful. Now type invitee ID.");
-    } catch(e){ console.error(e); alert("Payment failed."); }
-  }
+    function hideLoader() {
+      document.getElementById("loader").style.display = "none";
+    }
 
-  async function payInvitee(){
-    const invitee = document.getElementById('inviteeId').value.trim();
-    if(!invitee) return alert("Enter invitee ID");
-    try{
-      await Pi.createPayment({amount:0.25,memo:"Invitee joining match",metadata:{mode:"invite",invitee:invitee}});
-      window.location.href = "game.html?mode=invite&with="+encodeURIComponent(invitee);
-    } catch(e){ console.error(e); alert("Payment failed."); }
-  }
+    function playInvite() {
+      showLoader();
+      setTimeout(() => {
+        hideLoader();
+        window.location.href = "game.html?mode=invite";
+      }, 1500);
+    }
 
-  async function payRandom(){
-    try{
-      await Pi.createPayment({amount:0.25,memo:"Join Random Match",metadata:{mode:"random"}});
-      window.location.href = "game.html?mode=random";
-    } catch(e){ console.error(e); alert("Payment failed."); }
-  }
+    function playRandom() {
+      showLoader();
+      setTimeout(() => {
+        hideLoader();
+        window.location.href = "game.html?mode=random";
+      }, 1500);
+    }
 
-  // ✅ AI goes to ai.html instead of game.html
-  async function payAI(){
-    try{
-      await Pi.createPayment({amount:0.25,memo:"AI Match Payment",metadata:{mode:"ai"}});
-      window.location.href = "ai.html?method=pay";
-    } catch(e){ console.error(e); alert("Payment failed."); }
-  }
-
-  function watchAdAI(){
-    alert("🎥 Watching Ad...");
-    setTimeout(()=>{
-      alert("✅ Ad finished. Loading AI Match...");
-      window.location.href = "ai.html?method=ad";
-    }, 5000);
-  }
-</script>
-
+    function playAI() {
+      showLoader();
+      setTimeout(() => {
+        hideLoader();
+        window.location.href = "ai.html?method=pay";
+      }, 1500);
+    }
+  </script>
 </body>
 </html>
