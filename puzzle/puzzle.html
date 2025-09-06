@@ -3,130 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chess Arena Pi – Puzzle</title>
+<title>Puzzle Mode Pi</title>
 <style>
-  body {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background: #222;
-    color: white;
-    flex-direction: column;
-  }
-
-  /* Loader */
-  .loader {
-    position: relative;
-    width: 100px;
-    height: 100px;
-    margin-bottom: 25px;
-  }
-
-  .pi-symbol {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 32px;
-    color: gold;
-    font-weight: bold;
-  }
-
-  .orbit-dot {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background: gold;
-    border-radius: 50%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(0deg) translate(45px);
-    animation: orbit 2s linear infinite;
-  }
-
-  .orbit-dot:nth-child(1) { animation-delay: 0s; }
-  .orbit-dot:nth-child(2) { animation-delay: -0.25s; }
-  .orbit-dot:nth-child(3) { animation-delay: -0.5s; }
-  .orbit-dot:nth-child(4) { animation-delay: -0.75s; }
-  .orbit-dot:nth-child(5) { animation-delay: -1s; }
-  .orbit-dot:nth-child(6) { animation-delay: -1.25s; }
-  .orbit-dot:nth-child(7) { animation-delay: -1.5s; }
-  .orbit-dot:nth-child(8) { animation-delay: -1.75s; }
-
-  @keyframes orbit {
-    from { transform: translate(-50%, -50%) rotate(0deg) translate(45px); }
-    to   { transform: translate(-50%, -50%) rotate(360deg) translate(45px); }
-  }
-
-  /* Buttons */
-  .button-container {
-    display: none;
-    flex-direction: column;
-    gap: 12px;
-    width: 220px;
-  }
-
-  button {
-    padding: 12px;
-    font-size: 14px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    background: #2196f3;
-    color: white;
-    transition: 0.3s;
-    width: 100%;
-  }
-
-  button:hover {
-    background: #0b79d0;
-  }
-
-  /* Modals */
-  .modal {
-    display: none;
-    position: fixed;
-    z-index: 999;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.8);
-    justify-content: center;
-    align-items: center;
-  }
-
-  .modal-content {
-    background: #333;
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    color: white;
-  }
-
-  .modal-content input {
-    padding: 10px;
-    width: 90%;
-    margin-bottom: 12px;
-    border-radius: 6px;
-    border: none;
-    font-size: 14px;
-  }
-
-  .modal-content button {
-    margin-top: 8px;
-  }
-
+  body { margin:0; padding:0; font-family: Arial,sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; background:#222; color:white; flex-direction:column; }
+  .loader { position:relative; width:100px; height:100px; margin-bottom:25px; }
+  .pi-symbol { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:32px; color:gold; font-weight:bold; }
+  .orbit-dot { position:absolute; width:10px; height:10px; background:gold; border-radius:50%; top:50%; left:50%; transform:translate(-50%, -50%) rotate(0deg) translate(45px); animation:orbit 2s linear infinite; }
+  .orbit-dot:nth-child(1){animation-delay:0s;} .orbit-dot:nth-child(2){animation-delay:-0.25s;} .orbit-dot:nth-child(3){animation-delay:-0.5s;} .orbit-dot:nth-child(4){animation-delay:-0.75s;} .orbit-dot:nth-child(5){animation-delay:-1s;} .orbit-dot:nth-child(6){animation-delay:-1.25s;} .orbit-dot:nth-child(7){animation-delay:-1.5s;} .orbit-dot:nth-child(8){animation-delay:-1.75s;}
+  @keyframes orbit { from{transform:translate(-50%,-50%) rotate(0deg) translate(45px);} to{transform:translate(-50%,-50%) rotate(360deg) translate(45px);} }
+  .button-container{display:none; flex-direction:column; gap:12px; width:220px;}
+  button{padding:12px; font-size:14px; border:none; border-radius:8px; cursor:pointer; background:#2196f3; color:white; transition:0.3s; width:100%;}
+  button:hover{background:#0b79d0;}
+  .modal{display:none; position:fixed; z-index:999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center;}
+  .modal-content{background:#333; padding:20px; border-radius:12px; text-align:center; color:white;}
+  .modal-content input{padding:10px; width:90%; margin-bottom:12px; border-radius:6px; border:none; font-size:14px;}
+  .modal-content button{margin-top:8px;}
 </style>
 </head>
 <body>
 
-<!-- Loader -->
-<div class="loader" id="loaderWrapper">
+<div class="loader">
   <div class="pi-symbol">π</div>
   <div class="orbit-dot"></div>
   <div class="orbit-dot"></div>
@@ -138,43 +34,43 @@
   <div class="orbit-dot"></div>
 </div>
 
-<!-- Buttons -->
 <div class="button-container" id="buttons">
-  <button onclick="tip()">💰 Tip (0.1–10π)</button>
-  <button onclick="watchAd()">🎥 Watch Ad</button>
+  <button onclick="tipPi()">💰 Tip (.1–10π)</button>
+  <button onclick="watchAd()">🎥 Watch Ad & Load Puzzle</button>
 </div>
 
-<!-- Pi SDK load -->
+<div class="modal" id="tipModal">
+  <div class="modal-content">
+    <h3>Tip Pi</h3>
+    <input type="number" id="tipAmount" placeholder="Amount (.1–10)" min="0.1" max="10" step="0.1">
+    <button onclick="sendTip()">Send Tip</button>
+    <button onclick="closeModal('tipModal')">Cancel</button>
+  </div>
+</div>
+
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-
 <script>
-  // Show buttons after loader
-  setTimeout(() => {
-    document.getElementById('loaderWrapper').style.display = 'none';
-    document.getElementById('buttons').style.display = 'flex';
-  }, 3000);
+  setTimeout(()=>{document.querySelector('.loader').style.display='none'; document.getElementById('buttons').style.display='flex';}, 4000);
 
-  // Initialize Pi SDK
-  let piReady = false;
-  try {
-    Pi.init({ version: "2.0", sandbox: true, appId: "chess-world-pi" });
-    piReady = true;
-  } catch(e){ console.warn("Pi SDK not loaded."); }
+  function openModal(id){document.getElementById(id).style.display='flex';}
+  function closeModal(id){document.getElementById(id).style.display='none';}
 
-  function tip() {
-    if(!piReady) return alert("Pi SDK not ready.");
-    let amount = parseFloat(prompt("Enter tip amount π (min 0.1, max 10):", "0.1"));
-    if(isNaN(amount) || amount < 0.1 || amount > 10) return alert("Amount must be between 0.1 and 10 π");
-    Pi.createPayment({amount: amount, memo: "Puzzle tip"}).then(()=>{
-      alert("✅ Tip successful. Thank you!");
-    }).catch(err => { console.error(err); alert("❌ Tip failed."); });
+  async function tipPi(){openModal('tipModal');}
+
+  async function sendTip(){
+    const amount=parseFloat(document.getElementById('tipAmount').value);
+    if(isNaN(amount) || amount<0.1 || amount>10){return alert('Enter valid tip between 0.1 and 10π');}
+    try{
+      await Pi.createPayment({amount:amount,memo:'Puzzle Tip',metadata:{mode:'tip'}});
+      alert('✅ Tip sent! Loading puzzle...');
+      window.location.href='puzzle-game.html';
+    }catch(e){console.error(e); alert('Payment failed.');}
+    closeModal('tipModal');
   }
 
-  function watchAd() {
-    alert("🎥 Watching Ad...");
-    setTimeout(()=>{
-      alert("✅ Ad finished. You can now continue solving the puzzle!");
-    }, 5000);
+  function watchAd(){
+    alert('🎥 Watching Ad...');
+    setTimeout(()=>{ alert('✅ Ad finished. Loading puzzle...'); window.location.href='puzzle-game.html'; }, 5000);
   }
 </script>
 
