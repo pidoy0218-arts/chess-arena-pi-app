@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Arena Pi – Puzzle Mode</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 100vh;
+    background: #222;
+    color: white;
+  }
+
+  h1 {
+    margin-top: 20px;
+    color: gold;
+    text-align: center;
+  }
+
+  .board-container {
+    margin-top: 20px;
+    width: 320px;
+    height: 320px;
+    background: #d2b48c; /* wooden board color */
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    border: 3px solid #555;
+  }
+
+  .square {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    user-select: none;
+  }
+
+  .light { background: #f0d9b5; }
+  .dark { background: #b58863; }
+
+  .controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+  }
+
+  button {
+    padding: 10px 14px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #2196f3;
+    color: white;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background: #0b79d0;
+  }
+
+  .tip-ad {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Chess Arena Pi – Puzzle Mode</h1>
+<div class="board-container" id="board"></div>
+<div class="controls">
+  <button onclick="prevPuzzle()">Previous</button>
+  <span id="puzzleCounter">Puzzle 1 of 3</span>
+  <button onclick="nextPuzzle()">Next</button>
+</div>
+<div class="tip-ad">
+  <button onclick="tipPi()">💰 Tip (.1π–10π)</button>
+  <button onclick="watchAd()">🎥 Watch Ad</button>
+</div>
+
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<script>
+// Pi SDK Init
+try { Pi.init({version: "2.0", sandbox:true, appId: "chess-world-pi"}); } catch(e){console.warn("Pi SDK not loaded.");}
+
+// === Puzzle Data (FEN or simplified array) ===
+const puzzles = [
+  [
+    ['r',' ',' ',' ','k',' ',' ','r'],
+    ['p','p','p','q','p','p','p','p'],
+    [' ',' ','n',' ',' ',' ',' ',' '],
+    [' ',' ',' ','p',' ',' ',' ',' '],
+    [' ',' ',' ',' ','P',' ',' ',' '],
+    [' ',' ',' ',' ',' ','N',' ',' '],
+    ['P','P','P','P',' ','P','P','P'],
+    ['R',' ',' ',' ','K',' ',' ','R']
+  ],
+  [
+    ['r','n','b','q','k','b','n','r'],
+    ['p','p','p','p',' ','p','p','p'],
+    [' ',' ',' ',' ','p',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ','P',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    ['P','P','P','P',' ','P','P','P'],
+    ['R','N','B','Q','K','B','N','R']
+  ],
+  [
+    [' ',' ',' ',' ','k',' ',' ',' '],
+    [' ',' ',' ',' ','p',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ','Q',' ',' ',' ',' '],
+    [' ',' ',' ',' ','P',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    ['K',' ',' ',' ',' ',' ',' ',' ']
+  ]
+];
+
+let currentPuzzle = 0;
+
+function renderPuzzle() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  const puzzle = puzzles[currentPuzzle];
+  for (let i=0;i<8;i++){
+    for (let j=0;j<8;j++){
+      const square = document.createElement('div');
+      square.className = 'square ' + ((i+j)%2===0 ? 'light':'dark');
+      square.textContent = puzzle[i][j];
+      board.appendChild(square);
+    }
+  }
+  document.getElementById('puzzleCounter').innerText = `Puzzle ${currentPuzzle+1} of ${puzzles.length}`;
+}
+
+function nextPuzzle() {
+  currentPuzzle = (currentPuzzle + 1) % puzzles.length;
+  renderPuzzle();
+}
+function prevPuzzle() {
+  currentPuzzle = (currentPuzzle - 1 + puzzles.length) % puzzles.length;
+  renderPuzzle();
+}
+
+// === Tip / Ad ===
+async function tipPi(){
+  const amount = prompt("Enter tip amount π (0.1–10):", "0.1");
+  const val = parseFloat(amount);
+  if(isNaN(val) || val<0.1 || val>10) return alert("Invalid amount!");
+  try{ await Pi.createPayment({amount: val, memo:"Puzzle Tip", metadata:{mode:"tip"}}); alert("✅ Thank you for tipping!"); }
+  catch(e){ alert("Payment failed."); }
+}
+
+function watchAd(){
+  alert("🎥 Watching Ad...");
+  setTimeout(()=>{ alert("✅ Ad finished! Enjoy puzzle."); },3000);
+}
+
+// Initial render
+renderPuzzle();
+</script>
+
+</body>
+</html>
