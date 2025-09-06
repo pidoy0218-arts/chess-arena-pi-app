@@ -287,10 +287,11 @@
     } catch(e){ console.error(e); alert("Payment failed."); }
   }
 
+  // ✅ AI goes to ai.html instead of game.html
   async function payAI(){
     try{
       await Pi.createPayment({amount:0.25,memo:"AI Match Payment",metadata:{mode:"ai"}});
-      window.location.href = "game.html?mode=ai&method=pay";
+      window.location.href = "ai.html?method=pay";
     } catch(e){ console.error(e); alert("Payment failed."); }
   }
 
@@ -298,7 +299,7 @@
     alert("🎥 Watching Ad...");
     setTimeout(()=>{
       alert("✅ Ad finished. Loading AI Match...");
-      window.location.href = "game.html?mode=ai&method=ad";
+      window.location.href = "ai.html?method=ad";
     }, 5000);
   }
 </script>
