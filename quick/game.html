@@ -23,12 +23,27 @@
   .btn{ padding:10px 12px; border-radius:8px; border:0; color:#111; background:var(--accent); font-weight:700; cursor:pointer }
   .tiny{ font-size:12px; opacity:.8 }
   .moves{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.45; max-height:260px; overflow:auto }
-  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:10 }
+  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:20 }
   .modal.show{ display:flex }
-  .card{ background:#1e1e1e; border:1px solid #2d2d2d; padding:16px; border-radius:12px; min-width:260px }
+  .card{ background:#1e1e1e; border:1px solid #2d2d2d; padding:16px; border-radius:12px; min-width:260px; text-align:center }
   .grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:10px }
   .pick{ font-size:34px; padding:10px; border-radius:10px; border:1px solid #333; background:#121212; color:#fff; cursor:pointer }
   #fx{ position:fixed; inset:0; pointer-events:none; z-index:9 }
+
+  /* Player UI */
+  .players { display:flex; gap:10px; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .player { display:flex; flex-direction:column; gap:6px; padding:8px; border-radius:8px; background:#101010; border:1px solid #222; min-width:120px; text-align:center }
+  .player .label { font-weight:800; font-size:13px; }
+  .player .id { font-size:12px; opacity:.85; word-break:break-all; }
+  .player .clock { font-weight:900; font-size:18px; padding:6px 8px; border-radius:8px; background:#0f0f0f; border:1px solid #222; }
+  .player.active { box-shadow: 0 0 0 3px rgba(244,180,0,0.06); border-color: #2b2b2b }
+  .clock.red { color:var(--warn); }
+
+  /* Rematch modal specifics */
+  .rematch-count { font-size:18px; margin-top:8px; opacity:.9 }
+  .rematch-actions { display:flex; gap:10px; justify-content:center; margin-top:12px }
+  .btn-accept { background:#3bbf7f; color:#041; padding:8px 12px; border-radius:8px; font-weight:800; border:0; cursor:pointer }
+  .btn-decline { background:#bf3b3b; color:#210; padding:8px 12px; border-radius:8px; font-weight:800; border:0; cursor:pointer }
 </style>
 </head>
 <body>
@@ -40,7 +55,26 @@
 
     <div class="side">
       <div class="panel">
-        <div class="row">
+        <!-- Player placeholders for Pi SDK -->
+        <div class="players">
+          <div id="playerWhite" class="player">
+            <div class="label">Player 1 (White)</div>
+            <!-- Placeholder element for Pi SDK to fill with user ID / handle -->
+            <div id="player1Id" class="id">(player1 id placeholder)</div>
+            <!-- Timer under P1 -->
+            <div id="clockW" class="clock">0:45</div>
+          </div>
+
+          <div id="playerBlack" class="player">
+            <div class="label">Player 2 (Black)</div>
+            <!-- Placeholder element for Pi SDK to fill with user ID / handle -->
+            <div id="player2Id" class="id">(player2 id placeholder)</div>
+            <!-- Timer under P2 -->
+            <div id="clockB" class="clock">0:45</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:8px">
           <div id="status" style="font-weight:700">White to move</div>
           <div id="incheck" style="display:none;padding:4px 8px;border-radius:8px;background:#2b2b2b">Check!</div>
         </div>
@@ -48,12 +82,13 @@
       </div>
 
       <div class="panel">
-        <div class="row"><div><b>Move List</b></div><button class="btn" id="undoBtn" title="Undo last move">Undo</button></div>
+        <div class="row"><div><b>Move List</b></div></div>
         <div id="moves" class="moves"></div>
       </div>
 
       <div class="panel row">
-        <button class="btn" id="resetBtn">Reset</button>
+        <!-- Resign replaces Reset; Flip kept -->
+        <button class="btn" id="resignBtn" title="Resign the game">Resign</button>
         <button class="btn" id="flipBtn">Flip</button>
         <div class="tiny">Click a piece → click a target square</div>
       </div>
@@ -72,11 +107,26 @@
     </div>
   </div>
 
+  <!-- Rematch modal shown at game end. Auto-cancels after 5s -->
+  <div id="rematchModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="card">
+      <div style="font-weight:800">Rematch?</div>
+      <div class="tiny" style="margin-top:8px">Accept to request rematch via Pi lobby/payment pairing.</div>
+      <div class="rematch-count" id="rematchCountdown">Auto-cancel in 5s</div>
+      <div class="rematch-actions">
+        <button id="rematchAccept" class="btn-accept">Accept</button>
+        <button id="rematchDecline" class="btn-decline">Decline</button>
+      </div>
+    </div>
+  </div>
+
   <canvas id="fx"></canvas>
 
 <script>
 /* ------------------ Config ------------------ */
-const AUTO_PROMOTE = true; // <-- set to true: always auto-queen promotion; false -> ask user.
+const AUTO_PROMOTE = true; // automatic queen
+const START_CLOCK = 45; // seconds per player
+const REMATCH_AUTO_CANCEL = 5; // seconds to auto-cancel rematch popup
 
 /* -------------- Sound (WebAudio) -------------- */
 const SND = (() => {
@@ -94,7 +144,8 @@ const SND = (() => {
     move:()=>beep(640,0.07,'square',0.05),
     capture:()=>{beep(220,0.05,'sawtooth',0.06); setTimeout(()=>beep(180,0.09,'sawtooth',0.05),60);},
     check:()=>beep(900,0.12,'triangle',0.06),
-    win:()=>{ [880,988,1175].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.08), i*120)); }
+    win:()=>{ [880,988,1175].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.08), i*120)); },
+    tick:()=>beep(900,0.04,'square',0.06) // short ticking tone used for last-10s
   };
 })();
 
@@ -105,7 +156,7 @@ const Confetti = (() => {
   function resize(){ w=c.width=innerWidth; h=c.height=innerHeight; }
   addEventListener('resize', resize); resize();
   function burst(n=120){
-    parts=[]; for(let i=0;i<n;i++) parts.push({ x:w/2, y:h*0.25, vx:(Math.random()*2-1)*6, vy:Math.random()*-6-2, g:Math.random()*0.18+0.12, s:Math.random()*6+3, a:Math.random()*Math.PI, col:`hsl(${Math.random()*360},90%,60%)` });
+    parts=[]; for(let i=0;i<n;i++) parts.push({ x:w/2, y:h*0.25, vx:(Math.random()*2-1)*6, vy:(Math.random()*-6-2), g:Math.random()*0.18+0.12, s:Math.random()*6+3, a:Math.random()*Math.PI, col:`hsl(${Math.random()*360},90%,60%)` });
     if(!run){ run=true; requestAnimationFrame(loop); }
   }
   function loop(){
@@ -292,14 +343,10 @@ function legalMoves(state){
   const legal = [];
   for(const m of moves){
     const st = U.clone(state);
-    // make move on cloned state (simulate). If promotion flagged, auto-promote to queen in simulation.
     const ok = makeMove(st, m, /*simulate=*/true);
     if(ok){
-      const kp = kingPos(st.board, side); // side is still same as before flipping in makeMove (we flip there)
-      // after makeMove(st, m, true) the side was flipped; kingPos of original side now belongs to 'other' but we check whether king of moving side is attacked.
-      // check king of moving side is safe: find its king coordinates in st.board but note st.side is flipped to opponent; king of moving side we can find by other(st.side)
       const kingOfMover = kingPos(st.board, other(st.side));
-      const inCheck = attacked(st.board, st.side, kingOfMover.r, kingOfMover.c); // attacked by opponent (st.side)
+      const inCheck = attacked(st.board, st.side, kingOfMover.r, kingOfMover.c);
       if(!inCheck) legal.push(m);
     }
   }
@@ -307,8 +354,7 @@ function legalMoves(state){
 }
 
 /* makeMove: performs move on state.
-   simulate=true means we should not prompt user; return true if move applied;
-   when promotion is required: if simulate OR AUTO_PROMOTE => auto-queen; else show modal and return null to interrupt flow.
+   simulate=true -> auto-queen promotion; otherwise possibly show modal.
 */
 function makeMove(state, m, simulate=false, promoChoice=null){
   const B = state.board;
@@ -324,7 +370,6 @@ function makeMove(state, m, simulate=false, promoChoice=null){
 
   // en-passant capture (remove pawn behind target)
   if(m.ep){
-    // capture pawn which sits behind 'to' relative to mover
     const dir = isW ? 1 : -1;
     B[to.r + dir][to.c] = "";
   }
@@ -345,16 +390,14 @@ function makeMove(state, m, simulate=false, promoChoice=null){
   if(m.epSet){ state.ep = m.epSet; }
 
   // Promotion handling:
-  if(m.promo || m.promoChoices || m.promo){ // this flagging matches generation
-    // Determine promotion choice:
+  if(m.promo || m.promoChoices || m.promo){
     let promo = promoChoice;
     if(!promo){
-      if(simulate || AUTO_PROMOTE) promo = 'q'; // default to queen for simulation and auto mode
+      if(simulate || AUTO_PROMOTE) promo = 'q';
       else {
-        // show modal to ask player
         pendingPromotion = { move: m, rec };
         openPromotion(isW);
-        return null; // interrupt; real move will continue after player chooses
+        return null;
       }
     }
     const promoted = isW ? promo.toUpperCase() : promo.toLowerCase();
@@ -376,10 +419,17 @@ function makeMove(state, m, simulate=false, promoChoice=null){
   // fullmove increment
   if(side === 'b') state.full++;
 
+  // remember mover for timer reset
+  const mover = side; // 'w' or 'b'
+
   // flip side
   state.side = other(side);
 
-  if(!simulate) state.hist.push(rec);
+  if(!simulate) {
+    state.hist.push(rec);
+    // reset mover's own clock to START_CLOCK whenever they make a move (per requirement)
+    resetPlayerClock(mover);
+  }
   return true;
 }
 
@@ -391,16 +441,168 @@ const incheckEl = document.getElementById('incheck');
 const crEl = document.getElementById('cr');
 const epEl = document.getElementById('ep');
 const movesEl = document.getElementById('moves');
-const resetBtn = document.getElementById('resetBtn');
 const flipBtn = document.getElementById('flipBtn');
-const undoBtn  = document.getElementById('undoBtn');
 const promoModal = document.getElementById('promo');
+
+const rematchModal = document.getElementById('rematchModal');
+const rematchCountdownEl = document.getElementById('rematchCountdown');
+const rematchAcceptBtn = document.getElementById('rematchAccept');
+const rematchDeclineBtn = document.getElementById('rematchDecline');
+
+const player1IdEl = document.getElementById('player1Id');
+const player2IdEl = document.getElementById('player2Id');
+const playerWhiteEl = document.getElementById('playerWhite');
+const playerBlackEl = document.getElementById('playerBlack');
+const clockWEl = document.getElementById('clockW');
+const clockBEl = document.getElementById('clockB');
+const resignBtn = document.getElementById('resignBtn');
 
 let selected = null;
 let legal = [];
 let flipped = false;
 let pendingPromotion = null;
 
+/* ------------------ Clocks & Leaderboard Placeholder ------------------ */
+let clocks = { w: START_CLOCK, b: START_CLOCK };
+let lastTickSecond = { w: null, b: null };
+let lastTickTime = performance.now();
+let clockInterval = null;
+let gameOver = false;
+
+function formatTime(sec){
+  sec = Math.max(0, Math.ceil(sec));
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+function updateClockDisplays(){
+  clockWEl.textContent = formatTime(clocks.w);
+  clockBEl.textContent = formatTime(clocks.b);
+
+  // color warning for last 10 seconds
+  if(clocks.w <= 10) clockWEl.classList.add('red'); else clockWEl.classList.remove('red');
+  if(clocks.b <= 10) clockBEl.classList.add('red'); else clockBEl.classList.remove('red');
+
+  // active highlight
+  if(state.side === 'w'){ playerWhiteEl.classList.add('active'); playerBlackEl.classList.remove('active'); }
+  else { playerBlackEl.classList.add('active'); playerWhiteEl.classList.remove('active'); }
+}
+
+function resetClocks(){
+  clocks.w = START_CLOCK; clocks.b = START_CLOCK; lastTickSecond = { w:null, b:null }; updateClockDisplays();
+}
+
+function resetPlayerClock(side){
+  clocks[side] = START_CLOCK;
+  lastTickSecond[side] = null;
+  updateClockDisplays();
+}
+
+/* start ticking clocks (runs while game not over) */
+function startClock(){
+  stopClock();
+  lastTickTime = performance.now();
+  clockInterval = setInterval(()=>{
+    if(gameOver) { stopClock(); return; }
+    const now = performance.now();
+    const dt = (now - lastTickTime)/1000;
+    lastTickTime = now;
+    clocks[state.side] -= dt;
+    if(clocks[state.side] <= 0){
+      clocks[state.side] = 0;
+      updateClockDisplays();
+      gameOver = true;
+      const winner = other(state.side);
+      const loser = state.side;
+      statusEl.textContent = (winner === 'w' ? 'White' : 'Black') + ' wins by timeout';
+      SND.win(); Confetti.burst(120);
+      sendResultToPiLeaderboard(winner, loser, 'timeout');
+      // open rematch popup
+      showRematchModal();
+      stopClock();
+    } else {
+      // ticking sound once per second while <=10s
+      const sec = Math.floor(clocks[state.side]);
+      if(clocks[state.side] <= 10){
+        if(lastTickSecond[state.side] !== sec){
+          SND.tick();
+          lastTickSecond[state.side] = sec;
+        }
+      } else {
+        lastTickSecond[state.side] = null;
+      }
+      updateClockDisplays();
+    }
+  }, 200);
+}
+function stopClock(){
+  if(clockInterval) { clearInterval(clockInterval); clockInterval = null; }
+}
+
+/* Placeholder: integrate Pi SDK to send win/lose to leaderboard.
+   Implement here the actual Pi SDK calls.
+*/
+function sendResultToPiLeaderboard(winner, loser, reason){
+  const winnerId = winner === 'w' ? player1IdEl.textContent : player2IdEl.textContent;
+  const loserId  = loser === 'w' ? player1IdEl.textContent : player2IdEl.textContent;
+  const payload = { winnerSide: winner, loserSide: loser, winnerId, loserId, reason, timestamp: new Date().toISOString() };
+
+  console.log('sendResultToPiLeaderboard payload:', payload);
+
+  // TODO: replace this with Pi SDK / backend integration:
+  // if(window.PiSDK && window.PiSDK.submitMatchResult) { ... }
+
+  const note = document.createElement('div');
+  note.className = 'tiny';
+  note.textContent = `Result recorded (placeholder): ${payload.winnerId} beat ${payload.loserId} (${reason})`;
+  movesEl.appendChild(note);
+  movesEl.scrollTop = movesEl.scrollHeight;
+}
+
+/* Send rematch request to Pi lobby / payment pairing and then start a new game.
+   Replace the internals with your SDK/backend calls.
+*/
+function sendRematchToPiLobby(){
+  const payload = {
+    p1: player1IdEl.textContent,
+    p2: player2IdEl.textContent,
+    timestamp: new Date().toISOString()
+  };
+  console.log('Requesting rematch via Pi lobby (placeholder):', payload);
+
+  // Try to call Pi SDK if present
+  if(window.PiSDK && typeof window.PiSDK.requestRematch === 'function'){
+    // expected to return a Promise
+    window.PiSDK.requestRematch(payload)
+      .then(resp => {
+        console.log('PiSDK rematch response:', resp);
+        // SDK/backend should handle payment / pairing; once paired -> start new game
+        newGameAfterRematch();
+      }).catch(err => {
+        console.error('PiSDK rematch failed:', err);
+        // fallback: still start a new local game after simulated delay
+        setTimeout(newGameAfterRematch, 400);
+      });
+  } else {
+    // Fallback: simulate pairing (remove setTimeout if you want real SDK)
+    setTimeout(() => {
+      console.log('Simulated rematch pairing complete (fallback)');
+      newGameAfterRematch();
+    }, 400);
+  }
+}
+
+/* New game initializer (used when rematch is accepted) */
+function newGameAfterRematch(){
+  state = { board: U.clone(START), side:'w', castling:{wk:true,wq:true,bk:true,bq:true}, ep:null, half:0, full:1, hist:[] };
+  selected = null; legal = []; pendingPromotion = null;
+  movesEl.innerHTML = '';
+  resetClocks();
+  gameOver = false;
+  render();
+  // Optionally inform backend you started a match; left to SDK integration
+}
+
+/* ----------------- Rendering / Interaction ----------------- */
 function render(){
   boardEl.innerHTML = '';
   const mapIndex = (i)=> flipped ? 63 - i : i;
@@ -435,22 +637,41 @@ function render(){
   const chk = attacked(state.board, other(state.side), kp.r, kp.c);
   incheckEl.style.display = chk ? '' : 'none';
   statusEl.textContent = (state.side === 'w' ? 'White' : 'Black') + ' to move';
-  crEl.textContent = `${state.castling.wk? 'K' : ''}${state.castling.wq? 'Q':''}${state.castling.bk? 'k':''}${state.castling.bq? 'q':''}` || '—';
+  crEl.textContent = `${state.castling.wk? 'K' : ''}${state.castling.wq? 'Q':''}${state.castling.bk? 'k':''}${state.castling.bq? 'q''}` || '—';
   epEl.textContent = state.ep || '—';
+
+  // clocks UI update & start/stop behavior
+  updateClockDisplays();
 
   // end detection
   const lm = legalMoves(state);
   if(!lm.length){
     if(chk){
       statusEl.textContent = (other(state.side) === 'w' ? 'White' : 'Black') + ' wins by checkmate';
-      SND.win(); Confetti.burst(140);
+      if(!gameOver){
+        gameOver = true;
+        SND.win(); Confetti.burst(140);
+        const winner = other(state.side);
+        const loser = state.side;
+        sendResultToPiLeaderboard(winner, loser, 'checkmate');
+        showRematchModal();
+      }
     } else {
       statusEl.textContent = 'Draw by stalemate';
-      SND.check();
+      if(!gameOver){
+        gameOver = true;
+        SND.check();
+        // optional: send draw result (not implemented)
+        showRematchModal();
+      }
     }
+    stopClock();
+  } else {
+    if(!gameOver) startClock();
   }
 }
 
+/* Click handler util */
 function squareClick(rr,cc){
   const p = state.board[rr][cc];
   if(selected){
@@ -458,7 +679,6 @@ function squareClick(rr,cc){
     if(mv){
       const ok = makeMove(state, mv, false, null);
       if(ok){
-        // if promotion was requested and AUTO_PROMOTE=false, makeMove may have returned null and pendingPromotion set
         if(pendingPromotion){
           render(); // pendingPromotion will open the modal via makeMove
           return;
@@ -495,22 +715,22 @@ boardEl.addEventListener('click', e => {
 });
 
 /* Controls */
-resetBtn.addEventListener('click', ()=>{
-  state = { board: U.clone(START), side:'w', castling:{wk:true,wq:true,bk:true,bq:true}, ep:null, half:0, full:1, hist:[] };
-  selected = null; legal = []; pendingPromotion = null;
-  movesEl.innerHTML = ''; render();
-});
-
 flipBtn.addEventListener('click', ()=>{ flipped = !flipped; render(); });
 
-undoBtn.addEventListener('click', ()=>{
-  const rec = state.hist.pop(); if(!rec) return;
-  state.board = rec.board; state.side = rec.side; state.castling = rec.castling; state.ep = rec.ep; state.half = rec.half; state.full = rec.full;
-  selected = null; legal = []; render();
-  // remove last move from moves UI
-  const rows = movesEl.querySelectorAll('div'); if(rows.length) rows[rows.length-1].remove();
+// Resign button: current player resigns -> opponent wins, send result and show rematch modal
+resignBtn.addEventListener('click', ()=>{
+  if(gameOver) return;
+  const loser = state.side;
+  const winner = other(loser);
+  gameOver = true;
+  statusEl.textContent = (winner === 'w' ? 'White' : 'Black') + ' wins by resignation';
+  SND.win(); Confetti.burst(100);
+  sendResultToPiLeaderboard(winner, loser, 'resign');
+  stopClock();
+  showRematchModal();
 });
 
+/* Move logging */
 function logMove(m){
   const from = U.toAlg(m.from.r,m.from.c), to = U.toAlg(m.to.r,m.to.c);
   const note = `${from}${m.capture ? 'x' : '–'}${to}${m.castle? ' (' + (m.castle.toLowerCase()==='q' ? 'O-O-O' : 'O-O') + ')' : ''}${m.ep? ' e.p.' : ''}${m.promo ? '=Q' : ''}`;
@@ -523,7 +743,6 @@ promoModal.addEventListener('click', e=>{
   const code = e.target.dataset.piece; choosePromotion(code);
 });
 function openPromotion(white){
-  // If AUTO_PROMOTE flagged, choose queen immediately (shouldn't normally reach here)
   if(AUTO_PROMOTE){
     choosePromotion('q'); return;
   }
@@ -537,7 +756,6 @@ function choosePromotion(code){
   promoModal.classList.remove('show');
   if(!pendingPromotion) return;
   const { move, rec } = pendingPromotion;
-  // restore then apply with choice
   state.board = rec.board; state.side = rec.side; state.castling = rec.castling; state.ep = rec.ep; state.half = rec.half; state.full = rec.full;
   pendingPromotion = null;
   makeMove(state, move, false, code);
@@ -546,8 +764,64 @@ function choosePromotion(code){
   render();
 }
 
-/* Initial draw */
+/* ---------------- Rematch modal logic ---------------- */
+let rematchTimer = null;
+let rematchRemaining = REMATCH_AUTO_CANCEL;
+function showRematchModal(){
+  clearRematchTimer();
+  rematchRemaining = REMATCH_AUTO_CANCEL;
+  rematchCountdownEl.textContent = `Auto-cancel in ${rematchRemaining}s`;
+  rematchModal.classList.add('show');
+  rematchModal.setAttribute('aria-hidden', 'false');
+
+  rematchTimer = setInterval(() => {
+    rematchRemaining -= 1;
+    if(rematchRemaining <= 0){
+      clearRematchTimer();
+      hideRematchModal();
+      return;
+    }
+    rematchCountdownEl.textContent = `Auto-cancel in ${rematchRemaining}s`;
+  }, 1000);
+}
+function hideRematchModal(){
+  clearRematchTimer();
+  rematchModal.classList.remove('show');
+  rematchModal.setAttribute('aria-hidden', 'true');
+}
+function clearRematchTimer(){
+  if(rematchTimer){ clearInterval(rematchTimer); rematchTimer = null; }
+}
+rematchAcceptBtn.addEventListener('click', ()=>{
+  hideRematchModal();
+  // call SDK to request rematch (lobby/payment/pairing)
+  sendRematchToPiLobby();
+});
+rematchDeclineBtn.addEventListener('click', ()=>{
+  hideRematchModal();
+});
+
+/* Initial draw and clock start */
+resetClocks();
 render();
+
+/* For convenience: expose a small API so Pi SDK can update player IDs (call from SDK) */
+window.ChessArenaPi = {
+  setPlayerIds: function(p1, p2){
+    player1IdEl.textContent = p1 || '(player1 id placeholder)';
+    player2IdEl.textContent = p2 || '(player2 id placeholder)';
+  },
+  // programmatically end match and send result (winner: 'w' or 'b')
+  recordResult: function(winner, reason='manual'){
+    const loser = other(winner);
+    sendResultToPiLeaderboard(winner, loser, reason);
+  },
+  // SDK can programmatically request a rematch (this will call into Pi lobby placeholder)
+  requestRematch: function(){
+    // show rematch modal as if players pressed Accept
+    sendRematchToPiLobby();
+  }
+};
 </script>
 </body>
 </html>
