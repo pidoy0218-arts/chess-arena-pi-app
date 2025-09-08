@@ -55,9 +55,31 @@
     .btn:hover {
       transform: scale(1.05);
     }
+    /* SDK status dot */
+    .status-dot {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+    .status-text {
+      position: absolute;
+      top: 35px;
+      right: 15px;
+      font-size: 0.8em;
+      color: white;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
   </style>
 </head>
 <body>
+  <!-- Status indicator -->
+  <div id="sdkDot" class="status-dot"></div>
+  <div id="sdkText" class="status-text"></div>
+
   <div>
     <div class="knight-circle">
       <span>♞</span>
@@ -71,6 +93,28 @@
       alert("Local login successful. (Pi SDK placeholder here)");
       window.location.href = "menu.html"; // go to menu
     }
+
+    // SDK detector
+    function checkPiSDK() {
+      const dot = document.getElementById("sdkDot");
+      const text = document.getElementById("sdkText");
+      if (window.Pi) {
+        dot.style.background = "green";
+        text.textContent = "Live";
+      } else {
+        dot.style.background = "red";
+        text.textContent = "Test Mode";
+      }
+      // show text briefly
+      text.style.opacity = "1";
+      setTimeout(() => {
+        text.style.opacity = "0";
+      }, 2000);
+    }
+
+    // Run check on load and refresh every 5s
+    checkPiSDK();
+    setInterval(checkPiSDK, 5000);
   </script>
 </body>
 </html>
