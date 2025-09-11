@@ -822,6 +822,14 @@ window.ChessArenaPi = {
   // allow external trigger for draw offers if desired
   requestDrawOffer: function(side){ sendDrawOfferToPi(side); }
 };
+<script>
+  function goToLeaderboard() {
+    window.location.href = 'leaderboard.html';
+  }
+
+  // Call this function when the game ends
+  // Example: setTimeout(goToLeaderboard, 2000); // redirect after 2 seconds
+</script>
 </script>
 </body>
 </html>
