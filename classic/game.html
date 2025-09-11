@@ -46,13 +46,6 @@
   .btn-decline { background:#bf3b3b; color:#210; padding:8px 12px; border-radius:8px; font-weight:800; border:0; cursor:pointer }
   .controls { display:flex; gap:8px; align-items:center; }
   .btn-secondary { background:#888; color:#fff; padding:8px 10px; border-radius:8px; border:0; cursor:pointer; font-weight:700 }
-
-  /* Multiplayer UI tweaks */
-  .small-input { padding:6px 8px; border-radius:6px; border:1px solid #2b2b2b; background:#0d0d0d; color:var(--fg); width:100% }
-  #leaderboard { margin-top:8px; font-size:13px; background:#0f0f0f; padding:8px; border-radius:6px; border:1px solid #222; max-height:160px; overflow:auto }
-  .lb-entry { padding:6px 8px; border-bottom:1px solid #222; }
-  .conn-row{ display:flex; gap:8px; margin-top:8px; }
-  .muted{ opacity:.7; font-size:12px }
 </style>
 </head>
 <body>
@@ -89,47 +82,6 @@
       <div class="panel">
         <div class="row"><div><b>Move List</b></div></div>
         <div id="moves" class="moves"></div>
-      </div>
-
-      <!-- Multiplayer & Leaderboard panel -->
-      <div class="panel">
-        <div style="font-weight:800">Multiplayer & Leaderboard</div>
-        <div class="tiny muted">Mode & connect (Local uses browser storage events — good for testing across tabs)</div>
-
-        <div class="conn-row">
-          <select id="modeSelect" class="small-input" style="width:48%">
-            <option value="local">Local (same-browser tabs)</option>
-            <option value="ws">WebSocket (external)</option>
-            <option value="firebase">Firebase (Realtime DB)</option>
-          </select>
-          <input id="playerIdInput" class="small-input" placeholder="your player id (name)" style="width:50%" />
-        </div>
-
-        <div style="margin-top:8px" class="conn-row">
-          <input id="roomId" class="small-input" placeholder="room id" />
-          <select id="mySideSelect" class="small-input" style="width:120px">
-            <option value="w">I'm White</option>
-            <option value="b">I'm Black</option>
-          </select>
-        </div>
-
-        <div style="margin-top:8px" class="conn-row">
-          <input id="wsUrl" class="small-input" placeholder="ws://server:port (for WebSocket mode)" />
-          <button id="connectBtn" class="btn-secondary" style="width:120px">Connect</button>
-        </div>
-
-        <div style="margin-top:8px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:700">Leaderboard</div>
-            <div>
-              <button id="clearLB" class="btn-secondary" style="margin-right:6px">Clear</button>
-              <button id="exportLB" class="btn-secondary">Export</button>
-            </div>
-          </div>
-          <div id="leaderboard" aria-live="polite"></div>
-        </div>
-
-        <div style="margin-top:8px" class="tiny muted">When connected, moves & results are broadcast to the room. Local mode uses localStorage and works when testing across multiple tabs on the same browser.</div>
       </div>
 
       <div class="panel row" style="align-items:center">
@@ -461,7 +413,7 @@ function makeMove(state, m, simulate=false, promoChoice=null){
   return true;
 }
 
-/* ---------------- UI glue ----------------- (mostly unchanged) */
+/* ---------------- UI glue ---------------- */
 const PIECES = { r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙" };
 const boardEl = document.getElementById('board');
 const statusEl = document.getElementById('status');
@@ -487,16 +439,6 @@ const resignBtn = document.getElementById('resignBtn');
 
 const offerDrawBtn = document.getElementById('offerDrawBtn');
 const acceptDrawBtn = document.getElementById('acceptDrawBtn');
-
-const modeSelect = document.getElementById('modeSelect');
-const connectBtn = document.getElementById('connectBtn');
-const roomIdInput = document.getElementById('roomId');
-const playerIdInput = document.getElementById('playerIdInput');
-const mySideSelect = document.getElementById('mySideSelect');
-const wsUrlInput = document.getElementById('wsUrl');
-const leaderboardEl = document.getElementById('leaderboard');
-const clearLBBtn = document.getElementById('clearLB');
-const exportLBBtn = document.getElementById('exportLB');
 
 let selected = null;
 let legal = [];
@@ -575,256 +517,25 @@ function stopClock(){
   if(clockInterval) { clearInterval(clockInterval); clockInterval = null; }
 }
 
-/* ---------------- Multiplayer glue (Local / WebSocket / Firebase placeholders) ----------------
-   - Local mode uses localStorage events (room key: chess_room_<roomId>) to broadcast moves/results.
-   - WebSocket mode expects a JSON message protocol (example message {type:'move'|'result', payload:...}).
-   - Firebase mode (Realtime DB) has placeholder code; include Firebase SDK if you want to enable it.
------------------------------------------------------------------------*/
-const multiplayer = {
-  mode: 'local',
-  connected: false,
-  roomId: null,
-  playerId: null,
-  mySide: 'w',
-  ws: null,
-  firebaseApp: null,
-  fbRoomRef: null,
-  suppressSend: false // set true when applying incoming remote move so we don't re-broadcast
-};
-
-function renderLeaderboard(){
-  const raw = localStorage.getItem('chess_arena_leaderboard') || '[]';
-  let arr;
-  try{ arr = JSON.parse(raw); } catch(e){ arr = []; }
-  leaderboardEl.innerHTML = '';
-  if(!arr.length){
-    leaderboardEl.textContent = 'No results recorded yet.';
-    return;
-  }
-  for(const e of arr.slice().reverse()){
-    const d = document.createElement('div'); d.className='lb-entry';
-    d.innerHTML = `<b>${e.winnerName || e.winnerId}</b> beat <b>${e.loserName || e.loserId}</b> <span style="float:right;opacity:.8">${new Date(e.ts).toLocaleString()}</span><div class="muted">${e.reason}</div>`;
-    leaderboardEl.appendChild(d);
-  }
-}
-function addToLocalLeaderboard(entry){
-  const raw = localStorage.getItem('chess_arena_leaderboard') || '[]';
-  let arr;
-  try{ arr = JSON.parse(raw); } catch(e){ arr = []; }
-  arr.push(entry);
-  localStorage.setItem('chess_arena_leaderboard', JSON.stringify(arr));
-  renderLeaderboard();
-}
-function clearLocalLeaderboard(){
-  localStorage.removeItem('chess_arena_leaderboard');
-  renderLeaderboard();
-}
-clearLBBtn.addEventListener('click', clearLocalLeaderboard);
-exportLBBtn.addEventListener('click', ()=>{
-  const raw = localStorage.getItem('chess_arena_leaderboard') || '[]';
-  const blob = new Blob([raw], { type:'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'leaderboard.json'; a.click(); URL.revokeObjectURL(url);
-});
-
-/* connect/disconnect UI */
-connectBtn.addEventListener('click', ()=>{
-  if(!multiplayer.connected) connectMultiplayer();
-  else disconnectMultiplayer();
-});
-
-function connectMultiplayer(){
-  multiplayer.mode = modeSelect.value;
-  multiplayer.roomId = (roomIdInput.value || '').trim();
-  multiplayer.playerId = (playerIdInput.value || '').trim() || ('p_' + Math.random().toString(36).slice(2,9));
-  multiplayer.mySide = mySideSelect.value;
-
-  if(!multiplayer.roomId){
-    alert('Please enter a Room ID to connect.');
-    return;
-  }
-
-  // update UI
-  connectBtn.textContent = 'Disconnect';
-  roomIdInput.disabled = true;
-  modeSelect.disabled = true;
-  playerIdInput.disabled = true;
-  mySideSelect.disabled = true;
-  wsUrlInput.disabled = true;
-
-  player1IdEl.textContent = multiplayer.mySide === 'w' ? multiplayer.playerId : '(waiting)';
-  player2IdEl.textContent = multiplayer.mySide === 'b' ? multiplayer.playerId : '(waiting)';
-
-  // set API on window for convenience
-  window.ChessArenaPi.setPlayerIds = function(p1, p2){
-    player1IdEl.textContent = p1 || player1IdEl.textContent;
-    player2IdEl.textContent = p2 || player2IdEl.textContent;
-  };
-
-  if(multiplayer.mode === 'local'){
-    // localStorage room key: chess_room_<roomId>
-    window.addEventListener('storage', localStorageListener);
-  }else if(multiplayer.mode === 'ws'){
-    const url = wsUrlInput.value.trim();
-    if(!url){ alert('Enter WebSocket URL for ws mode'); return; }
-    try{
-      multiplayer.ws = new WebSocket(url);
-      multiplayer.ws.addEventListener('open', ()=> console.log('WS connected'));
-      multiplayer.ws.addEventListener('message', wsMessageHandler);
-      multiplayer.ws.addEventListener('close', ()=> console.log('WS closed'));
-    }catch(e){ console.warn('WS connect fail', e); }
-  }else if(multiplayer.mode === 'firebase'){
-    // Placeholder Firebase initialization. The user must include Firebase SDK and set config.
-    // Example usage:
-    //   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    //   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    // Then set firebaseConfig below or call multiplayerInitFirebase(yourConfig).
-    if(!window.firebase){
-      console.warn('Firebase SDK not found. Add Firebase scripts to enable Firebase mode.');
-    } else {
-      // attempt to set up a room node under /chess_rooms/<roomId>
-      try{
-        multiplayer.firebaseApp = window.firebase.initializeApp(window._CHESS_ARENA_FIREBASE_CONFIG || {});
-        const db = window.firebase.database();
-        multiplayer.fbRoomRef = db.ref('chess_rooms/' + multiplayer.roomId);
-        multiplayer.fbRoomRef.on('child_added', snap => {
-          const v = snap.val();
-          if(v && v.type) handleRemotePayload(v, v.sender);
-        });
-      }catch(e){ console.warn('Firebase init failed', e); }
-    }
-  }
-
-  multiplayer.connected = true;
-  appendNote(`Connected to room "${multiplayer.roomId}" using mode "${multiplayer.mode}". Player ID: ${multiplayer.playerId}`);
-  renderLeaderboard();
-}
-
-function disconnectMultiplayer(){
-  multiplayer.connected = false;
-  connectBtn.textContent = 'Connect';
-  roomIdInput.disabled = false;
-  modeSelect.disabled = false;
-  playerIdInput.disabled = false;
-  mySideSelect.disabled = false;
-  wsUrlInput.disabled = false;
-  if(multiplayer.mode === 'local') window.removeEventListener('storage', localStorageListener);
-  if(multiplayer.ws){ try{ multiplayer.ws.close(); }catch(e){} multiplayer.ws = null; }
-  if(multiplayer.fbRoomRef) { try{ multiplayer.fbRoomRef.off(); }catch(e){} multiplayer.fbRoomRef = null; }
-  appendNote('Disconnected from multiplayer.');
-}
-
-/* Local storage listener for room messages */
-function localStorageListener(e){
-  if(!e.key || !multiplayer.roomId) return;
-  if(!e.key.startsWith('chess_room_' + multiplayer.roomId)) return;
-  if(!e.newValue) return;
-  try{
-    const msg = JSON.parse(e.newValue);
-    if(msg.sender === multiplayer.playerId) return; // ignore own broadcasts
-    handleRemotePayload(msg.payload, msg.sender);
-  }catch(err){ console.warn('bad local msg', err); }
-}
-
-/* WebSocket incoming handler */
-function wsMessageHandler(evt){
-  try{
-    const msg = JSON.parse(evt.data);
-    if(msg.sender === multiplayer.playerId) return;
-    handleRemotePayload(msg.payload, msg.sender);
-  }catch(e){ console.warn(e); }
-}
-
-/* Apply incoming payloads (move/result) */
-function handleRemotePayload(payload, sender){
-  if(!payload || !payload.type) return;
-  if(payload.type === 'move'){
-    // payload.move is move object
-    applyRemoteMove(payload.move, sender);
-  } else if(payload.type === 'result'){
-    // payload.result = {winnerId, loserId, reason, ts}
-    appendNote(`Remote result recorded: ${payload.result.winnerId} beat ${payload.result.loserId} (${payload.result.reason})`);
-    // also add to local leaderboard
-    addToLocalLeaderboard({ winnerId: payload.result.winnerId, loserId: payload.result.loserId, reason: payload.result.reason, ts: payload.result.ts || Date.now(), winnerName: payload.result.winnerName, loserName: payload.result.loserName });
-  }
-}
-
-/* Send a payload to the room */
-function broadcastPayload(payload){
-  if(!multiplayer.connected || !multiplayer.roomId) return;
-  const envelope = { sender: multiplayer.playerId, payload: payload, ts: Date.now() };
-  if(multiplayer.mode === 'local'){
-    const key = 'chess_room_' + multiplayer.roomId;
-    try{
-      // Write then immediately remove to keep storage small; other tabs will see the change.
-      localStorage.setItem(key, JSON.stringify(envelope));
-    }catch(e){ console.warn('local broadcast fail', e); }
-  } else if(multiplayer.mode === 'ws' && multiplayer.ws && multiplayer.ws.readyState === 1){
-    try{ multiplayer.ws.send(JSON.stringify(envelope)); }catch(e){ console.warn('ws send fail', e); }
-  } else if(multiplayer.mode === 'firebase' && multiplayer.fbRoomRef){
-    try{ multiplayer.fbRoomRef.push(payload); }catch(e){ console.warn('fb push fail', e); }
-  } else {
-    // fallback: just log
-    console.log('Broadcast (no transport):', envelope);
-  }
-}
-
-/* sendMove: called when a local move is made to broadcast to remote peers */
-function sendMove(move){
-  if(!multiplayer.connected) return;
-  const payload = { type: 'move', move };
-  broadcastPayload(payload);
-}
-
-/* sendResultToLeaderboard integration (overrides placeholder) */
+/* Placeholder: integrate Pi SDK to send win/lose to leaderboard. */
 function sendResultToPiLeaderboard(winner, loser, reason){
-  // Determine player names/ids from UI where possible
   const winnerId = winner === 'w' ? player1IdEl.textContent : player2IdEl.textContent;
   const loserId  = loser === 'w' ? player1IdEl.textContent : player2IdEl.textContent;
-  const entry = { winnerId, loserId, reason, ts: Date.now(), winnerName: winnerId, loserName: loserId };
-  addToLocalLeaderboard(entry);
-
-  // Broadcast to room if connected
-  if(multiplayer.connected){
-    const payload = { type:'result', result: entry };
-    broadcastPayload(payload);
-  }
-
-  // Console for debug
-  console.log('Recorded result:', entry);
+  const payload = { winnerSide: winner, loserSide: loser, winnerId, loserId, reason, timestamp: new Date().toISOString() };
+  console.log('sendResultToPiLeaderboard payload:', payload);
   const note = document.createElement('div');
   note.className = 'tiny';
-  note.textContent = `Result recorded: ${entry.winnerName} beat ${entry.loserName} (${reason})`;
+  note.textContent = `Result recorded (placeholder): ${payload.winnerId} beat ${payload.loserId} (${reason})`;
   movesEl.appendChild(note);
   movesEl.scrollTop = movesEl.scrollHeight;
 }
 
-/* applyRemoteMove: find matching legal move and apply it (safely) */
-function applyRemoteMove(remoteMove, sender){
-  // remoteMove is expected: { from:{r,c}, to:{r,c}, piece, capture?, castle?, promo?, ep?, epSet? }
-  try{
-    multiplayer.suppressSend = true;
-    // find matching legal move
-    const lm = legalMoves(state);
-    const found = lm.find(m => m.from.r === remoteMove.from.r && m.from.c === remoteMove.from.c && m.to.r === remoteMove.to.r && m.to.c === remoteMove.to.c && (!!m.castle === !!remoteMove.castle));
-    if(found){
-      makeMove(state, found, false, remoteMove.promoChoice || null);
-      logMove(found);
-      SND.move();
-      render();
-    } else {
-      console.warn('Remote move not found among legal moves:', remoteMove, 'Legal moves count:', lm.length);
-      appendNote('Received remote move that did not match any legal move (ignored).');
-    }
-  }catch(e){ console.warn('applyRemoteMove err', e); }
-  setTimeout(()=> multiplayer.suppressSend = false, 50);
-}
-
-/* ---------------- Rematch / Resign behavior (unchanged except leaderboard hooks) ---------------- */
+/* ---------------- Rematch / Resign behavior ---------------- */
 function sendRematchToPiLobby(){
   const payload = { p1: player1IdEl.textContent, p2: player2IdEl.textContent, timestamp: new Date().toISOString(), purpose: 'rematch' };
   console.log('Requesting rematch via Pi lobby/payment pairing (payload):', payload);
 
+  // Try SDK payment request (placeholder). If missing, fallback to immediate rematch start.
   if(window.PiSDK && typeof window.PiSDK.requestPayment === 'function'){
     window.PiSDK.requestPayment(payload).then(()=>{
       console.log('PiSDK rematch payment request sent (placeholder). Starting new game.');
@@ -843,6 +554,7 @@ function sendDrawOfferToPi(offeringSide){
   const payload = { from: offeringSide === 'w' ? player1IdEl.textContent : player2IdEl.textContent, to: offeringSide === 'w' ? player2IdEl.textContent : player1IdEl.textContent, timestamp: new Date().toISOString(), purpose: 'draw-offer' };
   console.log('Sending draw offer payload (placeholder):', payload);
 
+  // Try PiSDK hook for draw offers (placeholder)
   if(window.PiSDK && typeof window.PiSDK.requestDrawOffer === 'function'){
     window.PiSDK.requestDrawOffer(payload).then(()=> {
       appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw (sent via PiSDK).`);
@@ -852,21 +564,20 @@ function sendDrawOfferToPi(offeringSide){
       acceptDrawBtn.style.display = '';
     });
   } else {
+    // local fallback: show move note and enable Accept Draw button
     appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw.`);
     acceptDrawBtn.style.display = '';
   }
 }
 
 function acceptDraw(offeringSide){
+  // Accept draw: end game as draw and send to leaderboard placeholder
   if(gameOver) return;
   gameOver = true;
   statusEl.textContent = 'Draw by agreement';
   SND.check();
   appendNote(`Draw accepted. Result recorded as draw.`);
-  // Record draw in leaderboard as draw (winner/loser both recorded as IDs for trace)
-  const entry = { winnerId: '(draw)', loserId:'(draw)', reason:'draw-agreement', ts: Date.now(), winnerName:'(draw)', loserName:'(draw)' };
-  addToLocalLeaderboard(entry);
-  if(multiplayer.connected) broadcastPayload({ type:'result', result: entry });
+  sendResultToPiLeaderboard('w', 'b', 'draw-agreement'); // placeholder: you can adapt payload as desired
   stopClock();
   showRematchModal();
 }
@@ -950,15 +661,6 @@ function render(){
 
 /* Click handler util */
 function squareClick(rr,cc){
-  // If multiplayer connected and not your turn, ignore clicks
-  if(multiplayer.connected && multiplayer.playerId){
-    // allow only when mySide matches state.side
-    if(multiplayer.mySide !== state.side){
-      appendNote('Waiting for opponent move (not your turn).');
-      return;
-    }
-  }
-
   const p = state.board[rr][cc];
   if(selected){
     const mv = legal.find(m => m.to.r === rr && m.to.c === cc);
@@ -973,11 +675,6 @@ function squareClick(rr,cc){
         SND.move();
         const kp = kingPos(state.board, state.side);
         if(attacked(state.board, other(state.side), kp.r, kp.c)) SND.check();
-
-        // send move to peers if connected (but not when we're applying a remote move)
-        if(multiplayer.connected && !multiplayer.suppressSend){
-          sendMove(mv);
-        }
       }
       selected = null; legal = [];
       render();
@@ -1029,6 +726,7 @@ offerDrawBtn.addEventListener('click', ()=>{
 
 /* Accept Draw button behavior (shown to opponent) */
 acceptDrawBtn.addEventListener('click', ()=>{
+  // Accept draw by the player who is not the offering side
   acceptDraw(null);
   acceptDrawBtn.style.display = 'none';
 });
@@ -1070,7 +768,7 @@ function choosePromotion(code){
   render();
 }
 
-/* ---------------- Rematch modal logic (unchanged) ---------------- */
+/* ---------------- Rematch modal logic ---------------- */
 let rematchTimer = null;
 let rematchRemaining = REMATCH_AUTO_CANCEL;
 function showRematchModal(){
@@ -1109,9 +807,8 @@ rematchDeclineBtn.addEventListener('click', ()=>{
 /* Initial draw and clock start */
 resetClocks();
 render();
-renderLeaderboard();
 
-/* API for SDK (keeps your existing API surface) */
+/* API for SDK */
 window.ChessArenaPi = {
   setPlayerIds: function(p1, p2){
     player1IdEl.textContent = p1 || '(player1 id placeholder)';
@@ -1122,11 +819,8 @@ window.ChessArenaPi = {
     sendResultToPiLeaderboard(winner, loser, reason);
   },
   requestRematch: function(){ sendRematchToPiLobby(); },
-  requestDrawOffer: function(side){ sendDrawOfferToPi(side); },
-  // extra: let external script set firebase config object globally before calling connect
-  setFirebaseConfig: function(cfg){
-    window._CHESS_ARENA_FIREBASE_CONFIG = cfg;
-  }
+  // allow external trigger for draw offers if desired
+  requestDrawOffer: function(side){ sendDrawOfferToPi(side); }
 };
 </script>
 </body>
