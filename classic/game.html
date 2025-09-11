@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+r<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -767,8 +767,15 @@ function choosePromotion(code){
   SND.move();
   render();
 }
+function sendToLeaderboard(result) {
+  if (typeof Pi !== "undefined" && Pi.openLeaderboard) {
+    Pi.openLeaderboard({ result: result });
+  } else {
+    window.location.href = "leaderboard.html?result=" + encodeURIComponent(result);
+  }
+}
 
-/* ---------------- Rematch modal logic ---------------- */
+  /* ---------------- Rematch modal logic ---------------- */
 let rematchTimer = null;
 let rematchRemaining = REMATCH_AUTO_CANCEL;
 function showRematchModal(){
@@ -803,8 +810,9 @@ rematchAcceptBtn.addEventListener('click', ()=>{
 rematchDeclineBtn.addEventListener('click', ()=>{
   hideRematchModal();
 });
+sendToLeaderboard(message);
 
-/* Initial draw and clock start */
+  /* Initial draw and clock start */
 resetClocks();
 render();
 
