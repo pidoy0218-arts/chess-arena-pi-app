@@ -1,230 +1,1133 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chess Arena – Classic Sandbox</title>
+<meta charset="utf-8" />
+<title>CHESS ARENA for PI — FIDE Legal (Auto-Queen Promotion)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  body { font-family: Arial, sans-serif; background:#f5f1ea; display:flex; flex-direction:column; align-items:center; margin:0; padding:20px; }
-  #player2,#player1{ font-weight:bold; margin:10px; font-size:18px; }
-  #board{ display:grid; grid-template-columns:repeat(8,60px); grid-template-rows:repeat(8,60px); border:3px solid #333; box-shadow:0 4px 8px rgba(0,0,0,0.2); }
-  .square{ width:60px; height:60px; display:flex; justify-content:center; align-items:center; font-size:36px; cursor:pointer; user-select:none; transition:background 0.2s; }
-  .light{ background:#f0d9b5; }
-  .dark{ background:#b58863; }
-  .selected{ outline:3px solid #2196f3; }
-  #timers{ display:flex; justify-content:space-between; width:500px; margin:10px 0; font-size:18px; font-weight:bold; }
-  #message{ margin-top:15px; font-size:20px; color:red; font-weight:bold; }
-  #rematchModal{ display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; }
-  #rematchContent{ background:#fff; padding:20px; border-radius:10px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.3);}
-  #rematchContent button{ margin:10px; padding:10px 20px; font-size:16px; font-weight:bold; cursor:pointer; }
-  #leaderboard{ display:none; flex-direction:column; align-items:center; margin-top:20px; }
-  #leaderboard button{ margin-top:15px; padding:10px 20px; font-size:16px; cursor:pointer; font-weight:bold; }
+  :root{ --bg:#111; --fg:#eee; --light:#f0f0f0; --dark:#b1e59f; --sel:#ffcc00; --hint:#5ac8fa; --accent:#f4b400; --warn:#ff5252 }
+  body{ margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,Arial; display:flex;flex-direction:column;align-items:center;padding:16px; }
+  h1{margin:6px 0 2px;font-size:20px}
+  .sub{opacity:.75;font-size:12px;margin-bottom:8px}
+  .wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;justify-content:center;width:100%;max-width:1100px}
+  #board{ display:grid; grid-template-columns:repeat(8,min(10.5vw,66px)); grid-template-rows:repeat(8,min(10.5vw,66px)); border:6px solid #333; border-radius:10px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.45); }
+  .sq{ display:flex;align-items:center;justify-content:center;font-size:min(8vw,50px);cursor:pointer; }
+  .sq.light{ background:var(--light); } .sq.dark{ background:var(--dark); }
+  .piece.white{ color:#b8860b; text-shadow:2px 2px 0 #000; font-weight:900 } .piece.black{ color:#000 }
+  .sq.sel{ outline:3px solid var(--sel); outline-offset:-3px }
+  .sq.hint::after{ content:""; width:22%; height:22%; border-radius:50%; background:var(--hint); opacity:.85; display:block; }
+  .sq.cap{ box-shadow: inset 0 0 0 4px var(--warn); }
+  .side{ min-width:260px; max-width:360px; display:flex; flex-direction:column; gap:10px }
+  .panel{ background:#1b1b1b; border:1px solid #2b2b2b; border-radius:10px; padding:10px 12px }
+  .row{ display:flex; justify-content:space-between; align-items:center; gap:10px }
+  .btn{ padding:10px 12px; border-radius:8px; border:0; color:#111; background:var(--accent); font-weight:700; cursor:pointer }
+  .tiny{ font-size:12px; opacity:.8 }
+  .moves{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.45; max-height:260px; overflow:auto }
+  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:10 }
+  .modal.show{ display:flex }
+  .card{ background:#1e1e1e; border:1px solid #2d2d2d; padding:16px; border-radius:12px; min-width:260px }
+  .grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:10px }
+  .pick{ font-size:34px; padding:10px; border-radius:10px; border:1px solid #333; background:#121212; color:#fff; cursor:pointer }
+  #fx{ position:fixed; inset:0; pointer-events:none; z-index:9 }
+
+  /* Player UI */
+  .players { display:flex; gap:10px; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .player { display:flex; flex-direction:column; gap:6px; padding:8px; border-radius:8px; background:#101010; border:1px solid #222; min-width:120px; text-align:center }
+  .player .label { font-weight:800; font-size:13px; }
+  .player .id { font-size:12px; opacity:.85; word-break:break-all; }
+  .player .clock { font-weight:900; font-size:18px; padding:6px 8px; border-radius:8px; background:#0f0f0f; border:1px solid #222; }
+  .player.active { box-shadow: 0 0 0 3px rgba(244,180,0,0.06); border-color: #2b2b2b }
+  .clock.red { color:var(--warn); }
+
+  /* Rematch modal specifics */
+  .rematch-count { font-size:18px; margin-top:8px; opacity:.9 }
+  .rematch-actions { display:flex; gap:10px; justify-content:center; margin-top:12px }
+  .btn-accept { background:#3bbf7f; color:#041; padding:8px 12px; border-radius:8px; font-weight:800; border:0; cursor:pointer }
+  .btn-decline { background:#bf3b3b; color:#210; padding:8px 12px; border-radius:8px; font-weight:800; border:0; cursor:pointer }
+  .controls { display:flex; gap:8px; align-items:center; }
+  .btn-secondary { background:#888; color:#fff; padding:8px 10px; border-radius:8px; border:0; cursor:pointer; font-weight:700 }
+
+  /* Multiplayer UI tweaks */
+  .small-input { padding:6px 8px; border-radius:6px; border:1px solid #2b2b2b; background:#0d0d0d; color:var(--fg); width:100% }
+  #leaderboard { margin-top:8px; font-size:13px; background:#0f0f0f; padding:8px; border-radius:6px; border:1px solid #222; max-height:160px; overflow:auto }
+  .lb-entry { padding:6px 8px; border-bottom:1px solid #222; }
+  .conn-row{ display:flex; gap:8px; margin-top:8px; }
+  .muted{ opacity:.7; font-size:12px }
 </style>
 </head>
 <body>
+  <h1>♞ CHESS ARENA for PI</h1>
+  <div class="sub">FIDE-legal: castling • en passant • promotion • check/checkmate • auto-queen promotion</div>
 
-<div id="player2">Player 2: [ID]</div>
-<div id="timers">
-  <div>Player1: <span id="timer1">10:00</span></div>
-  <div>Player2: <span id="timer2">10:00</span></div>
-</div>
-<div id="board"></div>
-<div id="player1">Player 1: [ID]</div>
-<div id="message"></div>
+  <div class="wrap">
+    <div id="board" aria-label="chessboard"></div>
 
-<!-- Rematch Popup -->
-<div id="rematchModal">
-  <div id="rematchContent">
-    <p>Do you want a rematch?</p>
-    <button id="rematchBtn">Rematch (Pay & Play)</button>
-    <button id="skipBtn">No</button>
+    <div class="side">
+      <div class="panel">
+        <!-- Player placeholders for Pi SDK -->
+        <div class="players">
+          <div id="playerWhite" class="player">
+            <div class="label">Player 1 (White)</div>
+            <div id="player1Id" class="id">(player1 id placeholder)</div>
+            <div id="clockW" class="clock">0:45</div>
+          </div>
+
+          <div id="playerBlack" class="player">
+            <div class="label">Player 2 (Black)</div>
+            <div id="player2Id" class="id">(player2 id placeholder)</div>
+            <div id="clockB" class="clock">0:45</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:8px">
+          <div id="status" style="font-weight:700">White to move</div>
+          <div id="incheck" style="display:none;padding:4px 8px;border-radius:8px;background:#2b2b2b">Check!</div>
+        </div>
+        <div class="row tiny"><div>Castling: <span id="cr">KQkq</span></div><div>En Passant: <span id="ep">—</span></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="row"><div><b>Move List</b></div></div>
+        <div id="moves" class="moves"></div>
+      </div>
+
+      <!-- Multiplayer & Leaderboard panel -->
+      <div class="panel">
+        <div style="font-weight:800">Multiplayer & Leaderboard</div>
+        <div class="tiny muted">Mode & connect (Local uses browser storage events — good for testing across tabs)</div>
+
+        <div class="conn-row">
+          <select id="modeSelect" class="small-input" style="width:48%">
+            <option value="local">Local (same-browser tabs)</option>
+            <option value="ws">WebSocket (external)</option>
+            <option value="firebase">Firebase (Realtime DB)</option>
+          </select>
+          <input id="playerIdInput" class="small-input" placeholder="your player id (name)" style="width:50%" />
+        </div>
+
+        <div style="margin-top:8px" class="conn-row">
+          <input id="roomId" class="small-input" placeholder="room id" />
+          <select id="mySideSelect" class="small-input" style="width:120px">
+            <option value="w">I'm White</option>
+            <option value="b">I'm Black</option>
+          </select>
+        </div>
+
+        <div style="margin-top:8px" class="conn-row">
+          <input id="wsUrl" class="small-input" placeholder="ws://server:port (for WebSocket mode)" />
+          <button id="connectBtn" class="btn-secondary" style="width:120px">Connect</button>
+        </div>
+
+        <div style="margin-top:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700">Leaderboard</div>
+            <div>
+              <button id="clearLB" class="btn-secondary" style="margin-right:6px">Clear</button>
+              <button id="exportLB" class="btn-secondary">Export</button>
+            </div>
+          </div>
+          <div id="leaderboard" aria-live="polite"></div>
+        </div>
+
+        <div style="margin-top:8px" class="tiny muted">When connected, moves & results are broadcast to the room. Local mode uses localStorage and works when testing across multiple tabs on the same browser.</div>
+      </div>
+
+      <div class="panel row" style="align-items:center">
+        <div class="controls">
+          <button class="btn" id="resignBtn">Resign</button>
+          <button class="btn" id="flipBtn">Flip</button>
+          <button class="btn-secondary" id="offerDrawBtn">Offer Draw</button>
+          <button class="btn-secondary" id="acceptDrawBtn" style="display:none">Accept Draw</button>
+        </div>
+        <div class="tiny">Click a piece → click a target square</div>
+      </div>
+    </div>
   </div>
-</div>
 
-<!-- Leaderboard Placeholder -->
-<div id="leaderboard">
-  <h2>Leaderboard</h2>
-  <p>Personal Best: 1200 pts</p>
-  <p>SDK Rank: 15</p>
-  <button id="backLobbyBtn">Back to Lobby / New Match</button>
-</div>
+  <div id="promo" class="modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:6px">Promote pawn to:</div>
+      <div class="grid4">
+        <button class="pick" data-piece="q">♛</button>
+        <button class="pick" data-piece="r">♜</button>
+        <button class="pick" data-piece="b">♝</button>
+        <button class="pick" data-piece="n">♞</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rematch modal shown at game end. Auto-cancels after 5s -->
+  <div id="rematchModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="card">
+      <div style="font-weight:800">Rematch?</div>
+      <div class="tiny" style="margin-top:8px">Accept to request rematch via Pi lobby/payment pairing.</div>
+      <div class="rematch-count" id="rematchCountdown">Auto-cancel in 5s</div>
+      <div class="rematch-actions">
+        <button id="rematchAccept" class="btn-accept">Accept</button>
+        <button id="rematchDecline" class="btn-decline">Decline</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="fx"></canvas>
 
 <script>
-const boardEl = document.getElementById('board');
-const messageEl = document.getElementById('message');
-const rematchModal = document.getElementById('rematchModal');
-const leaderboard = document.getElementById('leaderboard');
+/* ------------------ Config ------------------ */
+const AUTO_PROMOTE = true;
+const START_CLOCK = 45;
+const REMATCH_AUTO_CANCEL = 5;
 
-let selected = null;
-let turn = 'w';
-let timer1 = 600, timer2 = 600; // seconds
-let timerInterval = null;
-let rematchChosen = false;
+/* -------------- Sound (WebAudio) -------------- */
+const SND = (() => {
+  let ctx;
+  function beep(freq=600, dur=0.08, type='square', vol=0.05){
+    try{
+      ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.value = freq; g.gain.value = vol;
+      o.connect(g); g.connect(ctx.destination); o.start();
+      setTimeout(()=> o.stop(), dur*1000);
+    }catch(e){}
+  }
+  return {
+    move:()=>beep(640,0.07,'square',0.05),
+    capture:()=>{beep(220,0.05,'sawtooth',0.06); setTimeout(()=>beep(180,0.09,'sawtooth',0.05),60);},
+    check:()=>beep(900,0.12,'triangle',0.06),
+    win:()=>{ [880,988,1175].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.08), i*120)); },
+    tick:()=>beep(950,0.04,'square',0.06)
+  };
+})();
 
-// Chess pieces Unicode
-const pieces = { w: { K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙' }, b: { K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟︎' } };
+/* ---------------- Confetti ---------------- */
+const Confetti = (() => {
+  const c = document.getElementById('fx'), x = c.getContext('2d');
+  let parts=[], run=false, w=0,h=0;
+  function resize(){ w=c.width=innerWidth; h=c.height=innerHeight; }
+  addEventListener('resize', resize); resize();
+  function burst(n=120){
+    parts=[]; for(let i=0;i<n;i++) parts.push({ x:w/2, y:h*0.25, vx:(Math.random()*2-1)*6, vy:(Math.random()*-6-2), g:Math.random()*0.18+0.12, s:Math.random()*6+3, a:Math.random()*Math.PI, col:`hsl(${Math.random()*360},90%,60%)` });
+    if(!run){ run=true; requestAnimationFrame(loop); }
+  }
+  function loop(){
+    x.clearRect(0,0,w,h);
+    for(const p of parts){ p.vy += p.g; p.x += p.vx; p.y += p.vy; p.a += 0.2; x.save(); x.translate(p.x,p.y); x.rotate(p.a); x.fillStyle=p.col; x.fillRect(-p.s/2,-p.s/2,p.s,p.s); x.restore(); }
+    parts = parts.filter(p=>p.y<h+30);
+    if(parts.length) requestAnimationFrame(loop); else run=false;
+  }
+  return { burst };
+})();
 
-// Initial board setup
-let board = [
-  ['bR','bN','bB','bQ','bK','bB','bN','bR'],
-  ['bP','bP','bP','bP','bP','bP','bP','bP'],
-  ['','','','','','','',''],
-  ['','','','','','','',''],
-  ['','','','','','','',''],
-  ['','','','','','','',''],
-  ['wP','wP','wP','wP','wP','wP','wP','wP'],
-  ['wR','wN','wB','wQ','wK','wB','wN','wR']
+/* ----------------- Utilities ----------------- */
+const U = {
+  inBounds:(r,c)=>r>=0 && r<8 && c>=0 && c<8,
+  clone:(o)=>JSON.parse(JSON.stringify(o)),
+  toAlg:(r,c)=>"abcdefgh"[c] + (8 - r),
+  fromAlg:(a)=>({ r: 8 - parseInt(a[1],10), c: "abcdefgh".indexOf(a[0]) })
+};
+
+/* ----------------- Chess Core ----------------- */
+const START = [
+  ["r","n","b","q","k","b","n","r"],
+  ["p","p","p","p","p","p","p","p"],
+  ["","","","","","","",""],
+  ["","","","","","","",""],
+  ["","","","","","","",""],
+  ["","","","","","","",""],
+  ["P","P","P","P","P","P","P","P"],
+  ["R","N","B","Q","K","B","N","R"]
 ];
 
-// --- BOARD DRAWING ---
-function drawBoard(){
-  boardEl.innerHTML='';
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const sq=document.createElement('div');
-      sq.className='square '+((r+c)%2===0?'light':'dark');
-      sq.dataset.row=r; sq.dataset.col=c;
-      if(board[r][c]){
-        const color=board[r][c][0], type=board[r][c][1];
-        sq.textContent=pieces[color][type];
-      }
-      if(selected && selected[0]===r && selected[1]===c) sq.classList.add('selected');
-      sq.addEventListener('click',()=>clickSquare(r,c));
-      boardEl.appendChild(sq);
+let state = {
+  board: U.clone(START),
+  side: 'w',
+  castling: { wk:true, wq:true, bk:true, bq:true },
+  ep: null,
+  half:0, full:1,
+  hist: []
+};
+
+function isWhite(p){ return p && p === p.toUpperCase(); }
+function isBlack(p){ return p && p === p.toLowerCase(); }
+function sidePiece(p, side){ return side === 'w' ? isWhite(p) : isBlack(p); }
+function other(side){ return side === 'w' ? 'b' : 'w'; }
+
+function kingPos(board, side){
+  const k = side === 'w' ? 'K' : 'k';
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(board[r][c] === k) return {r,c};
+  return null;
+}
+
+function attacked(board, side, r, c){
+  // side = attacker side ('w' or 'b')
+  const pawn = side === 'w' ? 'P' : 'p';
+  // CORRECT pawn attack offset: to check if square (r,c) is attacked by attacker side,
+  // white pawns attack from r+1 (because they move up the board (r decreases)).
+  const pawnDir = side === 'w' ? 1 : -1;
+  for(const dc of [-1,1]){
+    const rr = r + pawnDir, cc = c + dc;
+    if(U.inBounds(rr,cc) && board[rr][cc] === pawn) return true;
+  }
+  const N = side === 'w' ? 'N' : 'n';
+  for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
+    const rr=r+dr, cc=c+dc;
+    if(U.inBounds(rr,cc) && board[rr][cc] === N) return true;
+  }
+  const B = side==='w'?'B':'b', R= side==='w'?'R':'r', Q = side==='w'?'Q':'q';
+  for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){
+    let rr=r+dr, cc=c+dc;
+    while(U.inBounds(rr,cc)){
+      const p = board[rr][cc];
+      if(p){ if(p === B || p === Q) return true; break; }
+      rr+=dr; cc+=dc;
     }
   }
-}
-
-// --- CLICK LOGIC ---
-function clickSquare(r,c){
-  if(rematchModal.style.display==='flex') return; // block clicks during rematch modal
-  const piece=board[r][c];
-  if(selected){
-    const [sr,sc]=selected;
-    if(isLegalMove(sr,sc,r,c)){
-      movePiece(sr,sc,r,c);
-      selected=null; drawBoard(); checkGameState(); switchTurn();
-    } else { selected=null; drawBoard(); }
-  } else if(piece && piece[0]===turn) { selected=[r,c]; drawBoard(); }
-}
-
-// --- MOVE VALIDATION ---
-function isLegalMove(sr,sc,r,c){
-  const piece=board[sr][sc];
-  if(!piece || piece[0]!==turn) return false;
-  const target=board[r][c]; if(target && target[0]===turn) return false;
-  const type=piece[1], dr=r-sr, dc=c-sc;
-  switch(type){
-    case 'P': const dir=turn==='w'?-1:1;
-      if(dc===0 && dr===dir && !target) return true;
-      if(dc===0 && dr===2*dir && ((sr===6 && turn==='w')||(sr===1 && turn==='b')) && !target && !board[sr+dir][sc]) return true;
-      if(Math.abs(dc)===1 && dr===dir && target && target[0]!==turn) return true;
-      return false;
-    case 'R': if(dr===0||dc===0) return isClearPath(sr,sc,r,c); return false;
-    case 'N': return Math.abs(dr*dc)===2;
-    case 'B': if(Math.abs(dr)===Math.abs(dc)) return isClearPath(sr,sc,r,c); return false;
-    case 'Q': if(dr===0||dc===0||Math.abs(dr)===Math.abs(dc)) return isClearPath(sr,sc,r,c); return false;
-    case 'K': if(Math.abs(dr)<=1 && Math.abs(dc)<=1) return true;
-      if(dr===0 && Math.abs(dc)===2) return canCastle(sr,sc,dc>0); return false;
+  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+    let rr=r+dr, cc=c+dc;
+    while(U.inBounds(rr,cc)){
+      const p = board[rr][cc];
+      if(p){ if(p === R || p === Q) return true; break; }
+      rr+=dr; cc+=dc;
+    }
   }
+  const K = side==='w'?'K':'k';
+  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr===0 && dc===0) continue; const rr=r+dr, cc=c+dc; if(U.inBounds(rr,cc) && board[rr][cc]===K) return true; }
   return false;
 }
 
-function isClearPath(sr,sc,r,c){ const dr=r>sr?1:r<sr?-1:0; const dc=c>sc?1:c<sc?-1:0; let x=sr+dr,y=sc+dc; while(x!==r||y!==c){ if(board[x][y]) return false; x+=dr;y+=dc; } return true; }
-function canCastle(r,c,kingside){ /* simplified as before */ return false; }
+/* Generate all legal moves */
+function legalMoves(state){
+  const moves = [];
+  const { board, side } = state;
+  const isW = side === 'w';
 
-function movePiece(sr,sc,r,c){
-  const piece=board[sr][sc], type=piece[1];
-  board[r][c]=piece; board[sr][sc]='';
-  if(type==='P' && (r===0||r===7)) board[r][c]=piece[0]+'Q';
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const p = board[r][c]; if(!p || !sidePiece(p, side)) continue;
+      const lower = p.toLowerCase();
+
+      if(lower === 'p'){
+        const dir = isW ? -1 : 1;
+        const start = isW ? 6 : 1;
+        const promoRank = isW ? 0 : 7;
+        const r1 = r + dir;
+        if(U.inBounds(r1,c) && !board[r1][c]){
+          if(r1 === promoRank) moves.push({ from:{r,c}, to:{r:r1,c}, piece:p, promo:true });
+          else moves.push({ from:{r,c}, to:{r:r1,c}, piece:p });
+          if(r === start){
+            const r2 = r + 2*dir;
+            if(U.inBounds(r2,c) && !board[r2][c]) moves.push({ from:{r,c}, to:{r:r2,c}, piece:p, epSet: U.toAlg(r1,c) });
+          }
+        }
+        for(const dc of [-1,1]){
+          const cc = c + dc, rr = r + dir;
+          if(!U.inBounds(rr,cc)) continue;
+          const t = board[rr][cc];
+          if(t && ((isW && isBlack(t)) || (!isW && isWhite(t)))){
+            if(rr === promoRank) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true, promo:true });
+            else moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true });
+          }
+        }
+        if(state.ep){
+          const { r:er, c:ec } = U.fromAlg(state.ep);
+          if(er === r + dir && Math.abs(ec - c) === 1){
+            moves.push({ from:{r,c}, to:{r:er,c:ec}, piece:p, capture:true, ep:true });
+          }
+        }
+      }
+
+      if(lower === 'n'){
+        for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
+          const rr=r+dr, cc=c+dc;
+          if(!U.inBounds(rr,cc)) continue;
+          const t = board[rr][cc];
+          if(!t || (isW ? isBlack(t) : isWhite(t))) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:!!t });
+        }
+      }
+
+      if(lower === 'b' || lower === 'q'){
+        for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){
+          let rr=r+dr, cc=c+dc;
+          while(U.inBounds(rr,cc)){
+            const t = board[rr][cc];
+            if(!t) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p });
+            else { if(isW? isBlack(t) : isWhite(t)) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true }); break; }
+            rr+=dr; cc+=dc;
+          }
+        }
+      }
+
+      if(lower === 'r' || lower === 'q'){
+        for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          let rr=r+dr, cc=c+dc;
+          while(U.inBounds(rr,cc)){
+            const t = board[rr][cc];
+            if(!t) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p });
+            else { if(isW? isBlack(t) : isWhite(t)) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true }); break; }
+            rr+=dr; cc+=dc;
+          }
+        }
+      }
+
+      if(lower === 'k'){
+        for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr===0 && dc===0) continue; const rr=r+dr, cc=c+dc; if(!U.inBounds(rr,cc)) continue; const t = board[rr][cc]; if(!t || (isW? isBlack(t): isWhite(t))) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:!!t }); }
+        const inChk = attacked(board, other(side), r, c);
+        if(!inChk){
+          if(side==='w'){
+            if(state.castling.wk && !board[7][5] && !board[7][6] && !attacked(board,'b',7,5) && !attacked(board,'b',7,6)) moves.push({ from:{r,c}, to:{r:7,c:6}, piece:p, castle:'K' });
+            if(state.castling.wq && !board[7][3] && !board[7][2] && !board[7][1] && !attacked(board,'b',7,3) && !attacked(board,'b',7,2)) moves.push({ from:{r,c}, to:{r:7,c:2}, piece:p, castle:'Q' });
+          } else {
+            if(state.castling.bk && !board[0][5] && !board[0][6] && !attacked(board,'w',0,5) && !attacked(board,'w',0,6)) moves.push({ from:{r,c}, to:{r:0,c:6}, piece:p, castle:'k' });
+            if(state.castling.bq && !board[0][3] && !board[0][2] && !board[0][1] && !attacked(board,'w',0,3) && !attacked(board,'w',0,2)) moves.push({ from:{r,c}, to:{r:0,c:2}, piece:p, castle:'q' });
+          }
+        }
+      }
+    }
+  }
+
+  const legal = [];
+  for(const m of moves){
+    const st = U.clone(state);
+    const ok = makeMove(st, m, true);
+    if(ok){
+      const kingOfMover = kingPos(st.board, other(st.side));
+      const inCheck = attacked(st.board, st.side, kingOfMover.r, kingOfMover.c);
+      if(!inCheck) legal.push(m);
+    }
+  }
+  return legal;
 }
 
-// --- TURN & CHECK ---
-function switchTurn(){ turn=turn==='w'?'b':'w'; }
+/* makeMove */
+function makeMove(state, m, simulate=false, promoChoice=null){
+  const B = state.board;
+  const from = m.from, to = m.to;
+  const piece = B[from.r][from.c];
+  const side = state.side;
+  const isW = side === 'w';
 
-function checkGameState(){
-  if(isCheckmate(turn)) triggerGameEnd((turn==='w'?'Black':'White')+' wins by checkmate!');
-  else if(isStalemate(turn)) triggerGameEnd('Draw by stalemate');
-  else messageEl.textContent='';
+  const rec = { board: U.clone(B), side: state.side, castling: U.clone(state.castling), ep: state.ep, half: state.half, full: state.full };
+
+  state.ep = null;
+
+  if(m.ep){
+    const dir = isW ? 1 : -1;
+    B[to.r + dir][to.c] = "";
+  }
+
+  if(m.castle){
+    if(m.castle === 'K'){ B[7][5] = B[7][7]; B[7][7] = ""; }
+    else if(m.castle === 'Q'){ B[7][3] = B[7][0]; B[7][0] = ""; }
+    else if(m.castle === 'k'){ B[0][5] = B[0][7]; B[0][7] = ""; }
+    else if(m.castle === 'q'){ B[0][3] = B[0][0]; B[0][0] = ""; }
+  }
+
+  B[to.r][to.c] = piece;
+  B[from.r][from.c] = "";
+
+  if(m.epSet){ state.ep = m.epSet; }
+
+  if(m.promo || m.promoChoices || m.promo){
+    let promo = promoChoice;
+    if(!promo){
+      if(simulate || AUTO_PROMOTE) promo = 'q';
+      else {
+        pendingPromotion = { move: m, rec };
+        openPromotion(isW);
+        return null;
+      }
+    }
+    const promoted = isW ? promo.toUpperCase() : promo.toLowerCase();
+    B[to.r][to.c] = promoted;
+  }
+
+  const fromAlg = U.toAlg(from.r, from.c), toAlg = U.toAlg(to.r, to.c);
+  if(piece === 'K'){ state.castling.wk = false; state.castling.wq = false; }
+  if(piece === 'k'){ state.castling.bk = false; state.castling.bq = false; }
+  if(fromAlg === 'h1' || toAlg === 'h1') state.castling.wk = false;
+  if(fromAlg === 'a1' || toAlg === 'a1') state.castling.wq = false;
+  if(fromAlg === 'h8' || toAlg === 'h8') state.castling.bk = false;
+  if(fromAlg === 'a8' || toAlg === 'a8') state.castling.bq = false;
+
+  if(piece.toLowerCase() === 'p' || m.capture) state.half = 0; else state.half++;
+  if(side === 'b') state.full++;
+
+  const mover = side;
+  state.side = other(side);
+
+  if(!simulate) {
+    state.hist.push(rec);
+    resetPlayerClock(mover);
+  }
+  return true;
 }
 
-function isCheckmate(color){ const moves=getAllLegalMoves(color); return moves.length===0 && isKingInCheck(color); }
-function isStalemate(color){ const moves=getAllLegalMoves(color); return moves.length===0 && !isKingInCheck(color); }
-function isKingInCheck(color){ /* simplified */ return false; }
-function getAllLegalMoves(color){ return []; }
+/* ---------------- UI glue ----------------- (mostly unchanged) */
+const PIECES = { r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙" };
+const boardEl = document.getElementById('board');
+const statusEl = document.getElementById('status');
+const incheckEl = document.getElementById('incheck');
+const crEl = document.getElementById('cr');
+const epEl = document.getElementById('ep');
+const movesEl = document.getElementById('moves');
+const flipBtn = document.getElementById('flipBtn');
+const promoModal = document.getElementById('promo');
 
-// --- TIMERS ---
-function startTimers(){ if(timerInterval) clearInterval(timerInterval);
-  timerInterval=setInterval(()=>{
-    if(turn==='w') timer1--; else timer2--;
-    document.getElementById('timer1').textContent=formatTime(timer1);
-    document.getElementById('timer2').textContent=formatTime(timer2);
-    if(timer1<=0 || timer2<=0){ clearInterval(timerInterval); triggerGameEnd(timer1<=0?'Player 2 wins on time':'Player 1 wins on time'); }
-  },1000);
+const rematchModal = document.getElementById('rematchModal');
+const rematchCountdownEl = document.getElementById('rematchCountdown');
+const rematchAcceptBtn = document.getElementById('rematchAccept');
+const rematchDeclineBtn = document.getElementById('rematchDecline');
+
+const player1IdEl = document.getElementById('player1Id');
+const player2IdEl = document.getElementById('player2Id');
+const playerWhiteEl = document.getElementById('playerWhite');
+const playerBlackEl = document.getElementById('playerBlack');
+const clockWEl = document.getElementById('clockW');
+const clockBEl = document.getElementById('clockB');
+const resignBtn = document.getElementById('resignBtn');
+
+const offerDrawBtn = document.getElementById('offerDrawBtn');
+const acceptDrawBtn = document.getElementById('acceptDrawBtn');
+
+const modeSelect = document.getElementById('modeSelect');
+const connectBtn = document.getElementById('connectBtn');
+const roomIdInput = document.getElementById('roomId');
+const playerIdInput = document.getElementById('playerIdInput');
+const mySideSelect = document.getElementById('mySideSelect');
+const wsUrlInput = document.getElementById('wsUrl');
+const leaderboardEl = document.getElementById('leaderboard');
+const clearLBBtn = document.getElementById('clearLB');
+const exportLBBtn = document.getElementById('exportLB');
+
+let selected = null;
+let legal = [];
+let flipped = false;
+let pendingPromotion = null;
+
+/* ------------------ Clocks & Leaderboard Placeholder ------------------ */
+let clocks = { w: START_CLOCK, b: START_CLOCK };
+let lastTickSecond = { w: null, b: null };
+let lastTick = performance.now();
+let clockInterval = null;
+let gameOver = false;
+
+function formatTime(sec){
+  sec = Math.max(0, Math.ceil(sec));
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
 }
-function formatTime(sec){ const m=Math.floor(sec/60).toString().padStart(2,'0'); const s=(sec%60).toString().padStart(2,'0'); return `${m}:${s}`; }
+function updateClockDisplays(){
+  clockWEl.textContent = formatTime(clocks.w);
+  clockBEl.textContent = formatTime(clocks.b);
 
-// --- REMATCH / LEADERBOARD FLOW ---
-function triggerGameEnd(msg){
-  messageEl.textContent=msg;
-  clearInterval(timerInterval);
-  rematchChosen=false;
-  rematchModal.style.display='flex';
-  // auto redirect after 5s
-  setTimeout(()=>{ if(!rematchChosen) showLeaderboard(); },5000);
+  if(clocks.w <= 10) clockWEl.classList.add('red'); else clockWEl.classList.remove('red');
+  if(clocks.b <= 10) clockBEl.classList.add('red'); else clockBEl.classList.remove('red');
+
+  if(state.side === 'w'){ playerWhiteEl.classList.add('active'); playerBlackEl.classList.remove('active'); }
+  else { playerBlackEl.classList.add('active'); playerWhiteEl.classList.remove('active'); }
 }
 
-document.getElementById('rematchBtn').addEventListener('click',()=>{
-  rematchChosen=true;
-  rematchModal.style.display='none';
-  payForRematch().then(success=>{
-    if(success) resetBoard();
+function resetClocks(){
+  clocks.w = START_CLOCK; clocks.b = START_CLOCK; lastTickSecond = { w:null, b:null }; updateClockDisplays();
+}
+
+function resetPlayerClock(side){
+  clocks[side] = START_CLOCK;
+  lastTickSecond[side] = null;
+  updateClockDisplays();
+}
+
+/* start ticking clocks (runs while game not over) */
+function startClock(){
+  stopClock();
+  lastTick = performance.now();
+  clockInterval = setInterval(()=>{
+    if(gameOver) { stopClock(); return; }
+    const now = performance.now();
+    const dt = (now - lastTick)/1000;
+    lastTick = now;
+    clocks[state.side] -= dt;
+    if(clocks[state.side] <= 0){
+      clocks[state.side] = 0;
+      updateClockDisplays();
+      gameOver = true;
+      const winner = other(state.side);
+      const loser = state.side;
+      statusEl.textContent = (winner === 'w' ? 'White' : 'Black') + ' wins by timeout';
+      SND.win(); Confetti.burst(120);
+      sendResultToPiLeaderboard(winner, loser, 'timeout');
+      showRematchModal();
+      stopClock();
+    } else {
+      const sec = Math.floor(clocks[state.side]);
+      if(clocks[state.side] <= 10){
+        if(lastTickSecond[state.side] !== sec){
+          SND.tick();
+          lastTickSecond[state.side] = sec;
+        }
+      } else {
+        lastTickSecond[state.side] = null;
+      }
+      updateClockDisplays();
+    }
+  }, 200);
+}
+function stopClock(){
+  if(clockInterval) { clearInterval(clockInterval); clockInterval = null; }
+}
+
+/* ---------------- Multiplayer glue (Local / WebSocket / Firebase placeholders) ----------------
+   - Local mode uses localStorage events (room key: chess_room_<roomId>) to broadcast moves/results.
+   - WebSocket mode expects a JSON message protocol (example message {type:'move'|'result', payload:...}).
+   - Firebase mode (Realtime DB) has placeholder code; include Firebase SDK if you want to enable it.
+-----------------------------------------------------------------------*/
+const multiplayer = {
+  mode: 'local',
+  connected: false,
+  roomId: null,
+  playerId: null,
+  mySide: 'w',
+  ws: null,
+  firebaseApp: null,
+  fbRoomRef: null,
+  suppressSend: false // set true when applying incoming remote move so we don't re-broadcast
+};
+
+function renderLeaderboard(){
+  const raw = localStorage.getItem('chess_arena_leaderboard') || '[]';
+  let arr;
+  try{ arr = JSON.parse(raw); } catch(e){ arr = []; }
+  leaderboardEl.innerHTML = '';
+  if(!arr.length){
+    leaderboardEl.textContent = 'No results recorded yet.';
+    return;
+  }
+  for(const e of arr.slice().reverse()){
+    const d = document.createElement('div'); d.className='lb-entry';
+    d.innerHTML = `<b>${e.winnerName || e.winnerId}</b> beat <b>${e.loserName || e.loserId}</b> <span style="float:right;opacity:.8">${new Date(e.ts).toLocaleString()}</span><div class="muted">${e.reason}</div>`;
+    leaderboardEl.appendChild(d);
+  }
+}
+function addToLocalLeaderboard(entry){
+  const raw = localStorage.getItem('chess_arena_leaderboard') || '[]';
+  let arr;
+  try{ arr = JSON.parse(raw); } catch(e){ arr = []; }
+  arr.push(entry);
+  localStorage.setItem('chess_arena_leaderboard', JSON.stringify(arr));
+  renderLeaderboard();
+}
+function clearLocalLeaderboard(){
+  localStorage.removeItem('chess_arena_leaderboard');
+  renderLeaderboard();
+}
+clearLBBtn.addEventListener('click', clearLocalLeaderboard);
+exportLBBtn.addEventListener('click', ()=>{
+  const raw = localStorage.getItem('chess_arena_leaderboard') || '[]';
+  const blob = new Blob([raw], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'leaderboard.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+/* connect/disconnect UI */
+connectBtn.addEventListener('click', ()=>{
+  if(!multiplayer.connected) connectMultiplayer();
+  else disconnectMultiplayer();
+});
+
+function connectMultiplayer(){
+  multiplayer.mode = modeSelect.value;
+  multiplayer.roomId = (roomIdInput.value || '').trim();
+  multiplayer.playerId = (playerIdInput.value || '').trim() || ('p_' + Math.random().toString(36).slice(2,9));
+  multiplayer.mySide = mySideSelect.value;
+
+  if(!multiplayer.roomId){
+    alert('Please enter a Room ID to connect.');
+    return;
+  }
+
+  // update UI
+  connectBtn.textContent = 'Disconnect';
+  roomIdInput.disabled = true;
+  modeSelect.disabled = true;
+  playerIdInput.disabled = true;
+  mySideSelect.disabled = true;
+  wsUrlInput.disabled = true;
+
+  player1IdEl.textContent = multiplayer.mySide === 'w' ? multiplayer.playerId : '(waiting)';
+  player2IdEl.textContent = multiplayer.mySide === 'b' ? multiplayer.playerId : '(waiting)';
+
+  // set API on window for convenience
+  window.ChessArenaPi.setPlayerIds = function(p1, p2){
+    player1IdEl.textContent = p1 || player1IdEl.textContent;
+    player2IdEl.textContent = p2 || player2IdEl.textContent;
+  };
+
+  if(multiplayer.mode === 'local'){
+    // localStorage room key: chess_room_<roomId>
+    window.addEventListener('storage', localStorageListener);
+  }else if(multiplayer.mode === 'ws'){
+    const url = wsUrlInput.value.trim();
+    if(!url){ alert('Enter WebSocket URL for ws mode'); return; }
+    try{
+      multiplayer.ws = new WebSocket(url);
+      multiplayer.ws.addEventListener('open', ()=> console.log('WS connected'));
+      multiplayer.ws.addEventListener('message', wsMessageHandler);
+      multiplayer.ws.addEventListener('close', ()=> console.log('WS closed'));
+    }catch(e){ console.warn('WS connect fail', e); }
+  }else if(multiplayer.mode === 'firebase'){
+    // Placeholder Firebase initialization. The user must include Firebase SDK and set config.
+    // Example usage:
+    //   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    //   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    // Then set firebaseConfig below or call multiplayerInitFirebase(yourConfig).
+    if(!window.firebase){
+      console.warn('Firebase SDK not found. Add Firebase scripts to enable Firebase mode.');
+    } else {
+      // attempt to set up a room node under /chess_rooms/<roomId>
+      try{
+        multiplayer.firebaseApp = window.firebase.initializeApp(window._CHESS_ARENA_FIREBASE_CONFIG || {});
+        const db = window.firebase.database();
+        multiplayer.fbRoomRef = db.ref('chess_rooms/' + multiplayer.roomId);
+        multiplayer.fbRoomRef.on('child_added', snap => {
+          const v = snap.val();
+          if(v && v.type) handleRemotePayload(v, v.sender);
+        });
+      }catch(e){ console.warn('Firebase init failed', e); }
+    }
+  }
+
+  multiplayer.connected = true;
+  appendNote(`Connected to room "${multiplayer.roomId}" using mode "${multiplayer.mode}". Player ID: ${multiplayer.playerId}`);
+  renderLeaderboard();
+}
+
+function disconnectMultiplayer(){
+  multiplayer.connected = false;
+  connectBtn.textContent = 'Connect';
+  roomIdInput.disabled = false;
+  modeSelect.disabled = false;
+  playerIdInput.disabled = false;
+  mySideSelect.disabled = false;
+  wsUrlInput.disabled = false;
+  if(multiplayer.mode === 'local') window.removeEventListener('storage', localStorageListener);
+  if(multiplayer.ws){ try{ multiplayer.ws.close(); }catch(e){} multiplayer.ws = null; }
+  if(multiplayer.fbRoomRef) { try{ multiplayer.fbRoomRef.off(); }catch(e){} multiplayer.fbRoomRef = null; }
+  appendNote('Disconnected from multiplayer.');
+}
+
+/* Local storage listener for room messages */
+function localStorageListener(e){
+  if(!e.key || !multiplayer.roomId) return;
+  if(!e.key.startsWith('chess_room_' + multiplayer.roomId)) return;
+  if(!e.newValue) return;
+  try{
+    const msg = JSON.parse(e.newValue);
+    if(msg.sender === multiplayer.playerId) return; // ignore own broadcasts
+    handleRemotePayload(msg.payload, msg.sender);
+  }catch(err){ console.warn('bad local msg', err); }
+}
+
+/* WebSocket incoming handler */
+function wsMessageHandler(evt){
+  try{
+    const msg = JSON.parse(evt.data);
+    if(msg.sender === multiplayer.playerId) return;
+    handleRemotePayload(msg.payload, msg.sender);
+  }catch(e){ console.warn(e); }
+}
+
+/* Apply incoming payloads (move/result) */
+function handleRemotePayload(payload, sender){
+  if(!payload || !payload.type) return;
+  if(payload.type === 'move'){
+    // payload.move is move object
+    applyRemoteMove(payload.move, sender);
+  } else if(payload.type === 'result'){
+    // payload.result = {winnerId, loserId, reason, ts}
+    appendNote(`Remote result recorded: ${payload.result.winnerId} beat ${payload.result.loserId} (${payload.result.reason})`);
+    // also add to local leaderboard
+    addToLocalLeaderboard({ winnerId: payload.result.winnerId, loserId: payload.result.loserId, reason: payload.result.reason, ts: payload.result.ts || Date.now(), winnerName: payload.result.winnerName, loserName: payload.result.loserName });
+  }
+}
+
+/* Send a payload to the room */
+function broadcastPayload(payload){
+  if(!multiplayer.connected || !multiplayer.roomId) return;
+  const envelope = { sender: multiplayer.playerId, payload: payload, ts: Date.now() };
+  if(multiplayer.mode === 'local'){
+    const key = 'chess_room_' + multiplayer.roomId;
+    try{
+      // Write then immediately remove to keep storage small; other tabs will see the change.
+      localStorage.setItem(key, JSON.stringify(envelope));
+    }catch(e){ console.warn('local broadcast fail', e); }
+  } else if(multiplayer.mode === 'ws' && multiplayer.ws && multiplayer.ws.readyState === 1){
+    try{ multiplayer.ws.send(JSON.stringify(envelope)); }catch(e){ console.warn('ws send fail', e); }
+  } else if(multiplayer.mode === 'firebase' && multiplayer.fbRoomRef){
+    try{ multiplayer.fbRoomRef.push(payload); }catch(e){ console.warn('fb push fail', e); }
+  } else {
+    // fallback: just log
+    console.log('Broadcast (no transport):', envelope);
+  }
+}
+
+/* sendMove: called when a local move is made to broadcast to remote peers */
+function sendMove(move){
+  if(!multiplayer.connected) return;
+  const payload = { type: 'move', move };
+  broadcastPayload(payload);
+}
+
+/* sendResultToLeaderboard integration (overrides placeholder) */
+function sendResultToPiLeaderboard(winner, loser, reason){
+  // Determine player names/ids from UI where possible
+  const winnerId = winner === 'w' ? player1IdEl.textContent : player2IdEl.textContent;
+  const loserId  = loser === 'w' ? player1IdEl.textContent : player2IdEl.textContent;
+  const entry = { winnerId, loserId, reason, ts: Date.now(), winnerName: winnerId, loserName: loserId };
+  addToLocalLeaderboard(entry);
+
+  // Broadcast to room if connected
+  if(multiplayer.connected){
+    const payload = { type:'result', result: entry };
+    broadcastPayload(payload);
+  }
+
+  // Console for debug
+  console.log('Recorded result:', entry);
+  const note = document.createElement('div');
+  note.className = 'tiny';
+  note.textContent = `Result recorded: ${entry.winnerName} beat ${entry.loserName} (${reason})`;
+  movesEl.appendChild(note);
+  movesEl.scrollTop = movesEl.scrollHeight;
+}
+
+/* applyRemoteMove: find matching legal move and apply it (safely) */
+function applyRemoteMove(remoteMove, sender){
+  // remoteMove is expected: { from:{r,c}, to:{r,c}, piece, capture?, castle?, promo?, ep?, epSet? }
+  try{
+    multiplayer.suppressSend = true;
+    // find matching legal move
+    const lm = legalMoves(state);
+    const found = lm.find(m => m.from.r === remoteMove.from.r && m.from.c === remoteMove.from.c && m.to.r === remoteMove.to.r && m.to.c === remoteMove.to.c && (!!m.castle === !!remoteMove.castle));
+    if(found){
+      makeMove(state, found, false, remoteMove.promoChoice || null);
+      logMove(found);
+      SND.move();
+      render();
+    } else {
+      console.warn('Remote move not found among legal moves:', remoteMove, 'Legal moves count:', lm.length);
+      appendNote('Received remote move that did not match any legal move (ignored).');
+    }
+  }catch(e){ console.warn('applyRemoteMove err', e); }
+  setTimeout(()=> multiplayer.suppressSend = false, 50);
+}
+
+/* ---------------- Rematch / Resign behavior (unchanged except leaderboard hooks) ---------------- */
+function sendRematchToPiLobby(){
+  const payload = { p1: player1IdEl.textContent, p2: player2IdEl.textContent, timestamp: new Date().toISOString(), purpose: 'rematch' };
+  console.log('Requesting rematch via Pi lobby/payment pairing (payload):', payload);
+
+  if(window.PiSDK && typeof window.PiSDK.requestPayment === 'function'){
+    window.PiSDK.requestPayment(payload).then(()=>{
+      console.log('PiSDK rematch payment request sent (placeholder). Starting new game.');
+      newGameAfterRematch();
+    }).catch((e)=>{
+      console.warn('PiSDK rematch payment failed/fallback:', e);
+      setTimeout(newGameAfterRematch, 400);
+    });
+  } else {
+    // fallback simulation
+    setTimeout(newGameAfterRematch, 400);
+  }
+}
+
+function sendDrawOfferToPi(offeringSide){
+  const payload = { from: offeringSide === 'w' ? player1IdEl.textContent : player2IdEl.textContent, to: offeringSide === 'w' ? player2IdEl.textContent : player1IdEl.textContent, timestamp: new Date().toISOString(), purpose: 'draw-offer' };
+  console.log('Sending draw offer payload (placeholder):', payload);
+
+  if(window.PiSDK && typeof window.PiSDK.requestDrawOffer === 'function'){
+    window.PiSDK.requestDrawOffer(payload).then(()=> {
+      appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw (sent via PiSDK).`);
+      acceptDrawBtn.style.display = ''; // allow opponent to accept in UI
+    }).catch(()=> {
+      appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw (failed to send via PiSDK — local fallback).`);
+      acceptDrawBtn.style.display = '';
+    });
+  } else {
+    appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw.`);
+    acceptDrawBtn.style.display = '';
+  }
+}
+
+function acceptDraw(offeringSide){
+  if(gameOver) return;
+  gameOver = true;
+  statusEl.textContent = 'Draw by agreement';
+  SND.check();
+  appendNote(`Draw accepted. Result recorded as draw.`);
+  // Record draw in leaderboard as draw (winner/loser both recorded as IDs for trace)
+  const entry = { winnerId: '(draw)', loserId:'(draw)', reason:'draw-agreement', ts: Date.now(), winnerName:'(draw)', loserName:'(draw)' };
+  addToLocalLeaderboard(entry);
+  if(multiplayer.connected) broadcastPayload({ type:'result', result: entry });
+  stopClock();
+  showRematchModal();
+}
+
+/* Rematch modal logic reused */
+function newGameAfterRematch(){
+  state = { board: U.clone(START), side:'w', castling:{wk:true,wq:true,bk:true,bq:true}, ep:null, half:0, full:1, hist:[] };
+  selected = null; legal = []; pendingPromotion = null;
+  movesEl.innerHTML = '';
+  acceptDrawBtn.style.display = 'none';
+  resetClocks();
+  gameOver = false;
+  render();
+}
+
+/* ----------------- Rendering / Interaction ----------------- */
+function render(){
+  boardEl.innerHTML = '';
+  const mapIndex = (i)=> flipped ? 63 - i : i;
+
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const i = r*8 + c, idx = mapIndex(i);
+      const rr = Math.floor(idx/8), cc = idx%8;
+      const sq = document.createElement('div');
+      sq.className = `sq ${(r+c)%2 ? 'dark' : 'light'}`;
+      sq.dataset.r = rr; sq.dataset.c = cc;
+
+      const p = state.board[rr][cc];
+      if(p){
+        const sp = document.createElement('span');
+        sp.textContent = PIECES[p];
+        sp.className = `piece ${isWhite(p)?'white':'black'}`;
+        sq.appendChild(sp);
+      }
+      if(selected && selected.r === rr && selected.c === cc) sq.classList.add('sel');
+      for(const m of legal){
+        if(m.to.r === rr && m.to.c === cc){
+          if(m.capture) sq.classList.add('cap'); else sq.classList.add('hint');
+        }
+      }
+      boardEl.appendChild(sq);
+    }
+  }
+
+  const kp = kingPos(state.board, state.side);
+  const chk = attacked(state.board, other(state.side), kp.r, kp.c);
+  incheckEl.style.display = chk ? '' : 'none';
+  statusEl.textContent = (state.side === 'w' ? 'White' : 'Black') + ' to move';
+  crEl.textContent = `${state.castling.wk? 'K' : ''}${state.castling.wq? 'Q':''}${state.castling.bk? 'k':''}${state.castling.bq? 'q':''}` || '—';
+  epEl.textContent = state.ep || '—';
+
+  updateClockDisplays();
+
+  const lm = legalMoves(state);
+  if(!lm.length){
+    if(chk){
+      statusEl.textContent = (other(state.side) === 'w' ? 'White' : 'Black') + ' wins by checkmate';
+      if(!gameOver){
+        gameOver = true;
+        SND.win(); Confetti.burst(140);
+        const winner = other(state.side);
+        const loser = state.side;
+        sendResultToPiLeaderboard(winner, loser, 'checkmate');
+        showRematchModal();
+      }
+    } else {
+      statusEl.textContent = 'Draw by stalemate';
+      if(!gameOver){
+        gameOver = true;
+        SND.check();
+        appendNote('Stalemate — draw.');
+        showRematchModal();
+      }
+    }
+    stopClock();
+  } else {
+    if(!gameOver) startClock();
+  }
+}
+
+/* Click handler util */
+function squareClick(rr,cc){
+  // If multiplayer connected and not your turn, ignore clicks
+  if(multiplayer.connected && multiplayer.playerId){
+    // allow only when mySide matches state.side
+    if(multiplayer.mySide !== state.side){
+      appendNote('Waiting for opponent move (not your turn).');
+      return;
+    }
+  }
+
+  const p = state.board[rr][cc];
+  if(selected){
+    const mv = legal.find(m => m.to.r === rr && m.to.c === cc);
+    if(mv){
+      const ok = makeMove(state, mv, false, null);
+      if(ok){
+        if(pendingPromotion){
+          render();
+          return;
+        }
+        logMove(mv);
+        SND.move();
+        const kp = kingPos(state.board, state.side);
+        if(attacked(state.board, other(state.side), kp.r, kp.c)) SND.check();
+
+        // send move to peers if connected (but not when we're applying a remote move)
+        if(multiplayer.connected && !multiplayer.suppressSend){
+          sendMove(mv);
+        }
+      }
+      selected = null; legal = [];
+      render();
+      return;
+    }
+    if(p && sidePiece(p, state.side)){
+      selected = { r: rr, c: cc };
+      legal = legalMoves(state).filter(m => m.from.r === rr && m.from.c === cc);
+    } else {
+      selected = null; legal = [];
+    }
+  } else {
+    if(p && sidePiece(p, state.side)){
+      selected = { r: rr, c: cc };
+      legal = legalMoves(state).filter(m => m.from.r === rr && m.from.c === cc);
+    }
+  }
+  render();
+}
+
+boardEl.addEventListener('click', e => {
+  const sq = e.target.closest('.sq'); if(!sq) return;
+  const rr = +sq.dataset.r, cc = +sq.dataset.c;
+  squareClick(rr,cc);
+});
+
+/* Controls */
+flipBtn.addEventListener('click', ()=>{ flipped = !flipped; render(); });
+
+// Resign button behavior
+resignBtn.addEventListener('click', ()=>{
+  if(gameOver) return;
+  const loser = state.side;
+  const winner = other(loser);
+  gameOver = true;
+  statusEl.textContent = (winner === 'w' ? 'White' : 'Black') + ' wins by resignation';
+  SND.win(); Confetti.burst(100);
+  sendResultToPiLeaderboard(winner, loser, 'resign');
+  stopClock();
+  showRematchModal();
+});
+
+/* Offer Draw button behavior */
+offerDrawBtn.addEventListener('click', ()=>{
+  if(gameOver) return;
+  const offeringSide = state.side;
+  sendDrawOfferToPi(offeringSide);
+});
+
+/* Accept Draw button behavior (shown to opponent) */
+acceptDrawBtn.addEventListener('click', ()=>{
+  acceptDraw(null);
+  acceptDrawBtn.style.display = 'none';
+});
+
+/* Move logging */
+function logMove(m){
+  const from = U.toAlg(m.from.r,m.from.c), to = U.toAlg(m.to.r,m.to.c);
+  const note = `${from}${m.capture ? 'x' : '–'}${to}${m.castle? ' (' + (m.castle.toLowerCase()==='q' ? 'O-O-O' : 'O-O') + ')' : ''}${m.ep? ' e.p.' : ''}${m.promo ? '=Q' : ''}`;
+  const row = document.createElement('div'); row.textContent = note; movesEl.appendChild(row); movesEl.scrollTop = movesEl.scrollHeight;
+}
+function appendNote(text){
+  const row = document.createElement('div'); row.className='tiny'; row.textContent = text; movesEl.appendChild(row); movesEl.scrollTop = movesEl.scrollHeight;
+}
+
+/* Promotion modal */
+promoModal.addEventListener('click', e=>{
+  if(!e.target.classList.contains('pick')) return;
+  const code = e.target.dataset.piece; choosePromotion(code);
+});
+function openPromotion(white){
+  if(AUTO_PROMOTE){
+    choosePromotion('q'); return;
+  }
+  promoModal.classList.add('show');
+  promoModal.querySelectorAll('.pick').forEach(btn=>{
+    btn.style.color = white ? '#b8860b' : '#000';
+    btn.style.textShadow = white ? '2px 2px 0 #000' : 'none';
   });
-});
-document.getElementById('skipBtn').addEventListener('click',()=>{
-  rematchChosen=true;
-  rematchModal.style.display='none';
-  showLeaderboard();
-});
-
-function payForRematch(){
-  return new Promise(resolve=>{
-    // placeholder for Pi payment API
-    console.log('Trigger Pi payment for rematch...');
-    setTimeout(()=>{ resolve(true); },1000);
-  });
+}
+function choosePromotion(code){
+  promoModal.classList.remove('show');
+  if(!pendingPromotion) return;
+  const { move, rec } = pendingPromotion;
+  state.board = rec.board; state.side = rec.side; state.castling = rec.castling; state.ep = rec.ep; state.half = rec.half; state.full = rec.full;
+  pendingPromotion = null;
+  makeMove(state, move, false, code);
+  logMove({ ...move, promo: true });
+  SND.move();
+  render();
 }
 
-function resetBoard(){
-  board = [
-    ['bR','bN','bB','bQ','bK','bB','bN','bR'],
-    ['bP','bP','bP','bP','bP','bP','bP','bP'],
-    ['','','','','','','',''],
-    ['','','','','','','',''],
-    ['','','','','','','',''],
-    ['','','','','','','',''],
-    ['wP','wP','wP','wP','wP','wP','wP','wP'],
-    ['wR','wN','wB','wQ','wK','wB','wN','wR']
-  ];
-  timer1=600; timer2=600; turn='w'; messageEl.textContent='';
-  leaderboard.style.display='none';
-  drawBoard();
-  startTimers();
-}
+/* ---------------- Rematch modal logic (unchanged) ---------------- */
+let rematchTimer = null;
+let rematchRemaining = REMATCH_AUTO_CANCEL;
+function showRematchModal(){
+  clearRematchTimer();
+  rematchRemaining = REMATCH_AUTO_CANCEL;
+  rematchCountdownEl.textContent = `Auto-cancel in ${rematchRemaining}s`;
+  rematchModal.classList.add('show');
+  rematchModal.setAttribute('aria-hidden', 'false');
 
-function showLeaderboard(){
-  leaderboard.style.display='flex';
-  drawBoard();
+  rematchTimer = setInterval(() => {
+    rematchRemaining -= 1;
+    if(rematchRemaining <= 0){
+      clearRematchTimer();
+      hideRematchModal();
+      return;
+    }
+    rematchCountdownEl.textContent = `Auto-cancel in ${rematchRemaining}s`;
+  }, 1000);
 }
-
-document.getElementById('backLobbyBtn').addEventListener('click',()=>{
-  leaderboard.style.display='none';
-  resetBoard();
+function hideRematchModal(){
+  clearRematchTimer();
+  rematchModal.classList.remove('show');
+  rematchModal.setAttribute('aria-hidden', 'true');
+}
+function clearRematchTimer(){
+  if(rematchTimer){ clearInterval(rematchTimer); rematchTimer = null; }
+}
+rematchAcceptBtn.addEventListener('click', ()=>{
+  hideRematchModal();
+  sendRematchToPiLobby();
+});
+rematchDeclineBtn.addEventListener('click', ()=>{
+  hideRematchModal();
 });
 
-// --- INIT ---
-drawBoard();
-startTimers();
+/* Initial draw and clock start */
+resetClocks();
+render();
+renderLeaderboard();
+
+/* API for SDK (keeps your existing API surface) */
+window.ChessArenaPi = {
+  setPlayerIds: function(p1, p2){
+    player1IdEl.textContent = p1 || '(player1 id placeholder)';
+    player2IdEl.textContent = p2 || '(player2 id placeholder)';
+  },
+  recordResult: function(winner, reason='manual'){
+    const loser = other(winner);
+    sendResultToPiLeaderboard(winner, loser, reason);
+  },
+  requestRematch: function(){ sendRematchToPiLobby(); },
+  requestDrawOffer: function(side){ sendDrawOfferToPi(side); },
+  // extra: let external script set firebase config object globally before calling connect
+  setFirebaseConfig: function(cfg){
+    window._CHESS_ARENA_FIREBASE_CONFIG = cfg;
+  }
+};
 </script>
 </body>
 </html>
