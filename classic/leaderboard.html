@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chess Arena Pi – Leaderboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 20px;
+    }
+    h1 { color: gold; }
+    .game {
+      background: #222;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+    button {
+      margin: 4px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #2196f3;
+      color: white;
+    }
+    button:hover { background: #0b79d0; }
+  </style>
+</head>
+<body>
+
+<h1>🏆 Chess Arena Pi Leaderboard</h1>
+<div id="games"></div>
+
+<script type="module">
+  // ✅ Firebase SDK (v9+ modular)
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+  import { getDatabase, ref, onValue, push, set, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+  // 🔑 Replace with YOUR Firebase config from console
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  // 🚀 Init Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // 🎯 Game reference
+  const gamesRef = ref(db, "games");
+
+  // 🟡 Auto-create a test game if none exist
+  function createTestGame() {
+    const newGameRef = push(gamesRef);
+    set(newGameRef, {
+      player1: "Player1",
+      player2: null,
+      moves: [],
+      winner: null,
+      created: Date.now()
+    });
+  }
+
+  // 📡 Listen for games
+  onValue(gamesRef, (snapshot) => {
+    const data = snapshot.val();
+    const gamesDiv = document.getElementById("games");
+    gamesDiv.innerHTML = "";
+
+    if (!data) {
+      createTestGame();
+      return;
+    }
+
+    Object.entries(data).forEach(([id, game]) => {
+      const div = document.createElement("div");
+      div.className = "game";
+
+      div.innerHTML = `
+        <b>Game ID:</b> ${id}<br/>
+        <b>Player1:</b> ${game.player1 || "Waiting..."}<br/>
+        <b>Player2:</b> ${game.player2 || "Waiting..."}<br/>
+        <b>Winner:</b> ${game.winner || "In Progress"}<br/>
+        <button onclick="joinGame('${id}')">Join</button>
+        <button onclick="submitMove('${id}')">Make Move</button>
+        <button onclick="endGame('${id}')">End Game</button>
+      `;
+
+      gamesDiv.appendChild(div);
+    });
+  });
+
+  // 🟢 Join a game
+  window.joinGame = (id) => {
+    const player2 = "Player2"; // later: Pi ID
+    update(ref(db, `games/${id}`), { player2 });
+  };
+
+  // ♟ Submit a move
+  window.submitMove = (id) => {
+    const move = "e2-e4"; // later: real game.html move
+    const movesRef = ref(db, `games/${id}/moves`);
+    update(ref(db, `games/${id}`), {
+      moves: [ ...(movesRef || []), move ]
+    });
+    alert("Move submitted: " + move);
+  };
+
+  // 🏁 End a game
+  window.endGame = (id) => {
+    const winner = "Player1"; // later: winner detection
+    update(ref(db, `games/${id}`), { winner });
+
+    // also log into leaderboard
+    const leaderboardRef = ref(db, "leaderboard/" + id);
+    set(leaderboardRef, {
+      player1: "Player1",
+      player2: "Player2",
+      winner,
+      ended: Date.now()
+    });
+  };
+</script>
+</body>
+</html>
