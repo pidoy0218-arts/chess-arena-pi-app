@@ -1,832 +1,295 @@
-hi<!DOCTYPE html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>CHESS ARENA for PI — FIDE Legal (Auto-Queen Promotion)</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Arena Pi — Full FIDE Legal</title>
 <style>
-  :root{ --bg:#111; --fg:#eee; --light:#f0f0f0; --dark:#b1e59f; --sel:#ffcc00; --hint:#5ac8fa; --accent:#f4b400; --warn:#ff5252 }
-  body{ margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,Arial; display:flex;flex-direction:column;align-items:center;padding:16px; }
-  h1{margin:6px 0 2px;font-size:20px}
-  .sub{opacity:.75;font-size:12px;margin-bottom:8px}
-  .wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;justify-content:center;width:100%;max-width:1100px}
-  #board{ display:grid; grid-template-columns:repeat(8,min(10.5vw,66px)); grid-template-rows:repeat(8,min(10.5vw,66px)); border:6px solid #333; border-radius:10px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.45); }
-  .sq{ display:flex;align-items:center;justify-content:center;font-size:min(8vw,50px);cursor:pointer; }
-  .sq.light{ background:var(--light); } .sq.dark{ background:var(--dark); }
-  .piece.white{ color:#b8860b; text-shadow:2px 2px 0 #000; font-weight:900 } .piece.black{ color:#000 }
-  .sq.sel{ outline:3px solid var(--sel); outline-offset:-3px }
-  .sq.hint::after{ content:""; width:22%; height:22%; border-radius:50%; background:var(--hint); opacity:.85; display:block; }
-  .sq.cap{ box-shadow: inset 0 0 0 4px var(--warn); }
-  .side{ min-width:260px; max-width:360px; display:flex; flex-direction:column; gap:10px }
-  .panel{ background:#1b1b1b; border:1px solid #2b2b2b; border-radius:10px; padding:10px 12px }
-  .row{ display:flex; justify-content:space-between; align-items:center; gap:10px }
-  .btn{ padding:10px 12px; border-radius:8px; border:0; color:#111; background:var(--accent); font-weight:700; cursor:pointer }
-  .tiny{ font-size:12px; opacity:.8 }
-  .moves{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.45; max-height:260px; overflow:auto }
-  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:10 }
-  .modal.show{ display:flex }
-  .card{ background:#1e1e1e; border:1px solid #2d2d2d; padding:16px; border-radius:12px; min-width:260px }
-  .grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:10px }
-  .pick{ font-size:34px; padding:10px; border-radius:10px; border:1px solid #333; background:#121212; color:#fff; cursor:pointer }
-  #fx{ position:fixed; inset:0; pointer-events:none; z-index:9 }
-
-  /* Player UI */
-  .players { display:flex; gap:10px; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .player { display:flex; flex-direction:column; gap:6px; padding:8px; border-radius:8px; background:#101010; border:1px solid #222; min-width:120px; text-align:center }
-  .player .label { font-weight:800; font-size:13px; }
-  .player .id { font-size:12px; opacity:.85; word-break:break-all; }
-  .player .clock { font-weight:900; font-size:18px; padding:6px 8px; border-radius:8px; background:#0f0f0f; border:1px solid #222; }
-  .player.active { box-shadow: 0 0 0 3px rgba(244,180,0,0.06); border-color: #2b2b2b }
-  .clock.red { color:var(--warn); }
-
-  /* Rematch modal specifics */
-  .rematch-count { font-size:18px; margin-top:8px; opacity:.9 }
-  .rematch-actions { display:flex; gap:10px; justify-content:center; margin-top:12px }
-  .btn-accept { background:#3bbf7f; color:#041; padding:8px 12px; border-radius:8px; font-weight:800; border:0; cursor:pointer }
-  .btn-decline { background:#bf3b3b; color:#210; padding:8px 12px; border-radius:8px; font-weight:800; border:0; cursor:pointer }
-  .controls { display:flex; gap:8px; align-items:center; }
-  .btn-secondary { background:#888; color:#fff; padding:8px 10px; border-radius:8px; border:0; cursor:pointer; font-weight:700 }
+:root {
+  --bg:#111; --fg:#eee;
+  --board-light:#b1e59f; --board-dark:#f0f0f0;
+  --sel:#ffcc00;
+}
+body{margin:0;padding:0;font-family:sans-serif;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;align-items:center;}
+h1{margin-top:15px;}
+#board{display:grid;grid-template-columns:repeat(8,50px);grid-template-rows:repeat(8,50px);margin-top:20px;}
+.square{width:50px;height:50px;display:flex;justify-content:center;align-items:center;font-size:36px;cursor:pointer;}
+.light{background:var(--board-light);}
+.dark{background:var(--board-dark);}
+.selected{outline:2px solid var(--sel);}
+#info{margin-top:10px;display:flex;gap:15px;align-items:center;}
+button{padding:5px 10px;cursor:pointer;}
+#captured{margin-top:10px;display:flex;gap:20px;}
+.captured-section{display:flex;gap:5px;}
+.legal{background:yellow;}
 </style>
 </head>
 <body>
-  <h1>♞ CHESS ARENA for PI</h1>
-  <div class="sub">FIDE-legal: castling • en passant • promotion • check/checkmate • auto-queen promotion</div>
+<h1>♟️ Chess Arena Pi</h1>
+<div id="info">
+  <div>Turn: <span id="turn">White</span></div>
+  <div>Timer: <span id="timer">05:00</span></div>
+  <button id="resetBtn">Reset Game</button>
+  <button id="aiBtn">Play vs AI</button>
+</div>
+<div id="board"></div>
+<div id="captured">
+  <div>White Captured: <span id="capturedWhite"></span></div>
+  <div>Black Captured: <span id="capturedBlack"></span></div>
+</div>
 
-  <div class="wrap">
-    <div id="board" aria-label="chessboard"></div>
-
-    <div class="side">
-      <div class="panel">
-        <!-- Player placeholders for Pi SDK -->
-        <div class="players">
-          <div id="playerWhite" class="player">
-            <div class="label">Player 1 (White)</div>
-            <div id="player1Id" class="id">(player1 id placeholder)</div>
-            <div id="clockW" class="clock">0:45</div>
-          </div>
-
-          <div id="playerBlack" class="player">
-            <div class="label">Player 2 (Black)</div>
-            <div id="player2Id" class="id">(player2 id placeholder)</div>
-            <div id="clockB" class="clock">0:45</div>
-          </div>
-        </div>
-
-        <div class="row" style="margin-top:8px">
-          <div id="status" style="font-weight:700">White to move</div>
-          <div id="incheck" style="display:none;padding:4px 8px;border-radius:8px;background:#2b2b2b">Check!</div>
-        </div>
-        <div class="row tiny"><div>Castling: <span id="cr">KQkq</span></div><div>En Passant: <span id="ep">—</span></div></div>
-      </div>
-
-      <div class="panel">
-        <div class="row"><div><b>Move List</b></div></div>
-        <div id="moves" class="moves"></div>
-      </div>
-
-      <div class="panel row" style="align-items:center">
-        <div class="controls">
-          <button class="btn" id="resignBtn">Resign</button>
-          <button class="btn" id="flipBtn">Flip</button>
-          <button class="btn-secondary" id="offerDrawBtn">Offer Draw</button>
-          <button class="btn-secondary" id="acceptDrawBtn" style="display:none">Accept Draw</button>
-        </div>
-        <div class="tiny">Click a piece → click a target square</div>
-      </div>
-    </div>
-  </div>
-
-  <div id="promo" class="modal" role="dialog" aria-modal="true">
-    <div class="card">
-      <div style="font-weight:700;margin-bottom:6px">Promote pawn to:</div>
-      <div class="grid4">
-        <button class="pick" data-piece="q">♛</button>
-        <button class="pick" data-piece="r">♜</button>
-        <button class="pick" data-piece="b">♝</button>
-        <button class="pick" data-piece="n">♞</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Rematch modal shown at game end. Auto-cancels after 5s -->
-  <div id="rematchModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="card">
-      <div style="font-weight:800">Rematch?</div>
-      <div class="tiny" style="margin-top:8px">Accept to request rematch via Pi lobby/payment pairing.</div>
-      <div class="rematch-count" id="rematchCountdown">Auto-cancel in 5s</div>
-      <div class="rematch-actions">
-        <button id="rematchAccept" class="btn-accept">Accept</button>
-        <button id="rematchDecline" class="btn-decline">Decline</button>
-      </div>
-    </div>
-  </div>
-
-  <canvas id="fx"></canvas>
+<audio id="moveSound" src="move.mp3"></audio>
+<audio id="winSound" src="win.mp3"></audio>
+<audio id="loseSound" src="lose.mp3"></audio>
+<audio id="tickSound" src="tick.mp3"></audio>
 
 <script>
-/* ------------------ Config ------------------ */
-const AUTO_PROMOTE = true;
-const START_CLOCK = 45;
-const REMATCH_AUTO_CANCEL = 5;
+// Piece unicode
+const PIECES = {'wK':'♔','wQ':'♕','wR':'♖','wB':'♗','wN':'♘','wP':'♙',
+                'bK':'♚','bQ':'♛','bR':'♜','bB':'♝','bN':'♞','bP':'♟'};
 
-/* -------------- Sound (WebAudio) -------------- */
-const SND = (() => {
-  let ctx;
-  function beep(freq=600, dur=0.08, type='square', vol=0.05){
-    try{
-      ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = type; o.frequency.value = freq; g.gain.value = vol;
-      o.connect(g); g.connect(ctx.destination); o.start();
-      setTimeout(()=> o.stop(), dur*1000);
-    }catch(e){}
-  }
-  return {
-    move:()=>beep(640,0.07,'square',0.05),
-    capture:()=>{beep(220,0.05,'sawtooth',0.06); setTimeout(()=>beep(180,0.09,'sawtooth',0.05),60);},
-    check:()=>beep(900,0.12,'triangle',0.06),
-    win:()=>{ [880,988,1175].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.08), i*120)); },
-    tick:()=>beep(950,0.04,'square',0.06)
-  };
-})();
+// Board state
+let board=[], selected=null, turn='w', timerSeconds=300, timerInterval;
+let capturedWhite=[], capturedBlack=[], aiMode=false;
+let moveHistory=[], enPassant=null;
 
-/* ---------------- Confetti ---------------- */
-const Confetti = (() => {
-  const c = document.getElementById('fx'), x = c.getContext('2d');
-  let parts=[], run=false, w=0,h=0;
-  function resize(){ w=c.width=innerWidth; h=c.height=innerHeight; }
-  addEventListener('resize', resize); resize();
-  function burst(n=120){
-    parts=[]; for(let i=0;i<n;i++) parts.push({ x:w/2, y:h*0.25, vx:(Math.random()*2-1)*6, vy:(Math.random()*-6-2), g:Math.random()*0.18+0.12, s:Math.random()*6+3, a:Math.random()*Math.PI, col:`hsl(${Math.random()*360},90%,60%)` });
-    if(!run){ run=true; requestAnimationFrame(loop); }
-  }
-  function loop(){
-    x.clearRect(0,0,w,h);
-    for(const p of parts){ p.vy += p.g; p.x += p.vx; p.y += p.vy; p.a += 0.2; x.save(); x.translate(p.x,p.y); x.rotate(p.a); x.fillStyle=p.col; x.fillRect(-p.s/2,-p.s/2,p.s,p.s); x.restore(); }
-    parts = parts.filter(p=>p.y<h+30);
-    if(parts.length) requestAnimationFrame(loop); else run=false;
-  }
-  return { burst };
-})();
-
-/* ----------------- Utilities ----------------- */
-const U = {
-  inBounds:(r,c)=>r>=0 && r<8 && c>=0 && c<8,
-  clone:(o)=>JSON.parse(JSON.stringify(o)),
-  toAlg:(r,c)=>"abcdefgh"[c] + (8 - r),
-  fromAlg:(a)=>({ r: 8 - parseInt(a[1],10), c: "abcdefgh".indexOf(a[0]) })
-};
-
-/* ----------------- Chess Core ----------------- */
-const START = [
-  ["r","n","b","q","k","b","n","r"],
-  ["p","p","p","p","p","p","p","p"],
-  ["","","","","","","",""],
-  ["","","","","","","",""],
-  ["","","","","","","",""],
-  ["","","","","","","",""],
-  ["P","P","P","P","P","P","P","P"],
-  ["R","N","B","Q","K","B","N","R"]
-];
-
-let state = {
-  board: U.clone(START),
-  side: 'w',
-  castling: { wk:true, wq:true, bk:true, bq:true },
-  ep: null,
-  half:0, full:1,
-  hist: []
-};
-
-function isWhite(p){ return p && p === p.toUpperCase(); }
-function isBlack(p){ return p && p === p.toLowerCase(); }
-function sidePiece(p, side){ return side === 'w' ? isWhite(p) : isBlack(p); }
-function other(side){ return side === 'w' ? 'b' : 'w'; }
-
-function kingPos(board, side){
-  const k = side === 'w' ? 'K' : 'k';
-  for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(board[r][c] === k) return {r,c};
-  return null;
+// Initialize board
+function initBoard(){
+  board=[
+    ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+    ['bP','bP','bP','bP','bP','bP','bP','bP'],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['wP','wP','wP','wP','wP','wP','wP','wP'],
+    ['wR','wN','wB','wQ','wK','wB','wN','wR']
+  ];
+  capturedWhite=[]; capturedBlack=[]; selected=null; enPassant=null;
+  updateBoard();
 }
 
-function attacked(board, side, r, c){
-  // side = attacker side ('w' or 'b')
-  const pawn = side === 'w' ? 'P' : 'p';
-  // CORRECT pawn attack offset: to check if square (r,c) is attacked by attacker side,
-  // white pawns attack from r+1 (because they move up the board (r decreases)).
-  const pawnDir = side === 'w' ? 1 : -1;
-  for(const dc of [-1,1]){
-    const rr = r + pawnDir, cc = c + dc;
-    if(U.inBounds(rr,cc) && board[rr][cc] === pawn) return true;
-  }
-  const N = side === 'w' ? 'N' : 'n';
-  for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
-    const rr=r+dr, cc=c+dc;
-    if(U.inBounds(rr,cc) && board[rr][cc] === N) return true;
-  }
-  const B = side==='w'?'B':'b', R= side==='w'?'R':'r', Q = side==='w'?'Q':'q';
-  for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){
-    let rr=r+dr, cc=c+dc;
-    while(U.inBounds(rr,cc)){
-      const p = board[rr][cc];
-      if(p){ if(p === B || p === Q) return true; break; }
-      rr+=dr; cc+=dc;
-    }
-  }
-  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
-    let rr=r+dr, cc=c+dc;
-    while(U.inBounds(rr,cc)){
-      const p = board[rr][cc];
-      if(p){ if(p === R || p === Q) return true; break; }
-      rr+=dr; cc+=dc;
-    }
-  }
-  const K = side==='w'?'K':'k';
-  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr===0 && dc===0) continue; const rr=r+dr, cc=c+dc; if(U.inBounds(rr,cc) && board[rr][cc]===K) return true; }
-  return false;
-}
-
-/* Generate all legal moves */
-function legalMoves(state){
-  const moves = [];
-  const { board, side } = state;
-  const isW = side === 'w';
-
+// Draw board
+function updateBoard(){
+  const boardEl=document.getElementById('board'); boardEl.innerHTML='';
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
-      const p = board[r][c]; if(!p || !sidePiece(p, side)) continue;
-      const lower = p.toLowerCase();
-
-      if(lower === 'p'){
-        const dir = isW ? -1 : 1;
-        const start = isW ? 6 : 1;
-        const promoRank = isW ? 0 : 7;
-        const r1 = r + dir;
-        if(U.inBounds(r1,c) && !board[r1][c]){
-          if(r1 === promoRank) moves.push({ from:{r,c}, to:{r:r1,c}, piece:p, promo:true });
-          else moves.push({ from:{r,c}, to:{r:r1,c}, piece:p });
-          if(r === start){
-            const r2 = r + 2*dir;
-            if(U.inBounds(r2,c) && !board[r2][c]) moves.push({ from:{r,c}, to:{r:r2,c}, piece:p, epSet: U.toAlg(r1,c) });
-          }
-        }
-        for(const dc of [-1,1]){
-          const cc = c + dc, rr = r + dir;
-          if(!U.inBounds(rr,cc)) continue;
-          const t = board[rr][cc];
-          if(t && ((isW && isBlack(t)) || (!isW && isWhite(t)))){
-            if(rr === promoRank) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true, promo:true });
-            else moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true });
-          }
-        }
-        if(state.ep){
-          const { r:er, c:ec } = U.fromAlg(state.ep);
-          if(er === r + dir && Math.abs(ec - c) === 1){
-            moves.push({ from:{r,c}, to:{r:er,c:ec}, piece:p, capture:true, ep:true });
-          }
-        }
-      }
-
-      if(lower === 'n'){
-        for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
-          const rr=r+dr, cc=c+dc;
-          if(!U.inBounds(rr,cc)) continue;
-          const t = board[rr][cc];
-          if(!t || (isW ? isBlack(t) : isWhite(t))) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:!!t });
-        }
-      }
-
-      if(lower === 'b' || lower === 'q'){
-        for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){
-          let rr=r+dr, cc=c+dc;
-          while(U.inBounds(rr,cc)){
-            const t = board[rr][cc];
-            if(!t) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p });
-            else { if(isW? isBlack(t) : isWhite(t)) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true }); break; }
-            rr+=dr; cc+=dc;
-          }
-        }
-      }
-
-      if(lower === 'r' || lower === 'q'){
-        for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
-          let rr=r+dr, cc=c+dc;
-          while(U.inBounds(rr,cc)){
-            const t = board[rr][cc];
-            if(!t) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p });
-            else { if(isW? isBlack(t) : isWhite(t)) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true }); break; }
-            rr+=dr; cc+=dc;
-          }
-        }
-      }
-
-      if(lower === 'k'){
-        for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr===0 && dc===0) continue; const rr=r+dr, cc=c+dc; if(!U.inBounds(rr,cc)) continue; const t = board[rr][cc]; if(!t || (isW? isBlack(t): isWhite(t))) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:!!t }); }
-        const inChk = attacked(board, other(side), r, c);
-        if(!inChk){
-          if(side==='w'){
-            if(state.castling.wk && !board[7][5] && !board[7][6] && !attacked(board,'b',7,5) && !attacked(board,'b',7,6)) moves.push({ from:{r,c}, to:{r:7,c:6}, piece:p, castle:'K' });
-            if(state.castling.wq && !board[7][3] && !board[7][2] && !board[7][1] && !attacked(board,'b',7,3) && !attacked(board,'b',7,2)) moves.push({ from:{r,c}, to:{r:7,c:2}, piece:p, castle:'Q' });
-          } else {
-            if(state.castling.bk && !board[0][5] && !board[0][6] && !attacked(board,'w',0,5) && !attacked(board,'w',0,6)) moves.push({ from:{r,c}, to:{r:0,c:6}, piece:p, castle:'k' });
-            if(state.castling.bq && !board[0][3] && !board[0][2] && !board[0][1] && !attacked(board,'w',0,3) && !attacked(board,'w',0,2)) moves.push({ from:{r,c}, to:{r:0,c:2}, piece:p, castle:'q' });
-          }
-        }
-      }
-    }
-  }
-
-  const legal = [];
-  for(const m of moves){
-    const st = U.clone(state);
-    const ok = makeMove(st, m, true);
-    if(ok){
-      const kingOfMover = kingPos(st.board, other(st.side));
-      const inCheck = attacked(st.board, st.side, kingOfMover.r, kingOfMover.c);
-      if(!inCheck) legal.push(m);
-    }
-  }
-  return legal;
-}
-
-/* makeMove */
-function makeMove(state, m, simulate=false, promoChoice=null){
-  const B = state.board;
-  const from = m.from, to = m.to;
-  const piece = B[from.r][from.c];
-  const side = state.side;
-  const isW = side === 'w';
-
-  const rec = { board: U.clone(B), side: state.side, castling: U.clone(state.castling), ep: state.ep, half: state.half, full: state.full };
-
-  state.ep = null;
-
-  if(m.ep){
-    const dir = isW ? 1 : -1;
-    B[to.r + dir][to.c] = "";
-  }
-
-  if(m.castle){
-    if(m.castle === 'K'){ B[7][5] = B[7][7]; B[7][7] = ""; }
-    else if(m.castle === 'Q'){ B[7][3] = B[7][0]; B[7][0] = ""; }
-    else if(m.castle === 'k'){ B[0][5] = B[0][7]; B[0][7] = ""; }
-    else if(m.castle === 'q'){ B[0][3] = B[0][0]; B[0][0] = ""; }
-  }
-
-  B[to.r][to.c] = piece;
-  B[from.r][from.c] = "";
-
-  if(m.epSet){ state.ep = m.epSet; }
-
-  if(m.promo || m.promoChoices || m.promo){
-    let promo = promoChoice;
-    if(!promo){
-      if(simulate || AUTO_PROMOTE) promo = 'q';
-      else {
-        pendingPromotion = { move: m, rec };
-        openPromotion(isW);
-        return null;
-      }
-    }
-    const promoted = isW ? promo.toUpperCase() : promo.toLowerCase();
-    B[to.r][to.c] = promoted;
-  }
-
-  const fromAlg = U.toAlg(from.r, from.c), toAlg = U.toAlg(to.r, to.c);
-  if(piece === 'K'){ state.castling.wk = false; state.castling.wq = false; }
-  if(piece === 'k'){ state.castling.bk = false; state.castling.bq = false; }
-  if(fromAlg === 'h1' || toAlg === 'h1') state.castling.wk = false;
-  if(fromAlg === 'a1' || toAlg === 'a1') state.castling.wq = false;
-  if(fromAlg === 'h8' || toAlg === 'h8') state.castling.bk = false;
-  if(fromAlg === 'a8' || toAlg === 'a8') state.castling.bq = false;
-
-  if(piece.toLowerCase() === 'p' || m.capture) state.half = 0; else state.half++;
-  if(side === 'b') state.full++;
-
-  const mover = side;
-  state.side = other(side);
-
-  if(!simulate) {
-    state.hist.push(rec);
-    resetPlayerClock(mover);
-  }
-  return true;
-}
-
-/* ---------------- UI glue ---------------- */
-const PIECES = { r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙" };
-const boardEl = document.getElementById('board');
-const statusEl = document.getElementById('status');
-const incheckEl = document.getElementById('incheck');
-const crEl = document.getElementById('cr');
-const epEl = document.getElementById('ep');
-const movesEl = document.getElementById('moves');
-const flipBtn = document.getElementById('flipBtn');
-const promoModal = document.getElementById('promo');
-
-const rematchModal = document.getElementById('rematchModal');
-const rematchCountdownEl = document.getElementById('rematchCountdown');
-const rematchAcceptBtn = document.getElementById('rematchAccept');
-const rematchDeclineBtn = document.getElementById('rematchDecline');
-
-const player1IdEl = document.getElementById('player1Id');
-const player2IdEl = document.getElementById('player2Id');
-const playerWhiteEl = document.getElementById('playerWhite');
-const playerBlackEl = document.getElementById('playerBlack');
-const clockWEl = document.getElementById('clockW');
-const clockBEl = document.getElementById('clockB');
-const resignBtn = document.getElementById('resignBtn');
-
-const offerDrawBtn = document.getElementById('offerDrawBtn');
-const acceptDrawBtn = document.getElementById('acceptDrawBtn');
-
-let selected = null;
-let legal = [];
-let flipped = false;
-let pendingPromotion = null;
-
-/* ------------------ Clocks & Leaderboard Placeholder ------------------ */
-let clocks = { w: START_CLOCK, b: START_CLOCK };
-let lastTickSecond = { w: null, b: null };
-let lastTick = performance.now();
-let clockInterval = null;
-let gameOver = false;
-
-function formatTime(sec){
-  sec = Math.max(0, Math.ceil(sec));
-  const m = Math.floor(sec / 60), s = sec % 60;
-  return `${m}:${s.toString().padStart(2,'0')}`;
-}
-function updateClockDisplays(){
-  clockWEl.textContent = formatTime(clocks.w);
-  clockBEl.textContent = formatTime(clocks.b);
-
-  if(clocks.w <= 10) clockWEl.classList.add('red'); else clockWEl.classList.remove('red');
-  if(clocks.b <= 10) clockBEl.classList.add('red'); else clockBEl.classList.remove('red');
-
-  if(state.side === 'w'){ playerWhiteEl.classList.add('active'); playerBlackEl.classList.remove('active'); }
-  else { playerBlackEl.classList.add('active'); playerWhiteEl.classList.remove('active'); }
-}
-
-function resetClocks(){
-  clocks.w = START_CLOCK; clocks.b = START_CLOCK; lastTickSecond = { w:null, b:null }; updateClockDisplays();
-}
-
-function resetPlayerClock(side){
-  clocks[side] = START_CLOCK;
-  lastTickSecond[side] = null;
-  updateClockDisplays();
-}
-
-/* start ticking clocks (runs while game not over) */
-function startClock(){
-  stopClock();
-  lastTick = performance.now();
-  clockInterval = setInterval(()=>{
-    if(gameOver) { stopClock(); return; }
-    const now = performance.now();
-    const dt = (now - lastTick)/1000;
-    lastTick = now;
-    clocks[state.side] -= dt;
-    if(clocks[state.side] <= 0){
-      clocks[state.side] = 0;
-      updateClockDisplays();
-      gameOver = true;
-      const winner = other(state.side);
-      const loser = state.side;
-      statusEl.textContent = (winner === 'w' ? 'White' : 'Black') + ' wins by timeout';
-      SND.win(); Confetti.burst(120);
-      sendResultToPiLeaderboard(winner, loser, 'timeout');
-      showRematchModal();
-      stopClock();
-    } else {
-      const sec = Math.floor(clocks[state.side]);
-      if(clocks[state.side] <= 10){
-        if(lastTickSecond[state.side] !== sec){
-          SND.tick();
-          lastTickSecond[state.side] = sec;
-        }
-      } else {
-        lastTickSecond[state.side] = null;
-      }
-      updateClockDisplays();
-    }
-  }, 200);
-}
-function stopClock(){
-  if(clockInterval) { clearInterval(clockInterval); clockInterval = null; }
-}
-
-/* Placeholder: integrate Pi SDK to send win/lose to leaderboard. */
-function sendResultToPiLeaderboard(winner, loser, reason){
-  const winnerId = winner === 'w' ? player1IdEl.textContent : player2IdEl.textContent;
-  const loserId  = loser === 'w' ? player1IdEl.textContent : player2IdEl.textContent;
-  const payload = { winnerSide: winner, loserSide: loser, winnerId, loserId, reason, timestamp: new Date().toISOString() };
-  console.log('sendResultToPiLeaderboard payload:', payload);
-  const note = document.createElement('div');
-  note.className = 'tiny';
-  note.textContent = `Result recorded (placeholder): ${payload.winnerId} beat ${payload.loserId} (${reason})`;
-  movesEl.appendChild(note);
-  movesEl.scrollTop = movesEl.scrollHeight;
-}
-
-/* ---------------- Rematch / Resign behavior ---------------- */
-function sendRematchToPiLobby(){
-  const payload = { p1: player1IdEl.textContent, p2: player2IdEl.textContent, timestamp: new Date().toISOString(), purpose: 'rematch' };
-  console.log('Requesting rematch via Pi lobby/payment pairing (payload):', payload);
-
-  // Try SDK payment request (placeholder). If missing, fallback to immediate rematch start.
-  if(window.PiSDK && typeof window.PiSDK.requestPayment === 'function'){
-    window.PiSDK.requestPayment(payload).then(()=>{
-      console.log('PiSDK rematch payment request sent (placeholder). Starting new game.');
-      newGameAfterRematch();
-    }).catch((e)=>{
-      console.warn('PiSDK rematch payment failed/fallback:', e);
-      setTimeout(newGameAfterRematch, 400);
-    });
-  } else {
-    // fallback simulation
-    setTimeout(newGameAfterRematch, 400);
-  }
-}
-
-function sendDrawOfferToPi(offeringSide){
-  const payload = { from: offeringSide === 'w' ? player1IdEl.textContent : player2IdEl.textContent, to: offeringSide === 'w' ? player2IdEl.textContent : player1IdEl.textContent, timestamp: new Date().toISOString(), purpose: 'draw-offer' };
-  console.log('Sending draw offer payload (placeholder):', payload);
-
-  // Try PiSDK hook for draw offers (placeholder)
-  if(window.PiSDK && typeof window.PiSDK.requestDrawOffer === 'function'){
-    window.PiSDK.requestDrawOffer(payload).then(()=> {
-      appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw (sent via PiSDK).`);
-      acceptDrawBtn.style.display = ''; // allow opponent to accept in UI
-    }).catch(()=> {
-      appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw (failed to send via PiSDK — local fallback).`);
-      acceptDrawBtn.style.display = '';
-    });
-  } else {
-    // local fallback: show move note and enable Accept Draw button
-    appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw.`);
-    acceptDrawBtn.style.display = '';
-  }
-}
-
-function acceptDraw(offeringSide){
-  // Accept draw: end game as draw and send to leaderboard placeholder
-  if(gameOver) return;
-  gameOver = true;
-  statusEl.textContent = 'Draw by agreement';
-  SND.check();
-  appendNote(`Draw accepted. Result recorded as draw.`);
-  sendResultToPiLeaderboard('w', 'b', 'draw-agreement'); // placeholder: you can adapt payload as desired
-  stopClock();
-  showRematchModal();
-}
-
-/* Rematch modal logic reused */
-function newGameAfterRematch(){
-  state = { board: U.clone(START), side:'w', castling:{wk:true,wq:true,bk:true,bq:true}, ep:null, half:0, full:1, hist:[] };
-  selected = null; legal = []; pendingPromotion = null;
-  movesEl.innerHTML = '';
-  acceptDrawBtn.style.display = 'none';
-  resetClocks();
-  gameOver = false;
-  render();
-}
-
-/* ----------------- Rendering / Interaction ----------------- */
-function render(){
-  boardEl.innerHTML = '';
-  const mapIndex = (i)=> flipped ? 63 - i : i;
-
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const i = r*8 + c, idx = mapIndex(i);
-      const rr = Math.floor(idx/8), cc = idx%8;
-      const sq = document.createElement('div');
-      sq.className = `sq ${(r+c)%2 ? 'dark' : 'light'}`;
-      sq.dataset.r = rr; sq.dataset.c = cc;
-
-      const p = state.board[rr][cc];
-      if(p){
-        const sp = document.createElement('span');
-        sp.textContent = PIECES[p];
-        sp.className = `piece ${isWhite(p)?'white':'black'}`;
-        sq.appendChild(sp);
-      }
-      if(selected && selected.r === rr && selected.c === cc) sq.classList.add('sel');
-      for(const m of legal){
-        if(m.to.r === rr && m.to.c === cc){
-          if(m.capture) sq.classList.add('cap'); else sq.classList.add('hint');
-        }
-      }
+      const sq=document.createElement('div');
+      sq.className='square '+((r+c)%2?'dark':'light');
+      sq.dataset.row=r; sq.dataset.col=c;
+      sq.textContent=PIECES[board[r][c]]||'';
+      if(selected && selected[0]===r && selected[1]===c) sq.classList.add('selected');
+      sq.addEventListener('click',onSquareClick);
       boardEl.appendChild(sq);
     }
   }
-
-  const kp = kingPos(state.board, state.side);
-  const chk = attacked(state.board, other(state.side), kp.r, kp.c);
-  incheckEl.style.display = chk ? '' : 'none';
-  statusEl.textContent = (state.side === 'w' ? 'White' : 'Black') + ' to move';
-  crEl.textContent = `${state.castling.wk? 'K' : ''}${state.castling.wq? 'Q':''}${state.castling.bk? 'k':''}${state.castling.bq? 'q':''}` || '—';
-  epEl.textContent = state.ep || '—';
-
-  updateClockDisplays();
-
-  const lm = legalMoves(state);
-  if(!lm.length){
-    if(chk){
-      statusEl.textContent = (other(state.side) === 'w' ? 'White' : 'Black') + ' wins by checkmate';
-      if(!gameOver){
-        gameOver = true;
-        SND.win(); Confetti.burst(140);
-        const winner = other(state.side);
-        const loser = state.side;
-        sendResultToPiLeaderboard(winner, loser, 'checkmate');
-        showRematchModal();
-      }
-    } else {
-      statusEl.textContent = 'Draw by stalemate';
-      if(!gameOver){
-        gameOver = true;
-        SND.check();
-        appendNote('Stalemate — draw.');
-        showRematchModal();
-      }
-    }
-    stopClock();
-  } else {
-    if(!gameOver) startClock();
-  }
+  document.getElementById('capturedWhite').textContent=capturedWhite.map(p=>PIECES[p]).join(' ');
+  document.getElementById('capturedBlack').textContent=capturedBlack.map(p=>PIECES[p]).join(' ');
+  highlightLegal();
 }
 
-/* Click handler util */
-function squareClick(rr,cc){
-  const p = state.board[rr][cc];
+// Highlight legal moves
+function highlightLegal(){
+  if(!selected) return;
+  const legal=getLegalMoves(selected[0],selected[1]);
+  legal.forEach(([r,c])=>document.querySelector(`.square[data-row="${r}"][data-col="${c}"]`).classList.add('legal'));
+}
+
+// FIDE legal moves
+function getLegalMoves(r,c){
+  const piece=board[r][c]; if(!piece || piece[0]!==turn) return [];
+  const moves=[];
+  const dir=(turn==='w')?-1:1;
+  function isEmpty(x,y){ return board[x] && board[x][y]===''; }
+  function isEnemy(x,y){ return board[x] && board[x][y] && board[x][y][0]!==turn; }
+
+  if(piece[1]==='P'){ // pawn
+    if(isEmpty(r+dir,c)) moves.push([r+dir,c]);
+    if((r===6 && turn==='w')||(r===1 && turn==='b')){ if(isEmpty(r+dir,c) && isEmpty(r+2*dir,c)) moves.push([r+2*dir,c]); }
+    if(isEnemy(r+dir,c-1)) moves.push([r+dir,c-1]);
+    if(isEnemy(r+dir,c+1)) moves.push([r+dir,c+1]);
+    if(enPassant && Math.abs(enPassant[0]-r)===0 && Math.abs(enPassant[1]-c)===1) moves.push([r+dir,enPassant[1]]);
+  }
+
+  if(piece[1]==='R'){ // rook
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{
+      let nr=r+dr,nc=c+dc;
+      while(nr>=0 && nr<8 && nc>=0 && nc<8){
+        if(isEmpty(nr,nc)) moves.push([nr,nc]);
+        else{ if(isEnemy(nr,nc)) moves.push([nr,nc]); break; }
+        nr+=dr; nc+=dc;
+      }
+    });
+  }
+
+  if(piece[1]==='B'){ // bishop
+    [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>{
+      let nr=r+dr,nc=c+dc;
+      while(nr>=0 && nr<8 && nc>=0 && nc<8){
+        if(isEmpty(nr,nc)) moves.push([nr,nc]);
+        else{ if(isEnemy(nr,nc)) moves.push([nr,nc]); break; }
+        nr+=dr; nc+=dc;
+      }
+    });
+  }
+
+  if(piece[1]==='Q'){ // queen
+    [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>{
+      let nr=r+dr,nc=c+dc;
+      while(nr>=0 && nr<8 && nc>=0 && nc<8){
+        if(isEmpty(nr,nc)) moves.push([nr,nc]);
+        else{ if(isEnemy(nr,nc)) moves.push([nr,nc]); break; }
+        nr+=dr; nc+=dc;
+      }
+    });
+  }
+
+  if(piece[1]==='N'){ // knight
+    [[-2,-1],[-2,1],[2,-1],[2,1],[-1,-2],[-1,2],[1,-2],[1,2]].forEach(([dr,dc])=>{
+      const nr=r+dr,nc=c+dc; if(nr>=0&&nr<8&&nc>=0&&nc<8) if(isEmpty(nr,nc)||isEnemy(nr,nc)) moves.push([nr,nc]);
+    });
+  }
+
+  if(piece[1]==='K'){ // king
+    [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>{
+      const nr=r+dr,nc=c+dc; if(nr>=0&&nr<8&&nc>=0&&nc<8) if(isEmpty(nr,nc)||isEnemy(nr,nc)) moves.push([nr,nc]);
+    });
+    // Castling
+    if(!hasMoved(piece,r,c)){
+      if(isEmpty(r,c+1)&&isEmpty(r,c+2)&&!hasMoved(board[r][7],r,7)) moves.push([r,c+2]);
+      if(isEmpty(r,c-1)&&isEmpty(r,c-2)&&isEmpty(r,c-3)&&!hasMoved(board[r][0],r,0)) moves.push([r,c-2]);
+    }
+  }
+
+  // Filter out moves that put king in check
+  return moves.filter(m=>!wouldBeInCheck(r,c,m[0],m[1]));
+}
+
+// Track if piece has moved
+function hasMoved(piece,r,c){
+  return moveHistory.some(m=>m[0]===r && m[1]===c);
+}
+
+// Simulate move to see if king in check
+function wouldBeInCheck(sr,sc,tr,tc){
+  const tmp=board[tr][tc]; board[tr][tc]=board[sr][sc]; board[sr][sc]='';
+  const inCheck=isKingInCheck(turn);
+  board[sr][sc]=board[tr][tc]; board[tr][tc]=tmp;
+  return inCheck;
+}
+
+// King check
+function isKingInCheck(color){
+  let kr,kc; for(let r=0;r<8;r++){ for(let c=0;c<8;c++){ if(board[r][c] && board[r][c]==color+'K'){ kr=r; kc=c; break; } } }
+  for(let r=0;r<8;r++){ for(let c=0;c<8;c++){
+    if(board[r][c] && board[r][c][0]!==color){
+      const moves=getPseudoMoves(r,c); if(moves.some(m=>m[0]===kr && m[1]===kc)) return true;
+    }
+  }} return false;
+}
+
+// Pseudo moves for check detection (ignore checks)
+function getPseudoMoves(r,c){
+  const p=board[r][c]; if(!p) return [];
+  const moves=[]; const isEmpty=(x,y)=>board[x]&&board[x][y]===''; const isEnemy=(x,y)=>board[x][y]&&board[x][y][0]!==p[0];
+  const dir=p[0]==='w'?-1:1;
+  if(p[1]==='P'){ if(isEnemy(r+dir,c-1)) moves.push([r+dir,c-1]); if(isEnemy(r+dir,c+1)) moves.push([r+dir,c+1]); return moves; }
+  if(p[1]==='R'){ [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{ let nr=r+dr,nc=c+dc; while(nr>=0&&nr<8&&nc>=0&&nc<8){ if(isEmpty(nr,nc)||isEnemy(nr,nc)) moves.push([nr,nc]); if(!isEmpty(nr,nc)) break; nr+=dr; nc+=dc; } }); return moves; }
+  if(p[1]==='B'){ [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>{ let nr=r+dr,nc=c+dc; while(nr>=0&&nr<8&&nc>=0&&nc<8){ if(isEmpty(nr,nc)||isEnemy(nr,nc)) moves.push([nr,nc]); if(!isEmpty(nr,nc)) break; nr+=dr; nc+=dc; } }); return moves; }
+  if(p[1]==='Q'){ [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>{ let nr=r+dr,nc=c+dc; while(nr>=0&&nr<8&&nc>=0&&nc<8){ if(isEmpty(nr,nc)||isEnemy(nr,nc)) moves.push([nr,nc]); if(!isEmpty(nr,nc)) break; nr+=dr; nc+=dc; } }); return moves; }
+  if(p[1]==='N'){ [[-2,-1],[-2,1],[2,-1],[2,1],[-1,-2],[-1,2],[1,-2],[1,2]].forEach(([dr,dc])=>{ const nr=r+dr,nc=c+dc;if(nr>=0&&nr<8&&nc>=0&&nc<8) if(isEmpty(nr,nc)||isEnemy(nr,nc)) moves.push([nr,nc]); }); return moves; }
+  if(p[1]==='K'){ [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>{ const nr=r+dr,nc=c+dc; if(nr>=0&&nr<8&&nc>=0&&nc<8) if(isEmpty(nr,nc)||isEnemy(nr,nc)) moves.push([nr,nc]); }); return moves; }
+  return moves;
+}
+
+// Click handler
+function onSquareClick(e){
+  const r=parseInt(this.dataset.row), c=parseInt(this.dataset.col), piece=board[r][c];
   if(selected){
-    const mv = legal.find(m => m.to.r === rr && m.to.c === cc);
-    if(mv){
-      const ok = makeMove(state, mv, false, null);
-      if(ok){
-        if(pendingPromotion){
-          render();
-          return;
-        }
-        logMove(mv);
-        SND.move();
-        const kp = kingPos(state.board, state.side);
-        if(attacked(state.board, other(state.side), kp.r, kp.c)) SND.check();
-      }
-      selected = null; legal = [];
-      render();
-      return;
-    }
-    if(p && sidePiece(p, state.side)){
-      selected = { r: rr, c: cc };
-      legal = legalMoves(state).filter(m => m.from.r === rr && m.from.c === cc);
-    } else {
-      selected = null; legal = [];
-    }
-  } else {
-    if(p && sidePiece(p, state.side)){
-      selected = { r: rr, c: cc };
-      legal = legalMoves(state).filter(m => m.from.r === rr && m.from.c === cc);
-    }
+    const [sr,sc]=selected;
+    const legal=getLegalMoves(sr,sc);
+    if(legal.some(m=>m[0]===r && m[1]===c)){
+      // Capture
+      if(board[r][c]) board[r][c][0]==='w'?capturedWhite.push(board[r][c]):capturedBlack.push(board[r][c]);
+      // En passant capture
+      if(board[sr][sc][1]==='P' && enPassant && r===enPassant[0] && c===enPassant[1]) board[sr][c]=turn+'P';
+      // Move
+      board[r][c]=board[sr][sc]; board[sr][sc]='';
+      // Pawn promotion
+      if(board[r][c][1]==='P' && (r===0||r===7)) board[r][c]=turn+'Q';
+      // Track en passant
+      enPassant=null; if(board[r][c][1]==='P' && Math.abs(r-sr)===2) enPassant=[r,c];
+      moveHistory.push([sr,sc,r,c]);
+      playSound('move'); selected=null; updateBoard();
+      if(checkWin()) return;
+      turn=turn==='w'?'b':'w'; document.getElementById('turn').textContent=turn==='w'?'White':'Black';
+      if(aiMode && turn==='b') setTimeout(aiMove,500);
+    } else { selected=null; updateBoard(); }
+  } else if(piece && piece[0]===turn){ selected=[r,c]; updateBoard(); }
+}
+
+// AI move (random)
+function aiMove(){
+  let pieces=[], moves=[];
+  for(let r=0;r<8;r++){ for(let c=0;c<8;c++){
+    if(board[r][c] && board[r][c][0]==='b'){ const legal=getLegalMoves(r,c); if(legal.length) pieces.push([r,c]); }
+  }}
+  if(pieces.length){
+    const [sr,sc]=pieces[Math.floor(Math.random()*pieces.length)];
+    const legal=getLegalMoves(sr,sc); const [r,c]=legal[Math.floor(Math.random()*legal.length)];
+    if(board[r][c]) capturedWhite.push(board[r][c]);
+    board[r][c]=board[sr][sc]; board[sr][sc]='';
+    // Pawn promotion
+    if(board[r][c][1]==='P' && r===0) board[r][c]='bQ';
+    playSound('move'); updateBoard();
+    if(checkWin()) return;
+    turn='w'; document.getElementById('turn').textContent='White';
   }
-  render();
 }
 
-boardEl.addEventListener('click', e => {
-  const sq = e.target.closest('.sq'); if(!sq) return;
-  const rr = +sq.dataset.r, cc = +sq.dataset.c;
-  squareClick(rr,cc);
-});
-
-/* Controls */
-flipBtn.addEventListener('click', ()=>{ flipped = !flipped; render(); });
-
-// Resign button behavior
-resignBtn.addEventListener('click', ()=>{
-  if(gameOver) return;
-  const loser = state.side;
-  const winner = other(loser);
-  gameOver = true;
-  statusEl.textContent = (winner === 'w' ? 'White' : 'Black') + ' wins by resignation';
-  SND.win(); Confetti.burst(100);
-  sendResultToPiLeaderboard(winner, loser, 'resign');
-  stopClock();
-  showRematchModal();
-});
-
-/* Offer Draw button behavior */
-offerDrawBtn.addEventListener('click', ()=>{
-  if(gameOver) return;
-  const offeringSide = state.side;
-  sendDrawOfferToPi(offeringSide);
-});
-
-/* Accept Draw button behavior (shown to opponent) */
-acceptDrawBtn.addEventListener('click', ()=>{
-  // Accept draw by the player who is not the offering side
-  acceptDraw(null);
-  acceptDrawBtn.style.display = 'none';
-});
-
-/* Move logging */
-function logMove(m){
-  const from = U.toAlg(m.from.r,m.from.c), to = U.toAlg(m.to.r,m.to.c);
-  const note = `${from}${m.capture ? 'x' : '–'}${to}${m.castle? ' (' + (m.castle.toLowerCase()==='q' ? 'O-O-O' : 'O-O') + ')' : ''}${m.ep? ' e.p.' : ''}${m.promo ? '=Q' : ''}`;
-  const row = document.createElement('div'); row.textContent = note; movesEl.appendChild(row); movesEl.scrollTop = movesEl.scrollHeight;
-}
-function appendNote(text){
-  const row = document.createElement('div'); row.className='tiny'; row.textContent = text; movesEl.appendChild(row); movesEl.scrollTop = movesEl.scrollHeight;
+// Timer
+function startTimer(){ clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    timerSeconds--; const min=String(Math.floor(timerSeconds/60)).padStart(2,'0'); const sec=String(timerSeconds%60).padStart(2,'0');
+    document.getElementById('timer').textContent=`${min}:${sec}`;
+    if(timerSeconds<=10) playSound('tick');
+    if(timerSeconds<=0){ clearInterval(timerInterval); endGame('b'); }
+  },1000);
 }
 
-/* Promotion modal */
-promoModal.addEventListener('click', e=>{
-  if(!e.target.classList.contains('pick')) return;
-  const code = e.target.dataset.piece; choosePromotion(code);
-});
-function openPromotion(white){
-  if(AUTO_PROMOTE){
-    choosePromotion('q'); return;
-  }
-  promoModal.classList.add('show');
-  promoModal.querySelectorAll('.pick').forEach(btn=>{
-    btn.style.color = white ? '#b8860b' : '#000';
-    btn.style.textShadow = white ? '2px 2px 0 #000' : 'none';
-  });
-}
-function choosePromotion(code){
-  promoModal.classList.remove('show');
-  if(!pendingPromotion) return;
-  const { move, rec } = pendingPromotion;
-  state.board = rec.board; state.side = rec.side; state.castling = rec.castling; state.ep = rec.ep; state.half = rec.half; state.full = rec.full;
-  pendingPromotion = null;
-  makeMove(state, move, false, code);
-  logMove({ ...move, promo: true });
-  SND.move();
-  render();
+// Check win
+function checkWin(){
+  if(!board.flat().includes('wK')){ endGame('b'); return true; }
+  if(!board.flat().includes('bK')){ endGame('w'); return true; }
+  return false;
 }
 
-/* ---------------- Rematch modal logic ---------------- */
-let rematchTimer = null;
-let rematchRemaining = REMATCH_AUTO_CANCEL;
-function showRematchModal(){
-  clearRematchTimer();
-  rematchRemaining = REMATCH_AUTO_CANCEL;
-  rematchCountdownEl.textContent = `Auto-cancel in ${rematchRemaining}s`;
-  rematchModal.classList.add('show');
-  rematchModal.setAttribute('aria-hidden', 'false');
-
-  rematchTimer = setInterval(() => {
-    rematchRemaining -= 1;
-    if(rematchRemaining <= 0){
-      clearRematchTimer();
-      hideRematchModal();
-      return;
-    }
-    rematchCountdownEl.textContent = `Auto-cancel in ${rematchRemaining}s`;
-  }, 1000);
+// End game
+function endGame(winner){
+  playSound('win'); confetti();
+  setTimeout(()=>window.location.href='leaderboard.html',2000);
+  alert((winner==='w'?'White':'Black')+' wins!');
 }
-function hideRematchModal(){
-  clearRematchTimer();
-  rematchModal.classList.remove('show');
-  rematchModal.setAttribute('aria-hidden', 'true');
+
+// Sounds
+function playSound(type){ const sounds={'move':document.getElementById('moveSound'),'win':document.getElementById('winSound'),'lose':'lose','tick':document.getElementById('tickSound')};
+  if(sounds[type]) sounds[type].play();
 }
-function clearRematchTimer(){
-  if(rematchTimer){ clearInterval(rematchTimer); rematchTimer = null; }
+
+// Simple confetti
+function confetti(){
+  const c=document.createElement('div'); c.textContent='🎉'; c.style.position='fixed';
+  c.style.top='50%'; c.style.left='50%'; c.style.fontSize='50px'; document.body.appendChild(c);
+  setTimeout(()=>document.body.removeChild(c),2000);
 }
-rematchAcceptBtn.addEventListener('click', ()=>{
-  hideRematchModal();
-  sendRematchToPiLobby();
-});
-rematchDeclineBtn.addEventListener('click', ()=>{
-  hideRematchModal();
-});
 
-/* Initial draw and clock start */
-resetClocks();
-render();
+// Buttons
+document.getElementById('resetBtn').addEventListener('click',()=>{initBoard(); timerSeconds=300; startTimer(); turn='w'; document.getElementById('turn').textContent='White';});
+document.getElementById('aiBtn').addEventListener('click',()=>{aiMode=true; if(turn==='b') aiMove();});
 
-/* API for SDK */
-window.ChessArenaPi = {
-  setPlayerIds: function(p1, p2){
-    player1IdEl.textContent = p1 || '(player1 id placeholder)';
-    player2IdEl.textContent = p2 || '(player2 id placeholder)';
-  },
-  recordResult: function(winner, reason='manual'){
-    const loser = other(winner);
-    sendResultToPiLeaderboard(winner, loser, reason);
-  },
-  requestRematch: function(){ sendRematchToPiLobby(); },
-  // allow external trigger for draw offers if desired
-  requestDrawOffer: function(side){ sendDrawOfferToPi(side); }
-});
-<script>
-  function goToLeaderboard() {
-    window.location.href = 'leaderboard.html';
-  },
-
+// Initialize
+initBoard(); startTimer();
 </script>
 </body>
 </html>
