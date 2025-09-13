@@ -44,6 +44,8 @@
   .rematch-actions { display:flex; gap:10px; justify-content:center; margin-top:12px }
   .btn-accept { background:#3bbf7f; color:#041; padding:8px 12px; border-radius:8px; font-weight:800; border:0; cursor:pointer }
   .btn-decline { background:#bf3b3b; color:#210; padding:8px 12px; border-radius:8px; font-weight:800; border:0; cursor:pointer }
+  .controls { display:flex; gap:8px; align-items:center; }
+  .btn-secondary { background:#888; color:#fff; padding:8px 10px; border-radius:8px; border:0; cursor:pointer; font-weight:700 }
 </style>
 </head>
 <body>
@@ -82,10 +84,13 @@
         <div id="moves" class="moves"></div>
       </div>
 
-      <div class="panel row">
-        <!-- Reset replaced by Resign -->
-        <button class="btn" id="resignBtn">Resign</button>
-        <button class="btn" id="flipBtn">Flip</button>
+      <div class="panel row" style="align-items:center">
+        <div class="controls">
+          <button class="btn" id="resignBtn">Resign</button>
+          <button class="btn" id="flipBtn">Flip</button>
+          <button class="btn-secondary" id="offerDrawBtn">Offer Draw</button>
+          <button class="btn-secondary" id="acceptDrawBtn" style="display:none">Accept Draw</button>
+        </div>
         <div class="tiny">Click a piece → click a target square</div>
       </div>
     </div>
@@ -121,7 +126,8 @@
 <script>
 /* ------------------ Config ------------------ */
 const AUTO_PROMOTE = true;
-const START_CLOCK = 45;
+// Classic 10 minute clock in seconds:
+const START_CLOCK = 600;
 const REMATCH_AUTO_CANCEL = 5;
 
 /* -------------- Sound (WebAudio) -------------- */
@@ -205,8 +211,11 @@ function kingPos(board, side){
 }
 
 function attacked(board, side, r, c){
+  // side = attacker side ('w' or 'b')
   const pawn = side === 'w' ? 'P' : 'p';
-  const pawnDir = side === 'w' ? -1 : 1;
+  // CORRECT pawn attack offset: to check if square (r,c) is attacked by attacker side,
+  // white pawns attack from r+1 (because they move up the board (r decreases)).
+  const pawnDir = side === 'w' ? 1 : -1;
   for(const dc of [-1,1]){
     const rr = r + pawnDir, cc = c + dc;
     if(U.inBounds(rr,cc) && board[rr][cc] === pawn) return true;
@@ -399,8 +408,13 @@ function makeMove(state, m, simulate=false, promoChoice=null){
   state.side = other(side);
 
   if(!simulate) {
+    // Record previous position in history:
     state.hist.push(rec);
-    resetPlayerClock(mover);
+
+    // IMPORTANT: classic timing: do NOT reset mover's clock to full.
+    // Immediately refresh lastTick so that on next interval we start counting the *new* active side
+    lastTick = performance.now();
+    updateClockDisplays();
   }
   return true;
 }
@@ -428,6 +442,9 @@ const playerBlackEl = document.getElementById('playerBlack');
 const clockWEl = document.getElementById('clockW');
 const clockBEl = document.getElementById('clockB');
 const resignBtn = document.getElementById('resignBtn');
+
+const offerDrawBtn = document.getElementById('offerDrawBtn');
+const acceptDrawBtn = document.getElementById('acceptDrawBtn');
 
 let selected = null;
 let legal = [];
@@ -461,12 +478,6 @@ function resetClocks(){
   clocks.w = START_CLOCK; clocks.b = START_CLOCK; lastTickSecond = { w:null, b:null }; updateClockDisplays();
 }
 
-function resetPlayerClock(side){
-  clocks[side] = START_CLOCK;
-  lastTickSecond[side] = null;
-  updateClockDisplays();
-}
-
 /* start ticking clocks (runs while game not over) */
 function startClock(){
   stopClock();
@@ -476,6 +487,7 @@ function startClock(){
     const now = performance.now();
     const dt = (now - lastTick)/1000;
     lastTick = now;
+    // Decrement time only for the active side (classic behavior)
     clocks[state.side] -= dt;
     if(clocks[state.side] <= 0){
       clocks[state.side] = 0;
@@ -521,17 +533,62 @@ function sendResultToPiLeaderboard(winner, loser, reason){
 
 /* ---------------- Rematch / Resign behavior ---------------- */
 function sendRematchToPiLobby(){
-  const payload = { p1: player1IdEl.textContent, p2: player2IdEl.textContent, timestamp: new Date().toISOString() };
-  console.log('Requesting rematch via Pi lobby (placeholder):', payload);
-  if(window.PiSDK && typeof window.PiSDK.requestRematch === 'function'){
-    window.PiSDK.requestRematch(payload).then(()=> newGameAfterRematch()).catch(()=> setTimeout(newGameAfterRematch, 400));
-  } else setTimeout(newGameAfterRematch, 400);
+  const payload = { p1: player1IdEl.textContent, p2: player2IdEl.textContent, timestamp: new Date().toISOString(), purpose: 'rematch' };
+  console.log('Requesting rematch via Pi lobby/payment pairing (payload):', payload);
+
+  // Try SDK payment request (placeholder). If missing, fallback to immediate rematch start.
+  if(window.PiSDK && typeof window.PiSDK.requestPayment === 'function'){
+    window.PiSDK.requestPayment(payload).then(()=>{
+      console.log('PiSDK rematch payment request sent (placeholder). Starting new game.');
+      newGameAfterRematch();
+    }).catch((e)=>{
+      console.warn('PiSDK rematch payment failed/fallback:', e);
+      setTimeout(newGameAfterRematch, 400);
+    });
+  } else {
+    // fallback simulation
+    setTimeout(newGameAfterRematch, 400);
+  }
 }
 
+function sendDrawOfferToPi(offeringSide){
+  const payload = { from: offeringSide === 'w' ? player1IdEl.textContent : player2IdEl.textContent, to: offeringSide === 'w' ? player2IdEl.textContent : player1IdEl.textContent, timestamp: new Date().toISOString(), purpose: 'draw-offer' };
+  console.log('Sending draw offer payload (placeholder):', payload);
+
+  // Try PiSDK hook for draw offers (placeholder)
+  if(window.PiSDK && typeof window.PiSDK.requestDrawOffer === 'function'){
+    window.PiSDK.requestDrawOffer(payload).then(()=> {
+      appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw (sent via PiSDK).`);
+      acceptDrawBtn.style.display = ''; // allow opponent to accept in UI
+    }).catch(()=> {
+      appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw (failed to send via PiSDK — local fallback).`);
+      acceptDrawBtn.style.display = '';
+    });
+  } else {
+    // local fallback: show move note and enable Accept Draw button
+    appendNote(`${offeringSide==='w' ? 'White' : 'Black'} offers a draw.`);
+    acceptDrawBtn.style.display = '';
+  }
+}
+
+function acceptDraw(offeringSide){
+  // Accept draw: end game as draw and send to leaderboard placeholder
+  if(gameOver) return;
+  gameOver = true;
+  statusEl.textContent = 'Draw by agreement';
+  SND.check();
+  appendNote(`Draw accepted. Result recorded as draw.`);
+  sendResultToPiLeaderboard('w', 'b', 'draw-agreement'); // placeholder: you can adapt payload as desired
+  stopClock();
+  showRematchModal();
+}
+
+/* Rematch modal logic reused */
 function newGameAfterRematch(){
   state = { board: U.clone(START), side:'w', castling:{wk:true,wq:true,bk:true,bq:true}, ep:null, half:0, full:1, hist:[] };
   selected = null; legal = []; pendingPromotion = null;
   movesEl.innerHTML = '';
+  acceptDrawBtn.style.display = 'none';
   resetClocks();
   gameOver = false;
   render();
@@ -593,6 +650,7 @@ function render(){
       if(!gameOver){
         gameOver = true;
         SND.check();
+        appendNote('Stalemate — draw.');
         showRematchModal();
       }
     }
@@ -660,11 +718,28 @@ resignBtn.addEventListener('click', ()=>{
   showRematchModal();
 });
 
+/* Offer Draw button behavior */
+offerDrawBtn.addEventListener('click', ()=>{
+  if(gameOver) return;
+  const offeringSide = state.side;
+  sendDrawOfferToPi(offeringSide);
+});
+
+/* Accept Draw button behavior (shown to opponent) */
+acceptDrawBtn.addEventListener('click', ()=>{
+  // Accept draw by the player who is not the offering side
+  acceptDraw(null);
+  acceptDrawBtn.style.display = 'none';
+});
+
 /* Move logging */
 function logMove(m){
   const from = U.toAlg(m.from.r,m.from.c), to = U.toAlg(m.to.r,m.to.c);
   const note = `${from}${m.capture ? 'x' : '–'}${to}${m.castle? ' (' + (m.castle.toLowerCase()==='q' ? 'O-O-O' : 'O-O') + ')' : ''}${m.ep? ' e.p.' : ''}${m.promo ? '=Q' : ''}`;
   const row = document.createElement('div'); row.textContent = note; movesEl.appendChild(row); movesEl.scrollTop = movesEl.scrollHeight;
+}
+function appendNote(text){
+  const row = document.createElement('div'); row.className='tiny'; row.textContent = text; movesEl.appendChild(row); movesEl.scrollTop = movesEl.scrollHeight;
 }
 
 /* Promotion modal */
@@ -744,8 +819,51 @@ window.ChessArenaPi = {
     const loser = other(winner);
     sendResultToPiLeaderboard(winner, loser, reason);
   },
-  requestRematch: function(){ sendRematchToPiLobby(); }
+  requestRematch: function(){ sendRematchToPiLobby(); },
+  // allow external trigger for draw offers if desired
+  requestDrawOffer: function(side){ sendDrawOfferToPi(side); }
 };
+
+<!-- your long chess.js logic script ends here -->
 </script>
+
+<!-- Firebase multiplayer snippet -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, push, set, onChildAdded } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_KEY",
+    authDomain: "YOUR_APP.firebaseapp.com",
+    databaseURL: "https://YOUR_APP.firebaseio.com",
+    projectId: "YOUR_APP",
+    storageBucket: "YOUR_APP.appspot.com",
+    messagingSenderId: "SENDER_ID",
+    appId: "APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  function sendMove(from, to, promotion = null) {
+    const movesRef = ref(db, "games/game1/moves");
+    const newMoveRef = push(movesRef);
+    set(newMoveRef, { from, to, promotion });
+  }
+
+  const movesRef = ref(db, "games/game1/moves");
+  onChildAdded(movesRef, (snapshot) => {
+    const move = snapshot.val();
+    if (move) {
+      makeMove(move.from, move.to, move.promotion, true);
+    }
+  });
+
+  function handlePlayerMove(from, to, promotion = null) {
+    makeMove(from, to, promotion);
+    sendMove(from, to, promotion);
+  }
+</script>
+
 </body>
 </html>
