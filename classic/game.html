@@ -863,6 +863,23 @@ window.ChessArenaPi = {
     makeMove(from, to, promotion);
     sendMove(from, to, promotion);
   }
+// NOTE: End Game handler for Pi SDK + redirect
+function handleEndGame(result) {
+  if (typeof showEndGamePopup === "function") {
+    showEndGamePopup(result);
+  }
+
+  if (window.Pi && window.Pi.openShareDialog) {
+    Pi.openShareDialog({
+      title: "Chess Arena Pi",
+      message: `Game finished! Result: ${result}`,
+    })
+    .then(() => window.location.href = "leaderboard.html")
+    .catch(() => window.location.href = "leaderboard.html");
+  } else {
+    window.location.href = "leaderboard.html";
+  }
+}
 </script>
 
 </body>
