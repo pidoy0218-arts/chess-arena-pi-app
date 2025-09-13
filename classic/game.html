@@ -126,7 +126,8 @@
 <script>
 /* ------------------ Config ------------------ */
 const AUTO_PROMOTE = true;
-const START_CLOCK = 45;
+// Classic 10 minute clock in seconds:
+const START_CLOCK = 600;
 const REMATCH_AUTO_CANCEL = 5;
 
 /* -------------- Sound (WebAudio) -------------- */
@@ -407,8 +408,13 @@ function makeMove(state, m, simulate=false, promoChoice=null){
   state.side = other(side);
 
   if(!simulate) {
+    // Record previous position in history:
     state.hist.push(rec);
-    resetPlayerClock(mover);
+
+    // IMPORTANT: classic timing: do NOT reset mover's clock to full.
+    // Immediately refresh lastTick so that on next interval we start counting the *new* active side
+    lastTick = performance.now();
+    updateClockDisplays();
   }
   return true;
 }
@@ -472,12 +478,6 @@ function resetClocks(){
   clocks.w = START_CLOCK; clocks.b = START_CLOCK; lastTickSecond = { w:null, b:null }; updateClockDisplays();
 }
 
-function resetPlayerClock(side){
-  clocks[side] = START_CLOCK;
-  lastTickSecond[side] = null;
-  updateClockDisplays();
-}
-
 /* start ticking clocks (runs while game not over) */
 function startClock(){
   stopClock();
@@ -487,6 +487,7 @@ function startClock(){
     const now = performance.now();
     const dt = (now - lastTick)/1000;
     lastTick = now;
+    // Decrement time only for the active side (classic behavior)
     clocks[state.side] -= dt;
     if(clocks[state.side] <= 0){
       clocks[state.side] = 0;
