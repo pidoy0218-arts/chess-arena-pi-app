@@ -1,53 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Firebase Control Panel</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: sans-serif; background: #111; color: #eee; padding: 20px; }
-    h1 { color: #90ee90; }
-    button {
-      background: #333; color: #eee; border: none; padding: 10px 20px;
-      margin: 5px; border-radius: 8px; cursor: pointer;
-    }
-    button:hover { background: #444; }
-    pre {
-      background: #222; padding: 10px; border-radius: 8px;
-      white-space: pre-wrap; word-break: break-word;
-      max-height: 300px; overflow-y: auto;
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Firebase Integration Test</title>
 </head>
 <body>
-  <h1>🔥 Firebase Control Panel</h1>
-  <p>Use this page to test Firebase + trigger deploys.</p>
 
-  <button onclick="checkProject()">🔎 Check Project</button>
-  <button onclick="testWrite()">📝 Test Firestore Write</button>
-  <button onclick="triggerDeploy()">🚀 Trigger Deploy</button>
-
-  <h2>Logs</h2>
-  <pre id="log">Ready...</pre>
+  <h1>Firebase Connection Test</h1>
+  <p>
+    This page attempts to connect to your Firebase Realtime Database and write a test entry.
+  </p>
+  <p>
+    Open your browser's developer console (usually by pressing F12) to see the success or error messages.
+  </p>
+  <p id="status">Status: Initializing...</p>
 
   <script type="module">
-    // Import Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    // ✅ Firebase SDK (v9+ modular)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-    // 🔑 Replace with your Firebase config
+    // 🔑 --- IMPORTANT ---
+    // Replace the placeholder values below with the configuration from your actual Firebase project.
+    // You can find this in your Firebase console under Project Settings > General > Your apps > SDK setup and configuration.
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
+      databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const statusEl = document.getElementById('status');
 
-    // ✅ Check Firebase project info
-    function checkProject() {
-      log("Connected to project: " + app.options.projectId);
+    try {
+      // 🚀 Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+      console.log("Firebase app initialized successfully.");
+      statusEl.textContent = 'Status: Firebase Initialized. Writing to database...';
+
+      // 🎯 Define a reference to a test location in the database
+      const testRef = ref(db, 'test-connection');
+
+      // ✍️ Write a test value
+      await set(testRef, {
+        message: "Connection successful!",
+        timestamp: new Date().toISOString()
+      });
+
+      console.log("Successfully wrote test data to the database.");
+      statusEl.textContent = 'Status: Success! Wrote a test value to /test-connection in your database.';
+      
+    } catch (error) {
+      console.error("Firebase initialization or database write failed:", error);
+      statusEl.textContent = 'Status: Error! Could not connect or write to Firebase. Check console for details. Make sure your firebaseConfig is correct and your database security rules allow writes.';
+      statusEl.style.color = 'red';
     }
+  </script>
 
-    // ✅ Test Fire
+</body>
+</html>
