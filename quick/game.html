@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>CHESS ARENA for PI — FIDE Legal (Auto-Queen Promotion)</title>
+<title>CHESS ARENA for PI — Quick Game</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
   :root{ --bg:#111; --fg:#eee; --light:#f0f0f0; --dark:#b1e59f; --sel:#ffcc00; --hint:#5ac8fa; --accent:#f4b400; --warn:#ff5252 }
@@ -44,9 +44,11 @@
 </head>
 <body>
   <h1>♞ CHESS ARENA for PI</h1>
-  <div class="sub">FIDE-legal: castling • en passant • promotion • check/checkmate • auto-queen promotion</div>
+  <div class="sub">Quick Game: 45-second clocks, auto-queen promotion.</div>
+
   <div class="wrap">
     <div id="board" aria-label="chessboard"></div>
+
     <div class="side">
       <div class="panel">
         <div class="players">
@@ -67,10 +69,12 @@
         </div>
         <div class="row tiny"><div>Castling: <span id="cr">KQkq</span></div><div>En Passant: <span id="ep">—</span></div></div>
       </div>
+
       <div class="panel">
         <div class="row"><div><b>Move List</b></div></div>
         <div id="moves" class="moves"></div>
       </div>
+
       <div class="panel row">
         <button class="btn" id="resignBtn">Resign</button>
         <button class="btn" id="flipBtn">Flip</button>
@@ -78,53 +82,36 @@
       </div>
     </div>
   </div>
-  <div id="promo" class="modal" role="dialog" aria-modal="true">
-    <div class="card">
-      <div style="font-weight:700;margin-bottom:6px">Promote pawn to:</div>
-      <div class="grid4">
-        <button class="pick" data-piece="q">♛</button>
-        <button class="pick" data-piece="r">♜</button>
-        <button class="pick" data-piece="b">♝</button>
-        <button class="pick" data-piece="n">♞</button>
-      </div>
-    </div>
-  </div>
-  <div id="rematchModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="card">
-      <div style="font-weight:800">Rematch?</div>
-      <div class="tiny" style="margin-top:8px">Accept to request rematch via Pi lobby/payment pairing.</div>
-      <div class="rematch-count" id="rematchCountdown">Auto-cancel in 5s</div>
-      <div class="rematch-actions">
-        <button id="rematchAccept" class="btn-accept">Accept</button>
-        <button id="rematchDecline" class="btn-decline">Decline</button>
-      </div>
-    </div>
-  </div>
+
+  <div id="promo" class="modal" role="dialog" aria-modal="true"><div class="card"><div style="font-weight:700;margin-bottom:6px">Promote pawn to:</div><div class="grid4"><button class="pick" data-piece="q">♛</button><button class="pick" data-piece="r">♜</button><button class="pick" data-piece="b">♝</button><button class="pick" data-piece="n">♞</button></div></div></div>
+  <div id="rematchModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"><div class="card"><div style="font-weight:800">Rematch?</div><div class="tiny" style="margin-top:8px">Accept to request rematch via Pi lobby/payment pairing.</div><div class="rematch-count" id="rematchCountdown">Auto-cancel in 5s</div><div class="rematch-actions"><button id="rematchAccept" class="btn-accept">Accept</button><button id="rematchDecline" class="btn-decline">Decline</button></div></div></div>
+
   <canvas id="fx"></canvas>
+
 <script>
 /* ------------------ Config ------------------ */
 const AUTO_PROMOTE = true;
 const START_CLOCK = 45;
 const REMATCH_AUTO_CANCEL = 5;
 
-/* -------------- Sound (WebAudio) -------------- */
+/* -------------- Sound (WebAudio with Stereo Panning) -------------- */
 const SND = (() => {
   let ctx;
-  function beep(freq=600, dur=0.08, type='square', vol=0.05){
+  function beep(freq=600, dur=0.08, type='square', vol=0.05, pan=0){
     try{
       ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = type; o.frequency.value = freq; g.gain.value = vol;
-      o.connect(g); g.connect(ctx.destination); o.start();
+      const o = ctx.createOscillator(), g = ctx.createGain(), p = ctx.createStereoPanner();
+      o.type = type; o.frequency.value = freq; g.gain.value = vol; p.pan.value = pan;
+      o.connect(g); g.connect(p); p.connect(ctx.destination); o.start();
       setTimeout(()=> o.stop(), dur*1000);
     }catch(e){}
   }
   return {
-    move:()=>beep(640,0.07,'square',0.05),
-    capture:()=>{beep(220,0.05,'sawtooth',0.06); setTimeout(()=>beep(180,0.09,'sawtooth',0.05),60);},
-    check:()=>beep(900,0.12,'triangle',0.06),
-    win:()=>{ [880,988,1175].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.08), i*120)); },
-    tick:()=>beep(950,0.04,'square',0.06)
+    move: (pan=0)=>beep(640,0.07,'square',0.05, pan),
+    capture: (pan=0)=>{beep(220,0.05,'sawtooth',0.06, pan); setTimeout(()=>beep(180,0.09,'sawtooth',0.05, pan),60);},
+    check: (pan=0)=>beep(900,0.12,'triangle',0.06, pan),
+    win: ()=>{ [880,988,1175].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.08), i*120)); },
+    tick: ()=>beep(950,0.04,'square',0.06, 0)
   };
 })();
 
@@ -166,26 +153,29 @@ const START = [
   ["P","P","P","P","P","P","P","P"],
   ["R","N","B","Q","K","B","N","R"]
 ];
+
 let state = { board: U.clone(START), side: 'w', castling: { wk:true, wq:true, bk:true, bq:true }, ep: null, half:0, full:1, hist: [] };
+
 function isWhite(p){ return p && p === p.toUpperCase(); }
 function isBlack(p){ return p && p === p.toLowerCase(); }
 function sidePiece(p, side){ return side === 'w' ? isWhite(p) : isBlack(p); }
 function other(side){ return side === 'w' ? 'b' : 'w'; }
+
 function kingPos(board, side){
   const k = side === 'w' ? 'K' : 'k';
   for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(board[r][c] === k) return {r,c};
   return null;
 }
+
 function attacked(board, side, r, c){
   const pawn = side === 'w' ? 'P' : 'p';
-  const pawnDir = side === 'w' ? -1 : 1;
+  const pawnDir = side === 'w' ? 1 : -1;
   for(const dc of [-1,1]){
     const rr = r + pawnDir, cc = c + dc;
     if(U.inBounds(rr,cc) && board[rr][cc] === pawn) return true;
   }
   const N = side === 'w' ? 'N' : 'n';
-  for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
-    const rr=r+dr, cc=c+dc;
+  for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){\n    const rr=r+dr, cc=c+dc;
     if(U.inBounds(rr,cc) && board[rr][cc] === N) return true;
   }
   const B = side==='w'?'B':'b', R= side==='w'?'R':'r', Q = side==='w'?'Q':'q';
@@ -209,14 +199,18 @@ function attacked(board, side, r, c){
   for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr===0 && dc===0) continue; const rr=r+dr, cc=c+dc; if(U.inBounds(rr,cc) && board[rr][cc]===K) return true; }
   return false;
 }
+
+/* Generate all legal moves */
 function legalMoves(state){
   const moves = [];
   const { board, side } = state;
   const isW = side === 'w';
+
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
       const p = board[r][c]; if(!p || !sidePiece(p, side)) continue;
       const lower = p.toLowerCase();
+
       if(lower === 'p'){
         const dir = isW ? -1 : 1;
         const start = isW ? 6 : 1;
@@ -234,8 +228,7 @@ function legalMoves(state){
           const cc = c + dc, rr = r + dir;
           if(!U.inBounds(rr,cc)) continue;
           const t = board[rr][cc];
-          if(t && ((isW && isBlack(t)) || (!isW && isWhite(t)))){
-            if(rr === promoRank) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true, promo:true });
+          if(t && ((isW && isBlack(t)) || (!isW && isWhite(t)))){\n            if(rr === promoRank) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true, promo:true });
             else moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:true });
           }
         }
@@ -246,14 +239,15 @@ function legalMoves(state){
           }
         }
       }
+
       if(lower === 'n'){
-        for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
-          const rr=r+dr, cc=c+dc;
+        for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){\n          const rr=r+dr, cc=c+dc;
           if(!U.inBounds(rr,cc)) continue;
           const t = board[rr][cc];
           if(!t || (isW ? isBlack(t) : isWhite(t))) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:!!t });
         }
       }
+
       if(lower === 'b' || lower === 'q'){
         for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){
           let rr=r+dr, cc=c+dc;
@@ -265,6 +259,7 @@ function legalMoves(state){
           }
         }
       }
+
       if(lower === 'r' || lower === 'q'){
         for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
           let rr=r+dr, cc=c+dc;
@@ -276,6 +271,7 @@ function legalMoves(state){
           }
         }
       }
+
       if(lower === 'k'){
         for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr===0 && dc===0) continue; const rr=r+dr, cc=c+dc; if(!U.inBounds(rr,cc)) continue; const t = board[rr][cc]; if(!t || (isW? isBlack(t): isWhite(t))) moves.push({ from:{r,c}, to:{r:rr,c:cc}, piece:p, capture:!!t }); }
         const inChk = attacked(board, other(side), r, c);
@@ -291,6 +287,7 @@ function legalMoves(state){
       }
     }
   }
+
   const legal = [];
   for(const m of moves){
     const st = U.clone(state);
@@ -303,28 +300,37 @@ function legalMoves(state){
   }
   return legal;
 }
+
+/* makeMove */
 function makeMove(state, m, simulate=false, promoChoice=null){
   const B = state.board;
   const from = m.from, to = m.to;
   const piece = B[from.r][from.c];
   const side = state.side;
   const isW = side === 'w';
+
   const rec = { board: U.clone(B), side: state.side, castling: U.clone(state.castling), ep: state.ep, half: state.half, full: state.full };
+
   state.ep = null;
+
   if(m.ep){
     const dir = isW ? 1 : -1;
     B[to.r + dir][to.c] = "";
   }
+
   if(m.castle){
     if(m.castle === 'K'){ B[7][5] = B[7][7]; B[7][7] = ""; }
     else if(m.castle === 'Q'){ B[7][3] = B[7][0]; B[7][0] = ""; }
     else if(m.castle === 'k'){ B[0][5] = B[0][7]; B[0][7] = ""; }
     else if(m.castle === 'q'){ B[0][3] = B[0][0]; B[0][0] = ""; }
   }
+
   B[to.r][to.c] = piece;
   B[from.r][from.c] = "";
+
   if(m.epSet){ state.ep = m.epSet; }
-  if(m.promo || m.promoChoices || m.promo){
+
+  if(m.promo){
     let promo = promoChoice;
     if(!promo){
       if(simulate || AUTO_PROMOTE) promo = 'q';
@@ -337,6 +343,7 @@ function makeMove(state, m, simulate=false, promoChoice=null){
     const promoted = isW ? promo.toUpperCase() : promo.toLowerCase();
     B[to.r][to.c] = promoted;
   }
+
   const fromAlg = U.toAlg(from.r, from.c), toAlg = U.toAlg(to.r, to.c);
   if(piece === 'K'){ state.castling.wk = false; state.castling.wq = false; }
   if(piece === 'k'){ state.castling.bk = false; state.castling.bq = false; }
@@ -344,16 +351,21 @@ function makeMove(state, m, simulate=false, promoChoice=null){
   if(fromAlg === 'a1' || toAlg === 'a1') state.castling.wq = false;
   if(fromAlg === 'h8' || toAlg === 'h8') state.castling.bk = false;
   if(fromAlg === 'a8' || toAlg === 'a8') state.castling.bq = false;
+
   if(piece.toLowerCase() === 'p' || m.capture) state.half = 0; else state.half++;
   if(side === 'b') state.full++;
+
   const mover = side;
   state.side = other(side);
+
   if(!simulate) {
     state.hist.push(rec);
     resetPlayerClock(mover);
   }
   return true;
 }
+
+/* ---------------- UI glue ---------------- */
 const PIECES = { r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙" };
 const boardEl = document.getElementById('board');
 const statusEl = document.getElementById('status');
@@ -374,15 +386,18 @@ const playerBlackEl = document.getElementById('playerBlack');
 const clockWEl = document.getElementById('clockW');
 const clockBEl = document.getElementById('clockB');
 const resignBtn = document.getElementById('resignBtn');
+
 let selected = null;
 let legal = [];
 let flipped = false;
 let pendingPromotion = null;
+
 let clocks = { w: START_CLOCK, b: START_CLOCK };
 let lastTickSecond = { w: null, b: null };
 let lastTick = performance.now();
 let clockInterval = null;
 let gameOver = false;
+
 function formatTime(sec){
   sec = Math.max(0, Math.ceil(sec));
   const m = Math.floor(sec / 60), s = sec % 60;
@@ -396,14 +411,17 @@ function updateClockDisplays(){
   if(state.side === 'w'){ playerWhiteEl.classList.add('active'); playerBlackEl.classList.remove('active'); }
   else { playerBlackEl.classList.add('active'); playerWhiteEl.classList.remove('active'); }
 }
+
 function resetClocks(){
   clocks.w = START_CLOCK; clocks.b = START_CLOCK; lastTickSecond = { w:null, b:null }; updateClockDisplays();
 }
+
 function resetPlayerClock(side){
   clocks[side] = START_CLOCK;
   lastTickSecond[side] = null;
   updateClockDisplays();
 }
+
 function startClock(){
   stopClock();
   lastTick = performance.now();
@@ -426,8 +444,7 @@ function startClock(){
       stopClock();
     } else {
       const sec = Math.floor(clocks[state.side]);
-      if(cl
-ocks[state.side] <= 10){
+      if(clocks[state.side] <= 10){
         if(lastTickSecond[state.side] !== sec){
           SND.tick();
           lastTickSecond[state.side] = sec;
@@ -443,7 +460,6 @@ function stopClock(){
   if(clockInterval) { clearInterval(clockInterval); clockInterval = null; }
 }
 
-/* Placeholder: integrate Pi SDK to send win/lose to leaderboard. */
 function sendResultToPiLeaderboard(winner, loser, reason){
   const winnerId = winner === 'w' ? player1IdEl.textContent : player2IdEl.textContent;
   const loserId  = loser === 'w' ? player1IdEl.textContent : player2IdEl.textContent;
@@ -456,13 +472,23 @@ function sendResultToPiLeaderboard(winner, loser, reason){
   movesEl.scrollTop = movesEl.scrollHeight;
 }
 
-/* ---------------- Rematch / Resign behavior ---------------- */
 function sendRematchToPiLobby(){
-  const payload = { p1: player1IdEl.textContent, p2: player2IdEl.textContent, timestamp: new Date().toISOString() };
+  const payload = { p1: player1IdEl.textContent,
+p2: player2IdEl.textContent, timestamp: new Date().toISOString() };
   console.log('Requesting rematch via Pi lobby (placeholder):', payload);
+  // Try SDK hook for rematch. If missing, fallback to immediate rematch start.
   if(window.PiSDK && typeof window.PiSDK.requestRematch === 'function'){
-    window.PiSDK.requestRematch(payload).then(()=> newGameAfterRematch()).catch(()=> setTimeout(newGameAfterRematch, 400));
-  } else setTimeout(newGameAfterRematch, 400);
+    window.PiSDK.requestRematch(payload).then(()=> {
+      console.log('PiSDK rematch request sent. Starting new game.');
+      newGameAfterRematch();
+    }).catch((e)=> {
+      console.warn('PiSDK rematch failed/fallback:', e);
+      setTimeout(newGameAfterRematch, 400); // fallback
+    });
+  } else {
+    // fallback simulation
+    setTimeout(newGameAfterRematch, 400);
+  }
 }
 
 function newGameAfterRematch(){
@@ -529,7 +555,7 @@ function render(){
       statusEl.textContent = 'Draw by stalemate';
       if(!gameOver){
         gameOver = true;
-        SND.check();
+        SND.check(0); // Play check sound centrally for stalemate
         showRematchModal();
       }
     }
@@ -541,10 +567,12 @@ function render(){
 
 /* Click handler util */
 function squareClick(rr,cc){
+  const pan = (cc - 3.5) / 3.5; // Pan value from -1 (left) to 1 (right)
   const p = state.board[rr][cc];
   if(selected){
     const mv = legal.find(m => m.to.r === rr && m.to.c === cc);
     if(mv){
+      const isCapture = mv.capture;
       const ok = makeMove(state, mv, false, null);
       if(ok){
         if(pendingPromotion){
@@ -552,9 +580,13 @@ function squareClick(rr,cc){
           return;
         }
         logMove(mv);
-        SND.move();
+        if(isCapture) SND.capture(pan); else SND.move(pan);
+
         const kp = kingPos(state.board, state.side);
-        if(attacked(state.board, other(state.side), kp.r, kp.c)) SND.check();
+        if(attacked(state.board, other(state.side), kp.r, kp.c)){
+            const kingPan = (kp.c - 3.5) / 3.5;
+            SND.check(kingPan);
+        }
       }
       selected = null; legal = [];
       render();
@@ -585,7 +617,7 @@ boardEl.addEventListener('click', e => {
 flipBtn.addEventListener('click', ()=>{ flipped = !flipped; render(); });
 
 // Resign button behavior
-resignBtn.addEventListener('click', ()=>{
+resignBtn.addEventListener('click', ()=> {
   if(gameOver) return;
   const loser = state.side;
   const winner = other(loser);
@@ -605,7 +637,7 @@ function logMove(m){
 }
 
 /* Promotion modal */
-promoModal.addEventListener('click', e=>{
+promoModal.addEventListener('click', e=> {
   if(!e.target.classList.contains('pick')) return;
   const code = e.target.dataset.piece; choosePromotion(code);
 });
@@ -614,7 +646,7 @@ function openPromotion(white){
     choosePromotion('q'); return;
   }
   promoModal.classList.add('show');
-  promoModal.querySelectorAll('.pick').forEach(btn=>{
+  promoModal.querySelectorAll('.pick').forEach(btn=> {
     btn.style.color = white ? '#b8860b' : '#000';
     btn.style.textShadow = white ? '2px 2px 0 #000' : 'none';
   });
@@ -625,9 +657,10 @@ function choosePromotion(code){
   const { move, rec } = pendingPromotion;
   state.board = rec.board; state.side = rec.side; state.castling = rec.castling; state.ep = rec.ep; state.half = rec.half; state.full = rec.full;
   pendingPromotion = null;
+  const pan = (move.to.c - 3.5) / 3.5;
   makeMove(state, move, false, code);
   logMove({ ...move, promo: true });
-  SND.move();
+  SND.move(pan);
   render();
 }
 
@@ -659,11 +692,11 @@ function hideRematchModal(){
 function clearRematchTimer(){
   if(rematchTimer){ clearInterval(rematchTimer); rematchTimer = null; }
 }
-rematchAcceptBtn.addEventListener('click', ()=>{
+rematchAcceptBtn.addEventListener('click', ()=> {
   hideRematchModal();
   sendRematchToPiLobby();
 });
-rematchDeclineBtn.addEventListener('click', ()=>{
+rematchDeclineBtn.addEventListener('click', ()=> {
   hideRematchModal();
 });
 
