@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Firebase Control Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; background: #111; color: #eee; padding: 20px; }
+    h1 { color: #90ee90; }
+    button {
+      background: #333; color: #eee; border: none; padding: 10px 20px;
+      margin: 5px; border-radius: 8px; cursor: pointer;
+    }
+    button:hover { background: #444; }
+    pre {
+      background: #222; padding: 10px; border-radius: 8px;
+      white-space: pre-wrap; word-break: break-word;
+      max-height: 300px; overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔥 Firebase Control Panel</h1>
+  <p>Use this page to test Firebase + trigger deploys.</p>
+
+  <button onclick="checkProject()">🔎 Check Project</button>
+  <button onclick="testWrite()">📝 Test Firestore Write</button>
+  <button onclick="triggerDeploy()">🚀 Trigger Deploy</button>
+
+  <h2>Logs</h2>
+  <pre id="log">Ready...</pre>
+
+  <script type="module">
+    // Import Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    // 🔑 Replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ✅ Check Firebase project info
+    function checkProject() {
+      log("Connected to project: " + app.options.projectId);
+    }
+
+    // ✅ Test Fire
