@@ -63,14 +63,6 @@
   <canvas id="fx"></canvas>
 
 <script>
-// --- Config and Initial Check ---
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('status') !== 'unlocked') {
-    alert('You must unlock this match from the menu first!');
-    window.location.href = 'classic.html';
-} else {
-    const aiLevel = parseInt(urlParams.get('level') || '1', 10);
-
     /* ==================================================
        EMBEDDED AI.js LOGIC
        ================================================== */
