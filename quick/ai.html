@@ -6,109 +6,116 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
   body { background:#111; color:#eee; margin:0; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; }
-  #board { display:grid; grid-template-columns:repeat(8,50px); grid-template-rows:repeat(8,50px); }
-  .sq { width:50px; height:50px; display:flex; align-items:center; justify-content:center; font-size:36px; }
+  #board { display:grid; grid-template-columns:repeat(8,60px); grid-template-rows:repeat(8,60px); border:4px solid #333; }
+  .sq { width:60px; height:60px; display:flex; align-items:center; justify-content:center; font-size:42px; cursor:pointer; }
   .light { background:#eee; }
   .dark { background:#769656; }
-  .piece.white { color:#fff; text-shadow:0 0 3px #000; }
+  .piece.white { color:khaki; text-shadow:0 0 3px #000; }
   .piece.black { color:#000; text-shadow:0 0 3px #fff; }
-  #info { margin:10px; }
+  .selected { outline:3px solid yellow; }
+  #topbar { margin:10px; display:flex; gap:10px; align-items:center; }
+  button { padding:6px 12px; border:none; border-radius:6px; background:#444; color:#eee; cursor:pointer; }
+  button:hover { background:#666; }
 </style>
 </head>
 <body>
-<h2>Chess Arena Pi — Player vs AI</h2>
+<div id="topbar">
+  <h2>Chess Arena Pi — Player vs AI</h2>
+  <button onclick="flipBoard()">Flip Board</button>
+</div>
 <div id="info"></div>
 <div id="board"></div>
 
+<!-- chess.js rules engine -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 <script>
 const boardEl = document.getElementById("board");
 const infoEl = document.getElementById("info");
 
 const PIECES = {
-  "P":"♙","R":"♖","N":"♘","B":"♗","Q":"♕","K":"♔",
-  "p":"♟","r":"♜","n":"♞","b":"♝","q":"♛","k":"♚"
+  "p":"♟","r":"♜","n":"♞","b":"♝","q":"♛","k":"♚",
+  "P":"♙","R":"♖","N":"♘","B":"♗","Q":"♕","K":"♔"
 };
 
-// Starting board
-let state = {
-  board: [
-    ["r","n","b","q","k","b","n","r"],
-    ["p","p","p","p","p","p","p","p"],
-    ["","","","","","","",""],
-    ["","","","","","","",""],
-    ["","","","","","","",""],
-    ["","","","","","","",""],
-    ["P","P","P","P","P","P","P","P"],
-    ["R","N","B","Q","K","B","N","R"],
-  ]
-};
-
+let game = new Chess();
 let flipped = false;
-let humanColor = Math.random() < 0.5 ? "white" : "black";
-let aiColor = humanColor === "white" ? "black" : "white";
-let turn = "white";  // White moves first
+let humanColor = Math.random() < 0.5 ? "w" : "b";
+let aiColor = humanColor === "w" ? "b" : "w";
+let selected = null;
 
-infoEl.textContent = `You are ${humanColor}. AI is ${aiColor}.`;
+infoEl.textContent = `You are ${humanColor==="w" ? "White" : "Black"}. AI is ${aiColor==="w" ? "White" : "Black"}.`;
 
-function isWhite(p){ return p && p === p.toUpperCase(); }
 function render(){
   boardEl.innerHTML = '';
+  let squares = game.board();
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
       const idx = flipped ? (63 - (r*8 + c)) : (r*8 + c);
       const rr = Math.floor(idx/8), cc = idx%8;
       const sq = document.createElement("div");
       sq.className = `sq ${((rr+cc)%2) ? "dark" : "light"}`;
-      sq.dataset.r = rr; sq.dataset.c = cc;
-      const p = state.board[rr][cc];
-      if(p){
+      let piece = squares[rr][cc];
+      if(selected && selected[0]===rr && selected[1]===cc){
+        sq.classList.add("selected");
+      }
+      if(piece){
         const sp = document.createElement("span");
-        sp.textContent = PIECES[p];
-        sp.className = `piece ${isWhite(p) ? "white" : "black"}`;
+        sp.textContent = PIECES[piece.color==="w" ? piece.type.toUpperCase() : piece.type];
+        sp.className = `piece ${piece.color==="w" ? "white" : "black"}`;
         sq.appendChild(sp);
       }
+      sq.onclick = ()=> handleClick(rr,cc);
       boardEl.appendChild(sq);
     }
   }
 }
 
-// Simple AI: random legal move
-function aiMove(){
-  const moves = [];
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const p = state.board[r][c];
-      if(!p) continue;
-      if(aiColor==="white" && !isWhite(p)) continue;
-      if(aiColor==="black" && isWhite(p)) continue;
-      // Try simple pawn moves only (demo)
-      if(p.toLowerCase()==="p"){
-        const dir = isWhite(p) ? -1 : 1;
-        const nr = r+dir;
-        if(nr>=0 && nr<8 && !state.board[nr][c]){
-          moves.push({from:[r,c],to:[nr,c]});
-        }
-      }
+function handleClick(r,c){
+  if(game.turn() !== humanColor) return; // wait AI turn
+  const squares = game.board();
+  let piece = squares[r][c];
+
+  if(selected){
+    let [sr,sc] = selected;
+    let from = String.fromCharCode(97+sc) + (8-sr);
+    let to = String.fromCharCode(97+c) + (8-r);
+
+    // try promotion if pawn reaches end
+    let move = game.move({from,to,promotion:'q'});
+    if(move){
+      selected = null;
+      render();
+      setTimeout(aiMove,500);
+      return;
+    } else {
+      selected = null;
+    }
+  } else {
+    if(piece && piece.color === humanColor){
+      selected = [r,c];
     }
   }
-  if(moves.length){
-    const m = moves[Math.floor(Math.random()*moves.length)];
-    state.board[m.to[0]][m.to[1]] = state.board[m.from[0]][m.from[1]];
-    state.board[m.from[0]][m.from[1]] = "";
-    turn = humanColor;
-    render();
-  }
+  render();
 }
 
-function nextTurn(){
-  if(turn===aiColor){
-    setTimeout(aiMove,500);
-  }
+function aiMove(){
+  let moves = game.moves({verbose:true});
+  if(moves.length===0) return;
+  let move = moves[Math.floor(Math.random()*moves.length)];
+  game.move(move);
+  render();
 }
 
-// First draw
+function flipBoard(){
+  flipped = !flipped;
+  render();
+}
+
+// init
 render();
-nextTurn();
+if(game.turn()===aiColor){
+  setTimeout(aiMove,500);
+}
 </script>
 </body>
 </html>
