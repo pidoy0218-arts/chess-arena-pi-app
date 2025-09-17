@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>CHESS ARENA for PI — Classic Mode</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root{ --bg:#111; --fg:#eee; --accent:#f4b400; }
+  body{ margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,Arial; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; text-align:center; }
+  h1{ margin:6px 0 2px; font-size:20px; }
+  .sub{ opacity:.75; font-size:12px; margin-bottom:28px; }
+  .menu{ display:flex; flex-direction:column; gap:12px; min-width:240px; }
+  .btn{ padding:16px 20px; border-radius:8px; border:0; color:#111; background:var(--accent); font-weight:700; cursor:pointer; font-size:16px; transition:transform .2s; }
+  .btn:hover{ transform:scale(1.05); }
+  .btn.subtle{ background:#333; color:var(--fg); }
+</style>
+<!-- 1. Sound library is now included -->
+<script src="../sound.js" defer></script>
+</head>
+<body>
+  <h1>♞ CHESS ARENA for PI</h1>
+  <div class="sub">Choose a Classic Game Mode</div>
+
+  <div class="menu">
+    <!-- 2. Navigation links are corrected -->
+    <button class="btn" onclick="location.href='ai.html'">Play vs. AI</button>
+    <button class="btn" onclick="location.href='game.html'">Invite a Friend</button>
+    <button class="btn" onclick="location.href='game.html'">Match with Random</button>
+    <button class="btn subtle" onclick="location.href='../menu.html'">Back to Main Menu</button>
+  </div>
+
+  <script>
+    // 3. Add tap sound to all menu buttons
+    document.querySelectorAll('.btn').forEach(button => {
+      button.addEventListener('mousedown', () => {
+        if (window.SND) SND.play('tap');
+      });
+    });
+  </script>
+</body>
+</html>
