@@ -1,1 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Chess Arena Pi — Player vs AI</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  body { background:#111; color:#eee; margin:0; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; }
+  #board { display:grid; grid-template-columns:repeat(8,50px); grid-template-rows:repeat(8,50px); }
+  .sq { width:50px; height:50px; display:flex; align-items:center; justify-content:center; font-size:36px; }
+  .light { background:#eee; }
+  .dark { background:#769656; }
+  .piece.white { color:#fff; text-shadow:0 0 3px #000; }
+  .piece.black { color:#000; text-shadow:0 0 3px #fff; }
+  #info { margin:10px; }
+</style>
+</head>
+<body>
+<h2>Chess Arena Pi — Player vs AI</h2>
+<div id="info"></div>
+<div id="board"></div>
 
+<script>
+const boardEl = document.getElementById("board");
+const infoEl = document.getElementById("info");
+
+const PIECES = {
+  "P":"♙","R":"♖","N":"♘","B":"♗","Q":"♕","K":"♔",
+  "p":"♟","r":"♜","n":"♞","b":"♝","q":"♛","k":"♚"
+};
+
+// Starting board
+let state = {
+  board: [
+    ["r","n","b","q","k","b","n","r"],
+    ["p","p","p","p","p","p","p","p"],
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["P","P","P","P","P","P","P","P"],
+    ["R","N","B","Q","K","B","N","R"],
+  ]
+};
+
+let flipped = false;
+let humanColor = Math.random() < 0.5 ? "white" : "black";
+let aiColor = humanColor === "white" ? "black" : "white";
+let turn = "white";  // White moves first
+
+infoEl.textContent = `You are ${humanColor}. AI is ${aiColor}.`;
+
+function isWhite(p){ return p && p === p.toUpperCase(); }
+function render(){
+  boardEl.innerHTML = '';
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const idx = flipped ? (63 - (r*8 + c)) : (r*8 + c);
+      const rr = Math.floor(idx/8), cc = idx%8;
+      const sq = document.createElement("div");
+      sq.className = `sq ${((rr+cc)%2) ? "dark" : "light"}`;
+      sq.dataset.r = rr; sq.dataset.c = cc;
+      const p = state.board[rr][cc];
+      if(p){
+        const sp = document.createElement("span");
+        sp.textContent = PIECES[p];
+        sp.className = `piece ${isWhite(p) ? "white" : "black"}`;
+        sq.appendChild(sp);
+      }
+      boardEl.appendChild(sq);
+    }
+  }
+}
+
+// Simple AI: random legal move
+function aiMove(){
+  const moves = [];
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const p = state.board[r][c];
+      if(!p) continue;
+      if(aiColor==="white" && !isWhite(p)) continue;
+      if(aiColor==="black" && isWhite(p)) continue;
+      // Try simple pawn moves only (demo)
+      if(p.toLowerCase()==="p"){
+        const dir = isWhite(p) ? -1 : 1;
+        const nr = r+dir;
+        if(nr>=0 && nr<8 && !state.board[nr][c]){
+          moves.push({from:[r,c],to:[nr,c]});
+        }
+      }
+    }
+  }
+  if(moves.length){
+    const m = moves[Math.floor(Math.random()*moves.length)];
+    state.board[m.to[0]][m.to[1]] = state.board[m.from[0]][m.from[1]];
+    state.board[m.from[0]][m.from[1]] = "";
+    turn = humanColor;
+    render();
+  }
+}
+
+function nextTurn(){
+  if(turn===aiColor){
+    setTimeout(aiMove,500);
+  }
+}
+
+// First draw
+render();
+nextTurn();
+</script>
+</body>
+</html>
