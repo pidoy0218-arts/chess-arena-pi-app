@@ -68,216 +68,226 @@
   <canvas id="fx"></canvas>
 
 <script>
-/* ---------------- Confetti (for winning) ---------------- */
-const Confetti = (() => {
-  const c = document.getElementById('fx'), x = c.getContext('2d');
-  let parts=[], run=false, w=0,h=0;
-  function resize(){ w=c.width=innerWidth; h=c.height=innerHeight; }
-  addEventListener('resize', resize); resize();
-  function burst(n=120){
-    parts=[]; for(let i=0;i<n;i++) parts.push({ x:w/2, y:h*0.25, vx:(Math.random()*2-1)*6, vy:(Math.random()*-6-2), g:Math.random()*0.18+0.12, s:Math.random()*6+3, a:Math.random()*Math.PI, col:`hsl(${Math.random()*360},90%,60%)` });
-    if(!run){ run=true; requestAnimationFrame(loop); }
-  }
-  function loop(){
-    x.clearRect(0,0,w,h);
-    for(const p of parts){ p.vy += p.g; p.x += p.vx; p.y += p.vy; p.a += 0.2; x.save(); x.translate(p.x,p.y); x.rotate(p.a); x.fillStyle=p.col; x.fillRect(-p.s/2,-p.s/2,p.s,p.s); x.restore(); }
-    parts = parts.filter(p=>p.y<h+30);
-    if(parts.length) requestAnimationFrame(loop); else run=false;
-  }
-  return { burst };
-})();
+// --- Payment/Unlock Check ---
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('status') !== 'unlocked') {
+    alert('You must unlock this match from the menu first!');
+    window.location.href = 'classic.html'; // Go back to the sub-menu
+} else {
+    // ---- Entire Game Logic ----
 
-/* ----------------- Utilities ----------------- */
-const U = {
-  inBounds:(r,c)=>r>=0 && r<8 && c>=0 && c<8,
-  clone:(o)=>JSON.parse(JSON.stringify(o)),
-  toAlg:(r,c)=>"abcdefgh"[c] + (8 - r),
-  fromAlg:(a)=>({ r: 8 - parseInt(a[1],10), c: "abcdefgh".indexOf(a[0]) })
-};
-
-/* ----------------- Chess Core ----------------- */
-const START = [
-  ["r","n","b","q","k","b","n","r"],["p","p","p","p","p","p","p","p"],["","","","","","","",""],["","","","","","","",""],["","","","","","","",""],["","","","","","","",""],["P","P","P","P","P","P","P","P"],["R","N","B","Q","K","B","N","R"]
-];
-let state = { board: U.clone(START), side: 'w', castling: { wk:true, wq:true, bk:true, bq:true }, ep: null, half:0, full:1, hist: [] };
-function isWhite(p){ return p && p === p.toUpperCase(); }
-function isBlack(p){ return p && p === p.toLowerCase(); }
-function sidePiece(p, side){ return side === 'w' ? isWhite(p) : isBlack(p); }
-function other(side){ return side === 'w' ? 'b' : 'w'; }
-function kingPos(board, side){
-  const k = side === 'w' ? 'K' : 'k';
-  for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(board[r][c] === k) return {r,c};
-  return null;
-}
-function attacked(board, side, r, c){
-  const pawn = side === 'w' ? 'P' : 'p';
-  const pawnDir = side === 'w' ? 1 : -1;
-  for(const dc of [-1,1]){
-    const rr = r + pawnDir, cc = c + dc;
-    if(U.inBounds(rr,cc) && board[rr][cc] === pawn) return true;
-  }
-  const N = side === 'w' ? 'N' : 'n';
-  for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
-    const rr=r+dr, cc=c+dc;
-    if(U.inBounds(rr,cc) && board[rr][cc] === N) return true;
-  }
-  const B = side==='w'?'B':'b', R= side==='w'?'R':'r', Q = side==='w'?'Q':'q';
-  for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){
-    let rr=r+dr, cc=c+dc;
-    while(U.inBounds(rr,cc)){
-      const p = board[rr][cc];
-      if(p){ if(p === B || p === Q) return true; break; }
-      rr+=dr; cc+=dc;
-    }
-  }
-  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
-    let rr=r+dr, cc=c+dc;
-    while(U.inBounds(rr,cc)){
-      const p = board[rr][cc];
-      if(p){ if(p === R || p === Q) return true; break; }
-      rr+=dr; cc+=dc;
-    }
-  }
-  const K = side==='w'?'K':'k';
-  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr===0 && dc===0) continue; const rr=r+dr, cc=c+dc; if(U.inBounds(rr,cc) && board[rr][cc]===K) return true; }
-  return false;
-}
-function legalMoves(state){
-  const moves = []; const { board, side } = state; const isW = side === 'w';
-  for(let r=0;r<8;r++) for(let c=0;c<8;c++){ const p = board[r][c]; if(!p || !sidePiece(p, side)) continue; const lower = p.toLowerCase();
-    if(lower==='p'){
-      const dir = isW?-1:1, start=isW?6:1, promoRank=isW?0:7, r1=r+dir;
-      if(U.inBounds(r1,c) && !board[r1][c]){
-        if(r1===promoRank) moves.push({from:{r,c},to:{r:r1,c},piece:p,promo:true}); else moves.push({from:{r,c},to:{r:r1,c},piece:p});
-        if(r===start){ const r2=r+2*dir; if(U.inBounds(r2,c) && !board[r2][c]) moves.push({from:{r,c},to:{r:r2,c},piece:p,epSet:U.toAlg(r1,c)}); }
+    /* ---------------- Confetti (for winning) ---------------- */
+    const Confetti = (() => {
+      const c = document.getElementById('fx'), x = c.getContext('2d');
+      let parts=[], run=false, w=0,h=0;
+      function resize(){ w=c.width=innerWidth; h=c.height=innerHeight; }
+      addEventListener('resize', resize); resize();
+      function burst(n=120){
+        parts=[]; for(let i=0;i<n;i++) parts.push({ x:w/2, y:h*0.25, vx:(Math.random()*2-1)*6, vy:(Math.random()*-6-2), g:Math.random()*0.18+0.12, s:Math.random()*6+3, a:Math.random()*Math.PI, col:`hsl(${Math.random()*360},90%,60%)` });
+        if(!run){ run=true; requestAnimationFrame(loop); }
       }
-      for(const dc of [-1,1]){ const cc=c+dc,rr=r+dir; if(!U.inBounds(rr,cc)) continue; const t=board[rr][cc];
-        if(t && (isW?isBlack(t):isWhite(t))){ if(rr===promoRank) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:true,promo:true}); else moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:true}); }
+      function loop(){
+        x.clearRect(0,0,w,h);
+        for(const p of parts){ p.vy += p.g; p.x += p.vx; p.y += p.vy; p.a += 0.2; x.save(); x.translate(p.x,p.y); x.rotate(p.a); x.fillStyle=p.col; x.fillRect(-p.s/2,-p.s/2,p.s,p.s); x.restore(); }
+        parts = parts.filter(p=>p.y<h+30);
+        if(parts.length) requestAnimationFrame(loop); else run=false;
       }
-      if(state.ep){ const {r:er,c:ec}=U.fromAlg(state.ep); if(er===r+dir && Math.abs(ec-c)===1) moves.push({from:{r,c},to:{r:er,c:ec},piece:p,capture:true,ep:true}); }
+      return { burst };
+    })();
+
+    /* ----------------- Utilities ----------------- */
+    const U = {
+      inBounds:(r,c)=>r>=0 && r<8 && c>=0 && c<8,
+      clone:(o)=>JSON.parse(JSON.stringify(o)),
+      toAlg:(r,c)=>"abcdefgh"[c] + (8 - r),
+      fromAlg:(a)=>({ r: 8 - parseInt(a[1],10), c: "abcdefgh".indexOf(a[0]) })
+    };
+
+    /* ----------------- Chess Core ----------------- */
+    const START = [
+      ["r","n","b","q","k","b","n","r"],["p","p","p","p","p","p","p","p"],["","","","","","","",""],["","","","","","","",""],["","","","","","","",""],["","","","","","","",""],["P","P","P","P","P","P","P","P"],["R","N","B","Q","K","B","N","R"]
+    ];
+    let state = { board: U.clone(START), side: 'w', castling: { wk:true, wq:true, bk:true, bq:true }, ep: null, half:0, full:1, hist: [] };
+    function isWhite(p){ return p && p === p.toUpperCase(); }
+    function isBlack(p){ return p && p === p.toLowerCase(); }
+    function sidePiece(p, side){ return side === 'w' ? isWhite(p) : isBlack(p); }
+    function other(side){ return side === 'w' ? 'b' : 'w'; }
+    function kingPos(board, side){
+      const k = side === 'w' ? 'K' : 'k';
+      for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(board[r][c] === k) return {r,c};
+      return null;
     }
-    if(lower==='n'){ for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
-      const rr=r+dr,cc=c+dc; if(!U.inBounds(rr,cc)) continue; const t=board[rr][cc]; if(!t||(isW?isBlack(t):isWhite(t))) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:!!t}); } }
-    if(lower==='b'||lower==='q'){ for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){ let rr=r+dr,cc=c+dc; while(U.inBounds(rr,cc)){ const t=board[rr][cc]; if(!t) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p}); else {if(isW?isBlack(t):isWhite(t)) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:true});break;} rr+=dr;cc+=dc; } } }
-    if(lower==='r'||lower==='q'){ for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){ let rr=r+dr,cc=c+dc; while(U.inBounds(rr,cc)){ const t=board[rr][cc]; if(!t) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p}); else {if(isW?isBlack(t):isWhite(t)) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:true});break;} rr+=dr;cc+=dc; } } }
-    if(lower==='k'){ for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr===0&&dc===0) continue; const rr=r+dr,cc=c+dc; if(!U.inBounds(rr,cc)) continue; const t=board[rr][cc]; if(!t||(isW?isBlack(t):isWhite(t))) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:!!t}); }
-      const inChk=attacked(board,other(side),r,c);
-      if(!inChk){
-        if(side==='w'){ if(state.castling.wk&&!board[7][5]&&!board[7][6]&&!attacked(board,'b',7,5)&&!attacked(board,'b',7,6)) moves.push({from:{r,c},to:{r:7,c:6},piece:p,castle:'K'}); if(state.castling.wq&&!board[7][3]&&!board[7][2]&&!board[7][1]&&!attacked(board,'b',7,3)&&!attacked(board,'b',7,2)) moves.push({from:{r,c},to:{r:7,c:2},piece:p,castle:'Q'}); }
-        else { if(state.castling.bk&&!board[0][5]&&!board[0][6]&&!attacked(board,'w',0,5)&&!attacked(board,'w',0,6)) moves.push({from:{r,c},to:{r:0,c:6},piece:p,castle:'k'}); if(state.castling.bq&&!board[0][3]&&!board[0][2]&&!board[0][1]&&!attacked(board,'w',0,3)&&!attacked(board,'w',0,2)) moves.push({from:{r,c},to:{r:0,c:2},piece:p,castle:'q'}); }
+    function attacked(board, side, r, c){
+      const pawn = side === 'w' ? 'P' : 'p';
+      const pawnDir = side === 'w' ? 1 : -1;
+      for(const dc of [-1,1]){
+        const rr = r + pawnDir, cc = c + dc;
+        if(U.inBounds(rr,cc) && board[rr][cc] === pawn) return true;
+      }
+      const N = side === 'w' ? 'N' : 'n';
+      for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
+        const rr=r+dr, cc=c+dc;
+        if(U.inBounds(rr,cc) && board[rr][cc] === N) return true;
+      }
+      const B = side==='w'?'B':'b', R= side==='w'?'R':'r', Q = side==='w'?'Q':'q';
+      for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){
+        let rr=r+dr, cc=c+dc;
+        while(U.inBounds(rr,cc)){
+          const p = board[rr][cc];
+          if(p){ if(p === B || p === Q) return true; break; }
+          rr+=dr; cc+=dc;
+        }
+      }
+      for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        let rr=r+dr, cc=c+dc;
+        while(U.inBounds(rr,cc)){
+          const p = board[rr][cc];
+          if(p){ if(p === R || p === Q) return true; break; }
+          rr+=dr; cc+=dc;
+        }
+      }
+      const K = side==='w'?'K':'k';
+      for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr===0 && dc===0) continue; const rr=r+dr, cc=c+dc; if(U.inBounds(rr,cc) && board[rr][cc]===K) return true; }
+      return false;
+    }
+    function legalMoves(state){
+      const moves = []; const { board, side } = state; const isW = side === 'w';
+      for(let r=0;r<8;r++) for(let c=0;c<8;c++){ const p = board[r][c]; if(!p || !sidePiece(p, side)) continue; const lower = p.toLowerCase();
+        if(lower==='p'){
+          const dir = isW?-1:1, start=isW?6:1, promoRank=isW?0:7, r1=r+dir;
+          if(U.inBounds(r1,c) && !board[r1][c]){
+            if(r1===promoRank) moves.push({from:{r,c},to:{r:r1,c},piece:p,promo:true}); else moves.push({from:{r,c},to:{r:r1,c},piece:p});
+            if(r===start){ const r2=r+2*dir; if(U.inBounds(r2,c) && !board[r2][c]) moves.push({from:{r,c},to:{r:r2,c},piece:p,epSet:U.toAlg(r1,c)}); }
+          }
+          for(const dc of [-1,1]){ const cc=c+dc,rr=r+dir; if(!U.inBounds(rr,cc)) continue; const t=board[rr][cc];
+            if(t && (isW?isBlack(t):isWhite(t))){ if(rr===promoRank) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:true,promo:true}); else moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:true}); }
+          }
+          if(state.ep){ const {r:er,c:ec}=U.fromAlg(state.ep); if(er===r+dir && Math.abs(ec-c)===1) moves.push({from:{r,c},to:{r:er,c:ec},piece:p,capture:true,ep:true}); }
+        }
+        if(lower==='n'){ for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
+          const rr=r+dr,cc=c+dc; if(!U.inbounds(rr,cc)) continue; const t=board[rr][cc]; if(!t||(isW?isBlack(t):isWhite(t))) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:!!t}); } }
+        if(lower==='b'||lower==='q'){ for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){ let rr=r+dr,cc=c+dc; while(U.inBounds(rr,cc)){ const t=board[rr][cc]; if(!t) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p}); else {if(isW?isBlack(t):isWhite(t)) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:true});break;} rr+=dr;cc+=dc; } } }
+        if(lower==='r'||lower==='q'){ for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){ let rr=r+dr,cc=c+dc; while(U.inBounds(rr,cc)){ const t=board[rr][cc]; if(!t) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p}); else {if(isW?isBlack(t):isWhite(t)) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:true});break;} rr+=dr;cc+=dc; } } }
+        if(lower==='k'){ for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr===0&&dc===0) continue; const rr=r+dr,cc=c+dc; if(!U.inBounds(rr,cc)) continue; const t=board[rr][cc]; if(!t||(isW?isBlack(t):isWhite(t))) moves.push({from:{r,c},to:{r:rr,c:cc},piece:p,capture:!!t}); }
+          const inChk=attacked(board,other(side),r,c);
+          if(!inChk){
+            if(side==='w'){ if(state.castling.wk&&!board[7][5]&&!board[7][6]&&!attacked(board,'b',7,5)&&!attacked(board,'b',7,6)) moves.push({from:{r,c},to:{r:7,c:6},piece:p,castle:'K'}); if(state.castling.wq&&!board[7][3]&&!board[7][2]&&!board[7][1]&&!attacked(board,'b',7,3)&&!attacked(board,'b',7,2)) moves.push({from:{r,c},to:{r:7,c:2},piece:p,castle:'Q'}); }
+            else { if(state.castling.bk&&!board[0][5]&&!board[0][6]&&!attacked(board,'w',0,5)&&!attacked(board,'w',0,6)) moves.push({from:{r,c},to:{r:0,c:6},piece:p,castle:'k'}); if(state.castling.bq&&!board[0][3]&&!board[0][2]&&!board[0][1]&&!attacked(board,'w',0,3)&&!attacked(board,'w',0,2)) moves.push({from:{r,c},to:{r:0,c:2},piece:p,castle:'q'}); }
+          }
+        }
+      }
+      const legal=[];
+      for(const m of moves){
+        const st=U.clone(state);
+        makeMove(st,m,true);
+        const kp=kingPos(st.board,side);
+        if(kp && !attacked(st.board,other(side),kp.r,kp.c)) legal.push(m);
+      }
+      return legal;
+    }
+    function makeMove(state, m, simulate=false){
+      const B = state.board, from=m.from, to=m.to, piece=B[from.r][from.c], side=state.side, isW=side==='w';
+      if(!piece) return false;
+      if(!simulate) state.hist.push({board:U.clone(B),side:state.side,castling:U.clone(state.castling),ep:state.ep,half:state.half,full:state.full});
+      state.ep=null; if(m.ep) B[to.r+(isW?1:-1)][to.c]="";
+      if(m.castle){ if(m.castle==='K'){B[7][5]=B[7][7];B[7][7]="";} else if(m.castle==='Q'){B[7][3]=B[7][0];B[7][0]="";} else if(m.castle==='k'){B[0][5]=B[0][7];B[0][7]="";} else if(m.castle==='q'){B[0][3]=B[0][0];B[0][0]="";} }
+      B[to.r][to.c]=piece; B[from.r][from.c]=""; if(m.epSet) state.ep=m.epSet;
+      if(m.promo) B[to.r][to.c] = isW ? 'Q' : 'q';
+      const fromAlg=U.toAlg(from.r,from.c), toAlg=U.toAlg(to.r,to.c);
+      if(piece==='K'){state.castling.wk=false;state.castling.wq=false;} if(piece==='k'){state.castling.bk=false;state.castling.bq=false;}
+      if(fromAlg==='h1'||toAlg==='h1') state.castling.wk=false; if(fromAlg==='a1'||toAlg==='a1') state.castling.wq=false;
+      if(fromAlg==='h8'||toAlg==='h8') state.castling.bk=false; if(fromAlg==='a8'||toAlg==='a8') state.castling.bq=false;
+      if(piece.toLowerCase()==='p'||m.capture) state.half=0; else state.half++; if(side==='b') state.full++;
+      state.side=other(side); return true;
+    }
+
+    /* ---------------- UI glue ---------------- */
+    const PIECES = { r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙" };
+    const boardEl=document.getElementById('board'), statusEl=document.getElementById('status'), incheckEl=document.getElementById('incheck'), crEl=document.getElementById('cr'), epEl=document.getElementById('ep'), movesEl=document.getElementById('moves'), flipBtn=document.getElementById('flipBtn'), newGameBtn=document.getElementById('newGameBtn');
+    let selected=null, legal=[], flipped=false, gameOver=false;
+
+    function render(){
+      boardEl.innerHTML=''; const mapIndex=(i)=>flipped?63-i:i;
+      for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const i=r*8+c, idx=mapIndex(i), rr=Math.floor(idx/8), cc=idx%8, sq=document.createElement('div');
+        sq.className=`sq ${(r+c)%2?'dark':'light'}`; sq.dataset.r=rr; sq.dataset.c=cc;
+        const p=state.board[rr][cc];
+        if(p){ const sp=document.createElement('span'); sp.textContent=PIECES[p]; sp.className=`piece ${isWhite(p)?'white':'black'}`; sq.appendChild(sp); }
+        if(selected && selected.r===rr && selected.c===cc) sq.classList.add('sel');
+        for(const m of legal) if(m.to.r===rr&&m.to.c===cc){ if(m.capture) sq.classList.add('cap'); else sq.classList.add('hint'); }
+        boardEl.appendChild(sq);
+      }
+      const kp=kingPos(state.board,state.side), chk= kp ? attacked(state.board,other(state.side),kp.r,kp.c) : false;
+      incheckEl.style.display=chk?'':'none'; statusEl.textContent=(state.side==='w'?'Your turn (White)':'AI is thinking... (Black)');
+      crEl.textContent=`${state.castling.wk?'K':''}${state.castling.wq?'Q':''}${state.castling.bk?'k':''}${state.castling.bq?'q':''}`||'---';
+      epEl.textContent=state.ep||'---';
+
+      const allLegalMoves = legalMoves(state);
+      if(!allLegalMoves.length){
+        gameOver=true;
+        if(chk){ statusEl.textContent=(other(state.side)==='w'?'You win! (Checkmate)':'AI wins! (Checkmate)'); SND.play('win'); Confetti.burst(140); }
+        else { statusEl.textContent='Draw by stalemate'; SND.play('check', 0); }
+      } else if(state.side==='b' && !gameOver){ setTimeout(triggerAIMove, 600); }
+    }
+
+    function squareClick(rr,cc){
+      if(gameOver || state.side !== 'w') return;
+      const pan=(cc-3.5)/3.5;
+      if(selected){
+        const mv=legal.find(m=>m.to.r===rr&&m.to.c===cc);
+        if(mv){
+          if(mv.capture) SND.play('capture', pan); else SND.play('move', pan);
+          makeMove(state, mv); logMove(mv);
+          const kp=kingPos(state.board,state.side); if(kp && attacked(state.board,other(state.side),kp.r,kp.c)) SND.play('check', (kp.c-3.5)/3.5);
+          selected=null; legal=[];
+          render();
+        } else {
+          selected=null; legal=[];
+          const p=state.board[rr][cc];
+          if(p&&sidePiece(p,state.side)){ selected={r:rr,c:cc}; legal=legalMoves(state).filter(m=>m.from.r===rr&&m.from.c===cc); SND.play('tap', pan); }
+          render();
+        }
+      } else {
+        const p=state.board[rr][cc];
+        if(p&&sidePiece(p,state.side)){ selected={r:rr,c:cc}; legal=legalMoves(state).filter(m=>m.from.r===rr&&m.from.c===cc); SND.play('tap', pan); }
+        render();
       }
     }
-  }
-  const legal=[];
-  for(const m of moves){
-    const st=U.clone(state);
-    makeMove(st,m,true);
-    const kp=kingPos(st.board,side);
-    if(kp && !attacked(st.board,other(side),kp.r,kp.c)) legal.push(m);
-  }
-  return legal;
-}
-function makeMove(state, m, simulate=false){
-  const B = state.board, from=m.from, to=m.to, piece=B[from.r][from.c], side=state.side, isW=side==='w';
-  if(!piece) return false;
-  if(!simulate) state.hist.push({board:U.clone(B),side:state.side,castling:U.clone(state.castling),ep:state.ep,half:state.half,full:state.full});
-  state.ep=null; if(m.ep) B[to.r+(isW?1:-1)][to.c]="";
-  if(m.castle){ if(m.castle==='K'){B[7][5]=B[7][7];B[7][7]="";} else if(m.castle==='Q'){B[7][3]=B[7][0];B[7][0]="";} else if(m.castle==='k'){B[0][5]=B[0][7];B[0][7]="";} else if(m.castle==='q'){B[0][3]=B[0][0];B[0][0]="";} }
-  B[to.r][to.c]=piece; B[from.r][from.c]=""; if(m.epSet) state.ep=m.epSet;
-  if(m.promo) B[to.r][to.c] = isW ? 'Q' : 'q';
-  const fromAlg=U.toAlg(from.r,from.c), toAlg=U.toAlg(to.r,to.c);
-  if(piece==='K'){state.castling.wk=false;state.castling.wq=false;} if(piece==='k'){state.castling.bk=false;state.castling.bq=false;}
-  if(fromAlg==='h1'||toAlg==='h1') state.castling.wk=false; if(fromAlg==='a1'||toAlg==='a1') state.castling.wq=false;
-  if(fromAlg==='h8'||toAlg==='h8') state.castling.bk=false; if(fromAlg==='a8'||toAlg==='a8') state.castling.bq=false;
-  if(piece.toLowerCase()==='p'||m.capture) state.half=0; else state.half++; if(side==='b') state.full++;
-  state.side=other(side); return true;
-}
+    boardEl.addEventListener('click', e=>{ const sq=e.target.closest('.sq'); if(!sq) return; const rr=+sq.dataset.r, cc=+sq.dataset.c; squareClick(rr,cc); });
 
-/* ---------------- UI glue ---------------- */
-const PIECES = { r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙" };
-const boardEl=document.getElementById('board'), statusEl=document.getElementById('status'), incheckEl=document.getElementById('incheck'), crEl=document.getElementById('cr'), epEl=document.getElementById('ep'), movesEl=document.getElementById('moves'), flipBtn=document.getElementById('flipBtn'), newGameBtn=document.getElementById('newGameBtn');
-let selected=null, legal=[], flipped=false, gameOver=false;
-
-function render(){
-  boardEl.innerHTML=''; const mapIndex=(i)=>flipped?63-i:i;
-  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-    const i=r*8+c, idx=mapIndex(i), rr=Math.floor(idx/8), cc=idx%8, sq=document.createElement('div');
-    sq.className=`sq ${(r+c)%2?'dark':'light'}`; sq.dataset.r=rr; sq.dataset.c=cc;
-    const p=state.board[rr][cc];
-    if(p){ const sp=document.createElement('span'); sp.textContent=PIECES[p]; sp.className=`piece ${isWhite(p)?'white':'black'}`; sq.appendChild(sp); }
-    if(selected && selected.r===rr && selected.c===cc) sq.classList.add('sel');
-    for(const m of legal) if(m.to.r===rr&&m.to.c===cc){ if(m.capture) sq.classList.add('cap'); else sq.classList.add('hint'); }
-    boardEl.appendChild(sq);
-  }
-  const kp=kingPos(state.board,state.side), chk= kp ? attacked(state.board,other(state.side),kp.r,kp.c) : false;
-  incheckEl.style.display=chk?'':'none'; statusEl.textContent=(state.side==='w'?'Your turn (White)':'AI is thinking... (Black)');
-  crEl.textContent=`${state.castling.wk?'K':''}${state.castling.wq?'Q':''}${state.castling.bk?'k':''}${state.castling.bq?'q':''}`||'---';
-  epEl.textContent=state.ep||'---';
-
-  const allLegalMoves = legalMoves(state);
-  if(!allLegalMoves.length){
-    gameOver=true;
-    if(chk){ statusEl.textContent=(other(state.side)==='w'?'You win! (Checkmate)':'AI wins! (Checkmate)'); SND.play('win'); Confetti.burst(140); }
-    else { statusEl.textContent='Draw by stalemate'; SND.play('check', 0); }
-  } else if(state.side==='b' && !gameOver){ setTimeout(triggerAIMove, 600); }
-}
-
-function squareClick(rr,cc){
-  if(gameOver || state.side !== 'w') return;
-  const pan=(cc-3.5)/3.5;
-  if(selected){
-    const mv=legal.find(m=>m.to.r===rr&&m.to.c===cc);
-    if(mv){
-      if(mv.capture) SND.play('capture', pan); else SND.play('move', pan);
-      makeMove(state, mv); logMove(mv);
-      const kp=kingPos(state.board,state.side); if(kp && attacked(state.board,other(state.side),kp.r,kp.c)) SND.play('check', (kp.c-3.5)/3.5);
-      selected=null; legal=[];
+    function triggerAIMove(){
+      if(gameOver || state.side !== 'b') return;
+      const allLegalMoves = legalMoves(state);
+      const aiMove = getAIMove(allLegalMoves);
+      if(aiMove){
+        const pan=(aiMove.to.c-3.5)/3.5;
+        if(aiMove.capture) SND.play('capture', pan); else SND.play('move', pan);
+        makeMove(state, aiMove); logMove(aiMove);
+        const kp=kingPos(state.board,state.side); if(kp && attacked(state.board,other(state.side),kp.r,kp.c)) SND.play('check', (kp.c-3.5)/3.5);
+      }
       render();
-    } else {
-      selected=null; legal=[];
-      const p=state.board[rr][cc];
-      if(p&&sidePiece(p,state.side)){ selected={r:rr,c:cc}; legal=legalMoves(state).filter(m=>m.from.r===rr&&m.from.c===cc); SND.play('tap', pan); }
-      render();
     }
-  } else {
-    const p=state.board[rr][cc];
-    if(p&&sidePiece(p,state.side)){ selected={r:rr,c:cc}; legal=legalMoves(state).filter(m=>m.from.r===rr&&m.from.c===cc); SND.play('tap', pan); }
+
+    /* Controls */
+    flipBtn.addEventListener('click',()=>{flipped=!flipped; SND.play('tap'); render();});
+    newGameBtn.addEventListener('click',()=>{
+      if(confirm('Are you sure you want to start a new game?')){
+        SND.play('tap');
+        state = {board:U.clone(START),side:'w',castling:{wk:true,wq:true,bk:true,bq:true},ep:null,half:0,full:1,hist:[]};
+        selected=null; legal=[]; gameOver=false; movesEl.innerHTML='';
+        render();
+      }
+    });
+
+    function logMove(m){
+      const from=U.toAlg(m.from.r,m.from.c), to=U.toAlg(m.to.r,m.to.c);
+      const note=`${from}${m.capture?'x':'–'}${to}${m.castle?' ('+(m.castle.toLowerCase()==='q'?'O-O-O':'O-O')+')':''}${m.ep?' e.p.':''}${m.promo?'=Q':''}`;
+      const row=document.createElement('div'); row.textContent=note; movesEl.appendChild(row); movesEl.scrollTop=movesEl.scrollHeight;
+    }
+
     render();
-  }
-}
-boardEl.addEventListener('click', e=>{ const sq=e.target.closest('.sq'); if(!sq) return; const rr=+sq.dataset.r, cc=+sq.dataset.c; squareClick(rr,cc); });
 
-function triggerAIMove(){
-  if(gameOver || state.side !== 'b') return;
-  const allLegalMoves = legalMoves(state);
-  const aiMove = getAIMove(allLegalMoves);
-  if(aiMove){
-    const pan=(aiMove.to.c-3.5)/3.5;
-    if(aiMove.capture) SND.play('capture', pan); else SND.play('move', pan);
-    makeMove(state, aiMove); logMove(aiMove);
-    const kp=kingPos(state.board,state.side); if(kp && attacked(state.board,other(state.side),kp.r,kp.c)) SND.play('check', (kp.c-3.5)/3.5);
-  }
-  render();
-}
-
-/* Controls */
-flipBtn.addEventListener('click',()=>{flipped=!flipped; SND.play('tap'); render();});
-newGameBtn.addEventListener('click',()=>{
-  if(confirm('Are you sure you want to start a new game?')){
-    SND.play('tap');
-    state = {board:U.clone(START),side:'w',castling:{wk:true,wq:true,bk:true,bq:true},ep:null,half:0,full:1,hist:[]};
-    selected=null; legal=[]; gameOver=false; movesEl.innerHTML='';
-    render();
-  }
-});
-
-function logMove(m){
-  const from=U.toAlg(m.from.r,m.from.c), to=U.toAlg(m.to.r,m.to.c);
-  const note=`${from}${m.capture?'x':'–'}${to}${m.castle?' ('+(m.castle.toLowerCase()==='q'?'O-O-O':'O-O')+')':''}${m.ep?' e.p.':''}${m.promo?'=Q':''}`;
-  const row=document.createElement('div'); row.textContent=note; movesEl.appendChild(row); movesEl.scrollTop=moves.scrollHeight;
-}
-
-render();
+} // End of the 'else' block for the unlock check
 </script>
 </body>
 </html>
