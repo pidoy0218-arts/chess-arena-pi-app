@@ -228,18 +228,19 @@
   function aiMatch() { openModal('aiModal'); }
   function payAI() {
     alert("💰 Pi SDK payment for AI match...");
-    setTimeout(() => { window.location.href = "game.html?mode=ai&method=pay"; }, 2000);
+    setTimeout(() => { window.location.href = "ai.html?mode=ai&method=pay"; }, 2000);
     closeModal('aiModal');
   }
   function watchAd() {
     alert("🎥 Watching Ad...");
     setTimeout(() => {
       alert("✅ Ad finished. Starting AI match.");
-      window.location.href = "game.html?mode=ai&method=ad";
+      window.location.href = "ai.html?mode=ai&method=ad";
     }, 5000);
     closeModal('aiModal');
   }
 </script>
 <script src="sound.js" defer></script>
+<script src="ai.js" defer></script>
 </body>
 </html>
