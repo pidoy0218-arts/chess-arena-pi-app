@@ -5,84 +5,85 @@
 <title>CHESS ARENA for PI — Classic Play vs. AI</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  :root{
-    --bg:#111; --fg:#eee; --light:#f0f0f0; --dark:#9fa8da; 
-    --sel:#ffcc00; --hint:#5ac8fa; --accent:gold; --warn:#ff5252
-  }
-  body{
-    margin:0; background:var(--bg); color:var(--fg);
-    font-family:system-ui,Arial; display:flex;flex-direction:column;
-    align-items:center;padding:16px;
-  }
-  h1{margin:6px 0 2px;font-size:20px}
-  .sub{opacity:.75;font-size:12px;margin-bottom:8px}
-  .wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;justify-content:center;width:100%;max-width:1100px}
-  #board{
-    display:grid; grid-template-columns:repeat(8,min(10.5vw,66px));
-    grid-template-rows:repeat(8,min(10.5vw,66px));
-    border:6px solid #333; border-radius:10px; overflow:hidden; 
-    box-shadow:0 8px 24px rgba(0,0,0,.45);
-  }
-  .sq{ display:flex;align-items:center;justify-content:center;font-size:min(8vw,50px);cursor:pointer; }
-  .sq.light{ background:var(--light); } 
-  .sq.dark{ background:var(--dark); }
-  .piece.white{ color:#c7b77f; font-weight:900; text-shadow:1px 1px 0 #000 } 
-  .piece.black{ color:#000; font-weight:900 }
-  .sq.sel{ outline:3px solid var(--sel); outline-offset:-3px }
-  .sq.hint::after{ content:""; width:22%; height:22%; border-radius:50%; background:var(--hint); opacity:.85; display:block; }
-  .sq.cap{ box-shadow: inset 0 0 0 4px var(--warn); }
-  .side{ min-width:260px; max-width:360px; display:flex; flex-direction:column; gap:10px }
-  .panel{ background:#1b1b1b; border:1px solid #2b2b2b; border-radius:10px; padding:10px 12px }
-  .row{ display:flex; justify-content:space-between; align-items:center; gap:10px }
-  .btn{ padding:10px 12px; border-radius:8px; border:0; color:#fff; background:var(--accent); font-weight:700; cursor:pointer }
-  .tiny{ font-size:12px; opacity:.8 }
-  .moves{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.45; max-height:260px; overflow:auto }
-  #fx{ position:fixed; inset:0; pointer-events:none; z-index:9 }
-  .controls { display:flex; gap:8px; align-items:center; }
+:root{--bg:#111;--fg:#eee;--light:#f0f0f0;--dark:#9fa8da;--sel:#ffcc00;--hint:#5ac8fa;--accent:gold;--warn:#ff5252;}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Arial;display:flex;flex-direction:column;align-items:center;padding:16px;}
+h1{margin:6px 0 2px;font-size:20px}.sub{opacity:.75;font-size:12px;margin-bottom:8px}
+.wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;justify-content:center;width:100%;max-width:1100px}
+#board{display:grid;grid-template-columns:repeat(8,min(10.5vw,66px));grid-template-rows:repeat(8,min(10.5vw,66px));border:6px solid #333;border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.45);}
+.sq{display:flex;align-items:center;justify-content:center;font-size:min(8vw,50px);cursor:pointer;}
+.sq.light{background:var(--light);}
+.sq.dark{background:var(--dark);}
+.piece.white{color:#c7b77f;font-weight:900;text-shadow:1px 1px 0 #000;}
+.piece.black{color:#000;font-weight:900;}
+.sq.sel{outline:3px solid var(--sel);outline-offset:-3px;}
+.sq.hint::after{content:"";width:22%;height:22%;border-radius:50%;background:var(--hint);opacity:.85;display:block;}
+.sq.cap{box-shadow: inset 0 0 0 4px var(--warn);}
+.side{min-width:260px;max-width:360px;display:flex;flex-direction:column;gap:10px;}
+.panel{background:#1b1b1b;border:1px solid #2b2b2b;border-radius:10px;padding:10px 12px;}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.btn{padding:10px 12px;border-radius:8px;border:0;color:#fff;background:var(--accent);font-weight:700;cursor:pointer;}
+.tiny{font-size:12px;opacity:.8;}
+.moves{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.45;max-height:260px;overflow:auto;}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:9;}
+.controls{display:flex;gap:8px;align-items:center;}
 </style>
 <script src="sound.js" defer></script>
 </head>
 <body>
-  <h1>♞ CHESS ARENA for PI</h1>
-  <div class="sub">Classic Match: Player vs. AI</div>
-
-  <div class="wrap">
-    <div id="board" aria-label="chessboard"></div>
-    <div class="side">
-      <div class="panel">
-        <div class="row">
-          <div style="font-weight:bold;">You (White)</div>
-          <div>vs.</div>
-          <div style="font-weight:bold;" id="aiPlayer">AI (Black)</div>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <div id="status" style="font-weight:700">White to move</div>
-          <div id="incheck" style="display:none;padding:4px 8px;border-radius:8px;background:#2b2b2b">Check!</div>
-        </div>
-        <div class="row tiny">
-          <div>Castling: <span id="cr">KQkq</span></div>
-          <div>En Passant: <span id="ep">---</span></div>
-        </div>
+<h1>♞ CHESS ARENA for PI</h1>
+<div class="sub">Classic Match: Player vs. AI</div>
+<div class="wrap">
+  <div id="board" aria-label="chessboard"></div>
+  <div class="side">
+    <div class="panel">
+      <div class="row">
+        <div style="font-weight:bold;">You (White)</div>
+        <div>vs.</div>
+        <div style="font-weight:bold;" id="aiPlayer">AI</div>
       </div>
-      <div class="panel">
-        <div class="row"><div><b>Move List</b></div></div>
-        <div id="moves" class="moves"></div>
+      <div class="row" style="margin-top:8px">
+        <div id="status" style="font-weight:700">White to move</div>
+        <div id="incheck" style="display:none;padding:4px 8px;border-radius:8px;background:#2b2b2b">Check!</div>
       </div>
-      <div class="panel row" style="align-items:center">
-        <div class="controls">
-          <button class="btn" id="newGameBtn">New Game</button>
-          <button class="btn" id="flipBtn">Flip</button>
-        </div>
-        <div class="tiny">You are playing as White.</div>
+      <div class="row tiny">
+        <div>Castling: <span id="cr">KQkq</span></div>
+        <div>En Passant: <span id="ep">---</span></div>
+      </div>
+      <div class="row tiny" style="margin-top:8px">
+        <label for="aiLevel">AI Difficulty:</label>
+        <select id="aiLevel">
+          <option value="1">Level 1 - Wild Card</option>
+          <option value="2">Level 2 - Opportunist</option>
+          <option value="3" selected>Level 3 - Contender</option>
+        </select>
       </div>
     </div>
+    <div class="panel">
+      <div class="row"><div><b>Move List</b></div></div>
+      <div id="moves" class="moves"></div>
+    </div>
+    <div class="panel row" style="align-items:center">
+      <div class="controls">
+        <button class="btn" id="newGameBtn">New Game</button>
+        <button class="btn" id="flipBtn">Flip</button>
+      </div>
+      <div class="tiny">You are playing as White.</div>
+    </div>
   </div>
-  <canvas id="fx"></canvas>
+</div>
+<canvas id="fx"></canvas>
 
 <script>
-const aiLevel = 3; // Default AI level
+// --- AI Level & URL ---
+const urlParams = new URLSearchParams(window.location.search);
+let aiLevel = parseInt(urlParams.get('level')) || 3;
 const LEVEL_NAMES=['','Wild Card','Opportunist','Contender'];
+document.getElementById('aiLevel').value = aiLevel;
 document.getElementById('aiPlayer').textContent = `AI (L${aiLevel}: ${LEVEL_NAMES[aiLevel]})`;
+document.getElementById('aiLevel').addEventListener('change', e=>{
+  aiLevel = parseInt(e.target.value);
+  document.getElementById('aiPlayer').textContent = `AI (L${aiLevel}: ${LEVEL_NAMES[aiLevel]})`;
+});
 
 // --- Board Utilities ---
 const U = {
@@ -92,7 +93,6 @@ const U = {
   fromAlg:a=>({r:8-parseInt(a[1],10),c:"abcdefgh".indexOf(a[0])})
 };
 
-// --- Starting Position ---
 const START = [
   ["r","n","b","q","k","b","n","r"],
   ["p","p","p","p","p","p","p","p"],
@@ -110,9 +110,9 @@ let state = {
   side: 'w',
   castling: {wk:true,wq:true,bk:true,bq:true},
   ep: null,
-  half: 0,
-  full: 1,
-  hist: []
+  half:0,
+  full:1,
+  hist:[]
 };
 
 const PIECES = {r:"♜",n:"♞",b:"♝",q:"♛",k:"♚",p:"♟",R:"♖",N:"♘",B:"♗",Q:"♕",K:"♔",P:"♙"};
@@ -128,69 +128,98 @@ const boardEl = document.getElementById('board'),
 let sel = null, leg = [], flip = false, over = false;
 
 // --- Helpers ---
-function isWhite(p){return p && p === p.toUpperCase();}
-function isBlack(p){return p && p === p.toLowerCase();}
+function isWhite(p){return p && p===p.toUpperCase();}
+function isBlack(p){return p && p===p.toLowerCase();}
 function sidePiece(p,s){return s==='w'?isWhite(p):isBlack(p);}
 function other(s){return s==='w'?'b':'w';}
 function kingPos(b,s){const k=s==='w'?'K':'k'; for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(b[r][c]===k) return {r,c}; return null;}
 
-// --- Move generation & legality ---
-function attacked(b,s,r,c){ 
-  const p = s==='w'?'P':'p', pd = s==='w'?1:-1;
-  for(const dc of [-1,1]){ const rr=r+pd, cc=c+dc; if(U.inBounds(rr,cc)&&b[rr][cc]===p) return true; }
-  const N = s==='w'?'N':'n';
-  for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
-    const rr=r+dr, cc=c+dc; if(U.inBounds(rr,cc)&&b[rr][cc]===N) return true;
+// --- Move Generation & Legality ---
+function legalMoves(st){
+  const moves=[];
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const p=st.board[r][c];
+      if(!p || !sidePiece(p,st.side)) continue;
+      // Pawn
+      if(p.toLowerCase()==='p'){
+        const dir=st.side==='w'?-1:1, startRow=st.side==='w'?6:1;
+        if(U.inBounds(r+dir,c) && !st.board[r+dir][c]) moves.push({from:{r,c},to:{r:r+dir,c},capture:false,promotion:(r+dir===0||r+dir===7)});
+        for(const dc of [-1,1]){
+          const rr=r+dir, cc=c+dc;
+          if(U.inBounds(rr,cc) && st.board[rr][cc] && sidePiece(st.board[rr][cc],other(st.side))) moves.push({from:{r,c},to:{r:rr,c:cc},capture:true,promotion:(rr===0||rr===7)});
+          else if(U.inBounds(rr,cc) && st.ep && rr===st.ep.r && cc===st.ep.c) moves.push({from:{r,c},to:{r:rr,c:cc},capture:true,enpassant:true});
+        }
+      }
+      // Knight
+      if(p.toLowerCase()==='n'){
+        for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
+          const rr=r+dr, cc=c+dc; if(U.inBounds(rr,cc) && (!st.board[rr][cc] || sidePiece(st.board[rr][cc],other(st.side)))) moves.push({from:{r,c},to:{r:rr,c:cc},capture:!!st.board[rr][cc]});
+        }
+      }
+      // Bishop/rook/queen
+      const dirs=[];
+      if(p.toLowerCase()==='b'||p.toLowerCase()==='q') dirs.push([1,1],[1,-1],[-1,1],[-1,-1]);
+      if(p.toLowerCase()==='r'||p.toLowerCase()==='q') dirs.push([1,0],[-1,0],[0,1],[0,-1]);
+      for(const [dr,dc] of dirs){
+        let rr=r+dr, cc=c+dc;
+        while(U.inBounds(rr,cc)){
+          if(st.board[rr][cc]){
+            if(sidePiece(st.board[rr][cc],other(st.side))) moves.push({from:{r,c},to:{r:rr,c:cc},capture:true});
+            break;
+          } else moves.push({from:{r,c},to:{r:rr,c:cc},capture:false});
+          rr+=dr; cc+=dc;
+        }
+      }
+      // King
+      if(p.toLowerCase()==='k'){
+        for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){if(dr===0&&dc===0) continue;
+          const rr=r+dr, cc=c+dc; if(U.inBounds(rr,cc) && (!st.board[rr][cc] || sidePiece(st.board[rr][cc],other(st.side)))) moves.push({from:{r,c},to:{r:rr,c:cc},capture:!!st.board[rr][cc]});
+        }
+      }
+    }
   }
-  const B=s==='w'?'B':'b', R=s==='w'?'R':'r', Q=s==='w'?'Q':'q';
-  for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){
-    let rr=r+dr, cc=c+dc; while(U.inBounds(rr,cc)){ const t=b[rr][cc]; if(t){if(t===B||t===Q)return true; break;} rr+=dr; cc+=dc;}
-  }
-  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
-    let rr=r+dr, cc=c+dc; while(U.inBounds(rr,cc)){ const t=b[rr][cc]; if(t){if(t===R||t===Q)return true; break;} rr+=dr; cc+=dc;}
-  }
-  const K=s==='w'?'K':'k';
-  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
-    if(dr===0&&dc===0) continue; const rr=r+dr, cc=c+dc;
-    if(U.inBounds(rr,cc)&&b[rr][cc]===K) return true;
-  }
-  return false;
+  return moves;
 }
 
-// --- Legal Moves Placeholder (can reuse your full code from above) ---
-// For brevity in this message, assume legalMoves(state) and makeMove(state, move) functions are copied exactly from your previous working logic.
+// --- Move Execution with Promotion ---
+function makeMove(st, m, simulate=false){
+  const f = st.board[m.from.r][m.from.c];
+  const captured = st.board[m.to.r][m.to.c];
+  st.board[m.to.r][m.to.c] = f; 
+  st.board[m.from.r][m.from.c] = '';
+  
+  if(m.promotion){ st.board[m.to.r][m.to.c] = st.side==='w'?'Q':'q'; }
+
+  if(!simulate){
+    st.side = other(st.side); 
+    st.hist.push(m);
+    const alg = `${U.toAlg(m.from.r,m.from.c)}${m.capture?'x':''}${U.toAlg(m.to.r,m.to.c)}${m.promotion?'=Q':''}`;
+    const div = document.createElement('div'); div.textContent = alg; movesEl.appendChild(div); movesEl.scrollTop = movesEl.scrollHeight;
+  }
+}
 
 // --- AI ---
 function evaluateBoard(board){
-  const pieceValues={p:1,n:3,b:3,r:5,q:9,k:0,P:1,N:3,B:3,R:5,Q:9,K:0};
-  let score=0;
-  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-    const p=board[r][c]; if(!p) continue; score += (p===p.toLowerCase()?pieceValues[p]:-pieceValues[p]);
-  }
-  return score;
+  const val={p:1,n:3,b:3,r:5,q:9,k:0,P:1,N:3,B:3,R:5,Q:9,K:0};
+  let score=0; for(let r=0;r<8;r++) for(let c=0;c<8;c++){const p=board[r][c]; if(!p) continue; score+=isBlack(p)?val[p]:-val[p];} return score;
 }
-function getAIMove(legalMoves, level=1, state){
-  if(!legalMoves||legalMoves.length===0) return null;
-  switch(level){
-    case 3: return getLevel3Move(legalMoves,state);
-    case 2: return getLevel2Move(legalMoves);
-    default: return getLevel1Move(legalMoves);
-  }
-}
-function getLevel1Move(legalMoves){ return legalMoves[Math.floor(Math.random()*legalMoves.length)]; }
-function getLevel2Move(legalMoves){
-  const cap=legalMoves.filter(m=>m.capture); return cap.length?cap[Math.floor(Math.random()*cap.length)]:getLevel1Move(legalMoves);
-}
-function getLevel3Move(legalMoves,state){
-  const moves=legalMoves.map(m=>{
-    const temp=U.clone(state); makeMove(temp,m,true);
+function getAIMove(legal,level,st){if(!legal||!legal.length)return null;
+switch(level){case 3:return getLevel3Move(legal,st);case 2:return getLevel2Move(legal);default:return getLevel1Move(legal);}}
+function getLevel1Move(l){return l[Math.floor(Math.random()*l.length)];}
+function getLevel2Move(l){const cap=l.filter(m=>m.capture); return cap.length?cap[Math.floor(Math.random()*cap.length)]:getLevel1Move(l);}
+function getLevel3Move(l,st){
+  const moves = l.map(m=>{
+    const temp = U.clone(st);
+    makeMove(temp,m,true);
     return {move:m,score:evaluateBoard(temp.board)};
   });
   moves.sort((a,b)=>b.score-a.score);
-  const top=moves.slice(0,3); return top[Math.floor(Math.random()*top.length)].move;
+  const top = moves.slice(0,3);
+  return top[Math.floor(Math.random()*top.length)].move;
 }
 
-// --- UI Rendering ---
+// --- Render Board & UI ---
 function render(){
   boardEl.innerHTML='';
   const mapIdx=i=>flip?63-i:i;
@@ -217,13 +246,32 @@ function render(){
   else if(state.side==='b'&&!over){ setTimeout(triggerAIMove,600);}
 }
 
-// --- Event Listeners ---
+// --- AI Turn ---
+function triggerAIMove(){
+  const moves = legalMoves(state);
+  if(!moves.length) return;
+  const aiMove = getAIMove(moves, aiLevel, state);
+  if(aiMove){ makeMove(state, aiMove); render(); }
+}
+
+// --- Player Interaction ---
 boardEl.addEventListener('click', e=>{
-  const sq=e.target.closest('.sq'); if(!sq||over||state.side!=='w') return;
-  const r=+sq.dataset.r,c=+sq.dataset.c;
-  // Handle click logic (reuse your onSquareClick function)
+  if(over||state.side!=='w') return;
+  const sq=e.target.closest('.sq'); if(!sq) return;
+  const r=+sq.dataset.r, c=+sq.dataset.c;
+  if(sel){
+    const move = leg.find(m=>m.to.r===r && m.to.c===c);
+    if(move){ makeMove(state, move); sel=null; leg=[]; render(); return; }
+  }
+  const p=state.board[r][c];
+  if(p && isWhite(p)){
+    sel={r,c};
+    leg=legalMoves(state).filter(m=>m.from.r===r && m.from.c===c);
+    render();
+  } else { sel=null; leg=[]; render(); }
 });
 
+// --- Controls ---
 flipBtn.addEventListener('click', ()=>{ flip=!flip; render(); });
 newGameBtn.addEventListener('click', ()=>{
   if(confirm('Start new game?')){
