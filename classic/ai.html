@@ -13,7 +13,7 @@ h1{margin:6px 0 2px;font-size:20px}.sub{opacity:.75;font-size:12px;margin-bottom
 .sq{display:flex;align-items:center;justify-content:center;font-size:min(8vw,50px);cursor:pointer;}
 .sq.light{background:var(--light);}
 .sq.dark{background:var(--dark);}
-.piece.white{color:#c7b77f;font-weight:900;}
+.piece.white{color:#c7b77f;font-weight:900;text-shadow:1px 1px 0 #000;}
 .piece.black{color:#000;font-weight:900;}
 .sq.sel{outline:3px solid var(--sel);outline-offset:-3px;}
 .sq.hint::after{content:"";width:22%;height:22%;border-radius:50%;background:var(--hint);opacity:.85;display:block;}
@@ -27,6 +27,7 @@ h1{margin:6px 0 2px;font-size:20px}.sub{opacity:.75;font-size:12px;margin-bottom
 #fx{position:fixed;inset:0;pointer-events:none;z-index:9;}
 .controls{display:flex;gap:8px;align-items:center;}
 </style>
+<script src="sound.js" defer></script>
 </head>
 <body>
 <h1>♞ CHESS ARENA for PI</h1>
@@ -73,13 +74,26 @@ h1{margin:6px 0 2px;font-size:20px}.sub{opacity:.75;font-size:12px;margin-bottom
 <canvas id="fx"></canvas>
 
 <script>
-const U={
+// --- AI Level & URL ---
+const urlParams = new URLSearchParams(window.location.search);
+let aiLevel = parseInt(urlParams.get('level')) || 3;
+const LEVEL_NAMES=['','Wild Card','Opportunist','Contender'];
+document.getElementById('aiLevel').value = aiLevel;
+document.getElementById('aiPlayer').textContent = `AI (L${aiLevel}: ${LEVEL_NAMES[aiLevel]})`;
+document.getElementById('aiLevel').addEventListener('change', e=>{
+  aiLevel = parseInt(e.target.value);
+  document.getElementById('aiPlayer').textContent = `AI (L${aiLevel}: ${LEVEL_NAMES[aiLevel]})`;
+});
+
+// --- Board Utilities ---
+const U = {
   inBounds:(r,c)=>r>=0&&r<8&&c>=0&&c<8,
   clone:o=>JSON.parse(JSON.stringify(o)),
-  toAlg:(r,c)=>"abcdefgh"[c]+(8-r)
+  toAlg:(r,c)=>"abcdefgh"[c]+(8-r),
+  fromAlg:a=>({r:8-parseInt(a[1],10),c:"abcdefgh".indexOf(a[0])})
 };
-const PIECES={r:"♜",n:"♞",b:"♝",q:"♛",k:"♚",p:"♟",R:"♖",N:"♘",B:"♗",Q:"♕",K:"♔",P:"♙"};
-const START=[
+
+const START = [
   ["r","n","b","q","k","b","n","r"],
   ["p","p","p","p","p","p","p","p"],
   ["","","","","","","",""],
@@ -90,180 +104,179 @@ const START=[
   ["R","N","B","Q","K","B","N","R"]
 ];
 
-let state={board:U.clone(START),side:'w',castling:{wk:true,wq:true,bk:true,bq:true},ep:null,half:0,full:1,hist:[]};
-let sel=null, leg=[], flip=false, over=false, aiLevel=3;
-const LEVEL_NAMES=['','Wild Card','Opportunist','Contender'];
+// --- Game State ---
+let state = {
+  board: U.clone(START),
+  side: 'w',
+  castling: {wk:true,wq:true,bk:true,bq:true},
+  ep: null,
+  half:0,
+  full:1,
+  hist:[]
+};
 
-const boardEl=document.getElementById('board'),
-      statusEl=document.getElementById('status'),
-      incheckEl=document.getElementById('incheck'),
-      crEl=document.getElementById('cr'),
-      epEl=document.getElementById('ep'),
-      movesEl=document.getElementById('moves'),
-      flipBtn=document.getElementById('flipBtn'),
-      newGameBtn=document.getElementById('newGameBtn'),
-      aiSelect=document.getElementById('aiLevel');
+const PIECES = {r:"♜",n:"♞",b:"♝",q:"♛",k:"♚",p:"♟",R:"♖",N:"♘",B:"♗",Q:"♕",K:"♔",P:"♙"};
+const boardEl = document.getElementById('board'),
+      statusEl = document.getElementById('status'),
+      incheckEl = document.getElementById('incheck'),
+      crEl = document.getElementById('cr'),
+      epEl = document.getElementById('ep'),
+      movesEl = document.getElementById('moves'),
+      flipBtn = document.getElementById('flipBtn'),
+      newGameBtn = document.getElementById('newGameBtn');
 
-aiSelect.addEventListener('change',()=>{aiLevel=parseInt(aiSelect.value); document.getElementById('aiPlayer').textContent=`AI (L${aiLevel}: ${LEVEL_NAMES[aiLevel]})`;});
-document.getElementById('aiPlayer').textContent=`AI (L${aiLevel}: ${LEVEL_NAMES[aiLevel]})`;
+let sel = null, leg = [], flip = false, over = false;
 
+// --- Helpers ---
 function isWhite(p){return p && p===p.toUpperCase();}
 function isBlack(p){return p && p===p.toLowerCase();}
 function sidePiece(p,s){return s==='w'?isWhite(p):isBlack(p);}
 function other(s){return s==='w'?'b':'w';}
+function kingPos(b,s){const k=s==='w'?'K':'k'; for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(b[r][c]===k) return {r,c}; return null;}
 
-// --- Legal moves generator (full FIDE style for all pieces) ---
+// --- Move Generation & Legality ---
 function legalMoves(st){
   const moves=[];
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
       const p=st.board[r][c];
-      if(!p) continue;
-      if(st.side==='w' && isWhite(p) || st.side==='b' && isBlack(p)){
-        // Pawn, Knight, Bishop, Rook, Queen, King moves
-        // (Implementation of full moves including castling, en passant, promotion)
-        // For brevity, we will focus on pawns and capture logic
-        const dir=isWhite(p)?-1:1;
-        if(p.toLowerCase()=='p'){
-          if(U.inBounds(r+dir,c) && !st.board[r+dir][c]) moves.push({from:{r,c},to:{r:r+dir,c},capture:false,promotion:(r+dir===0||r+dir===7)});
-          for(const dc of [-1,1]){
-            if(U.inBounds(r+dir,c+dc) && st.board[r+dir][c+dc] && sidePiece(st.board[r+dir][c+dc],other(st.side))) moves.push({from:{r,c},to:{r:r+dir,c:c+dc},capture:true,promotion:(r+dir===0||r+dir===7)});
-          }
+      if(!p || !sidePiece(p,st.side)) continue;
+      // Pawn
+      if(p.toLowerCase()==='p'){
+        const dir=st.side==='w'?-1:1, startRow=st.side==='w'?6:1;
+        if(U.inBounds(r+dir,c) && !st.board[r+dir][c]) moves.push({from:{r,c},to:{r:r+dir,c},capture:false,promotion:(r+dir===0||r+dir===7)});
+        for(const dc of [-1,1]){
+          const rr=r+dir, cc=c+dc;
+          if(U.inBounds(rr,cc) && st.board[rr][cc] && sidePiece(st.board[rr][cc],other(st.side))) moves.push({from:{r,c},to:{r:rr,c:cc},capture:true,promotion:(rr===0||rr===7)});
+          else if(U.inBounds(rr,cc) && st.ep && rr===st.ep.r && cc===st.ep.c) moves.push({from:{r,c},to:{r:rr,c:cc},capture:true,enpassant:true});
         }
-        // TODO: add full logic for N,B,R,Q,K moves
+      }
+      // Knight
+      if(p.toLowerCase()==='n'){
+        for(const [dr,dc] of [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
+          const rr=r+dr, cc=c+dc; if(U.inBounds(rr,cc) && (!st.board[rr][cc] || sidePiece(st.board[rr][cc],other(st.side)))) moves.push({from:{r,c},to:{r:rr,c:cc},capture:!!st.board[rr][cc]});
+        }
+      }
+      // Bishop/rook/queen
+      const dirs=[];
+      if(p.toLowerCase()==='b'||p.toLowerCase()==='q') dirs.push([1,1],[1,-1],[-1,1],[-1,-1]);
+      if(p.toLowerCase()==='r'||p.toLowerCase()==='q') dirs.push([1,0],[-1,0],[0,1],[0,-1]);
+      for(const [dr,dc] of dirs){
+        let rr=r+dr, cc=c+dc;
+        while(U.inBounds(rr,cc)){
+          if(st.board[rr][cc]){
+            if(sidePiece(st.board[rr][cc],other(st.side))) moves.push({from:{r,c},to:{r:rr,c:cc},capture:true});
+            break;
+          } else moves.push({from:{r,c},to:{r:rr,c:cc},capture:false});
+          rr+=dr; cc+=dc;
+        }
+      }
+      // King
+      if(p.toLowerCase()==='k'){
+        for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){if(dr===0&&dc===0) continue;
+          const rr=r+dr, cc=c+dc; if(U.inBounds(rr,cc) && (!st.board[rr][cc] || sidePiece(st.board[rr][cc],other(st.side)))) moves.push({from:{r,c},to:{r:rr,c:cc},capture:!!st.board[rr][cc]});
+        }
       }
     }
   }
   return moves;
 }
 
-// --- Make move ---
-function makeMove(st,m,simulate=false){
-  const f=st.board[m.from.r][m.from.c];
-  st.board[m.to.r][m.to.c]=m.promotion? (isWhite(f)?'Q':'q') : f;
-  st.board[m.from.r][m.from.c]='';
+// --- Move Execution with Promotion ---
+function makeMove(st, m, simulate=false){
+  const f = st.board[m.from.r][m.from.c];
+  const captured = st.board[m.to.r][m.to.c];
+  st.board[m.to.r][m.to.c] = f; 
+  st.board[m.from.r][m.from.c] = '';
+  
+  if(m.promotion){ st.board[m.to.r][m.to.c] = st.side==='w'?'Q':'q'; }
+
   if(!simulate){
-    st.side=other(st.side);
+    st.side = other(st.side); 
     st.hist.push(m);
-    movesEl.innerHTML+=`${U.toAlg(m.from.r,m.from.c)}${U.toAlg(m.to.r,m.to.c)}${m.promotion?(isWhite(f)?'Q':'q'):''}<br>`;
+    const alg = `${U.toAlg(m.from.r,m.from.c)}${m.capture?'x':''}${U.toAlg(m.to.r,m.to.c)}${m.promotion?'=Q':''}`;
+    const div = document.createElement('div'); div.textContent = alg; movesEl.appendChild(div); movesEl.scrollTop = movesEl.scrollHeight;
   }
 }
 
-// --- AI logic ---
+// --- AI ---
 function evaluateBoard(board){
-  const values={p:1,n:3,b:3,r:5,q:9,k:0,P:1,N:3,B:3,R:5,Q:9,K:0};
-  let score=0;
-  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-    const p=board[r][c]; if(!p) continue;
-    score+=isWhite(p)?values[p]:-values[p];
-  }
-  return score;
+  const val={p:1,n:3,b:3,r:5,q:9,k:0,P:1,N:3,B:3,R:5,Q:9,K:0};
+  let score=0; for(let r=0;r<8;r++) for(let c=0;c<8;c++){const p=board[r][c]; if(!p) continue; score+=isBlack(p)?val[p]:-val[p];} return score;
 }
-
-function getAIMove(legalMoves, level, st){
-  if(!legalMoves || legalMoves.length===0) return null;
-  switch(level){
-    case 3: return getLevel3Move(legalMoves,st);
-    case 2: return getLevel2Move(legalMoves);
-    default: return getLevel1Move(legalMoves);
-  }
-}
-
-function getLevel1Move(legalMoves){return legalMoves[Math.floor(Math.random()*legalMoves.length)];}
-function getLevel2Move(legalMoves){
-  const cap=legalMoves.filter(m=>m.capture);
-  return cap.length?cap[Math.floor(Math.random()*cap.length)]:getLevel1Move(legalMoves);
-}
-function getLevel3Move(legalMoves,st){
-  const moves=legalMoves.map(m=>{const temp=U.clone(st); makeMove(temp,m,true); return {move:m,score:evaluateBoard(temp.board)};});
+function getAIMove(legal,level,st){if(!legal||!legal.length)return null;
+switch(level){case 3:return getLevel3Move(legal,st);case 2:return getLevel2Move(legal);default:return getLevel1Move(legal);}}
+function getLevel1Move(l){return l[Math.floor(Math.random()*l.length)];}
+function getLevel2Move(l){const cap=l.filter(m=>m.capture); return cap.length?cap[Math.floor(Math.random()*cap.length)]:getLevel1Move(l);}
+function getLevel3Move(l,st){
+  const moves = l.map(m=>{
+    const temp = U.clone(st);
+    makeMove(temp,m,true);
+    return {move:m,score:evaluateBoard(temp.board)};
+  });
   moves.sort((a,b)=>b.score-a.score);
-  const top=moves.slice(0,3);
+  const top = moves.slice(0,3);
   return top[Math.floor(Math.random()*top.length)].move;
 }
 
-// --- Trigger AI ---
-function triggerAIMove(){
-  if(over||state.side!=='bif(over || state.side !== 'b') return;
-  const moves = legalMoves(state).filter(m => sidePiece(state.board[m.from.r][m.from.c], 'b'));
-  if(!moves.length){
-    over = true;
-    statusEl.textContent = 'Game over!';
-    return;
-  }
-  const aiMove = getAIMove(moves, aiLevel, state);
-  if(aiMove){
-    makeMove(state, aiMove);
-    render();
-    if(!legalMoves(state).length){
-      over = true;
-      statusEl.textContent = 'Game over!';
-    }
-  }
-}
-
-// --- Render Board ---
+// --- Render Board & UI ---
 function render(){
-  boardEl.innerHTML = '';
-  for(let r=0; r<8; r++){
-    for(let c=0; c<8; c++){
-      const sq = document.createElement('div');
-      sq.className = `sq ${(r+c)%2?'dark':'light'}`;
-      sq.dataset.r = r;
-      sq.dataset.c = c;
-      const p = state.board[r][c];
-      if(p){
-        const sp = document.createElement('span');
-        sp.textContent = PIECES[p];
-        sp.className = `piece ${isWhite(p)?'white':'black'}`;
-        sq.appendChild(sp);
-      }
-      if(sel && sel.r === r && sel.c === c) sq.classList.add('sel');
-      for(const m of leg){
-        if(m.to.r === r && m.to.c === c){
-          if(m.capture) sq.classList.add('cap'); else sq.classList.add('hint');
-        }
-      }
+  boardEl.innerHTML='';
+  const mapIdx=i=>flip?63-i:i;
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const i=r*8+c, idx=mapIdx(i), rr=Math.floor(idx/8), cc=idx%8;
+      const sq=document.createElement('div');
+      sq.className=`sq ${(r+c)%2?'dark':'light'}`; sq.dataset.r=rr; sq.dataset.c=cc;
+      const p=state.board[rr][cc];
+      if(p){ const sp=document.createElement('span'); sp.textContent=PIECES[p]; sp.className=`piece ${isWhite(p)?'white':'black'}`; sq.appendChild(sp);}
+      if(sel&&sel.r===rr&&sel.c===cc) sq.classList.add('sel');
+      for(const m of leg){ if(m.to.r===rr && m.to.c===cc){ if(m.capture)sq.classList.add('cap'); else sq.classList.add('hint'); }}
       boardEl.appendChild(sq);
     }
   }
-  const kp = null; // You can add kingPos check logic for 'Check!' if desired
-  incheckEl.style.display = 'none';
-  statusEl.textContent = state.side === 'w' ? 'Your turn (White)' : 'AI is thinking...';
-  crEl.textContent = `${state.castling.wk?'K':''}${state.castling.wq?'Q':''}${state.castling.bk?'k':''}${state.castling.bq?'q':''}` || '---';
-  epEl.textContent = state.ep || '---';
+  const kp=kingPos(state.board,state.side);
+  const chk=kp?attacked(state.board,other(state.side),kp.r,kp.c):false;
+  incheckEl.style.display=chk?'':'none';
+  statusEl.textContent=state.side==='w'?'Your turn (White)':'AI is thinking...';
+  crEl.textContent=`${state.castling.wk?'K':''}${state.castling.wq?'Q':''}${state.castling.bk?'k':''}${state.castling.bq?'q':''}`||'---';
+  epEl.textContent=state.ep||'---';
+  const all=legalMoves(state);
+  if(!all.length){ over=true; statusEl.textContent=chk?other(state.side)==='w'?'You win!':'AI wins!':'Draw by stalemate'; }
+  else if(state.side==='b'&&!over){ setTimeout(triggerAIMove,600);}
 }
 
-// --- Player Click Handling ---
-boardEl.addEventListener('click', e => {
-  if(over || state.side !== 'w') return;
-  const sq = e.target.closest('.sq'); if(!sq) return;
-  const r = +sq.dataset.r, c = +sq.dataset.c;
-  
+// --- AI Turn ---
+function triggerAIMove(){
+  const moves = legalMoves(state);
+  if(!moves.length) return;
+  const aiMove = getAIMove(moves, aiLevel, state);
+  if(aiMove){ makeMove(state, aiMove); render(); }
+}
+
+// --- Player Interaction ---
+boardEl.addEventListener('click', e=>{
+  if(over||state.side!=='w') return;
+  const sq=e.target.closest('.sq'); if(!sq) return;
+  const r=+sq.dataset.r, c=+sq.dataset.c;
   if(sel){
-    const move = leg.find(m => m.to.r === r && m.to.c === c);
-    if(move){
-      makeMove(state, move);
-      sel = null; leg = [];
-      render();
-      setTimeout(triggerAIMove, 300);
-      return;
-    }
+    const move = leg.find(m=>m.to.r===r && m.to.c===c);
+    if(move){ makeMove(state, move); sel=null; leg=[]; render(); return; }
   }
-  
-  const p = state.board[r][c];
+  const p=state.board[r][c];
   if(p && isWhite(p)){
-    sel = {r,c};
-    leg = legalMoves(state).filter(m => m.from.r === r && m.from.c === c);
+    sel={r,c};
+    leg=legalMoves(state).filter(m=>m.from.r===r && m.from.c===c);
     render();
-  } else { sel = null; leg = []; render(); }
+  } else { sel=null; leg=[]; render(); }
 });
 
 // --- Controls ---
-flipBtn.addEventListener('click', ()=>{ flip = !flip; render(); });
+flipBtn.addEventListener('click', ()=>{ flip=!flip; render(); });
 newGameBtn.addEventListener('click', ()=>{
   if(confirm('Start new game?')){
-    state = {board:U.clone(START), side:'w', castling:{wk:true,wq:true,bk:true,bq:true}, ep:null, half:0, full:1, hist:[]};
-    sel = null; leg = []; over = false; movesEl.innerHTML='';
+    state={board:U.clone(START),side:'w',castling:{wk:true,wq:true,bk:true,bq:true},ep:null,half:0,full:1,hist:[]};
+    sel=null; leg=[]; over=false; movesEl.innerHTML='';
     render();
   }
 });
