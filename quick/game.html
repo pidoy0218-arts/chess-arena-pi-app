@@ -846,61 +846,6 @@ function handleGameEnd(result) {
     window.location.href = "leaderboard.html";
   }, 3000);
 }
-<script>
-/* Function to show endgame result and redirect */
-function handleEndGame(resultText) {
-  // Show a simple modal or alert
-  alert(resultText); // Or your custom endgame modal if you have one
-
-  // Optional: add a short delay before redirect so player can see the result
-  setTimeout(() => {
-    window.location.href = 'quick.html';
-  }, 1500); // 1.5 seconds
-}
-
-/* Example hooks for FIDE rules endgame conditions */
-function onCheckmate(winnerColor) {
-  if (winnerColor === 'white') {
-    handleEndGame('White wins by checkmate!');
-  } else {
-    handleEndGame('Black wins by checkmate!');
-  }
-}
-
-function onDraw() {
-  handleEndGame('Draw!');
-}
-
-function onResign(playerColor) {
-  if (playerColor === 'white') {
-    handleEndGame('White resigns — Black wins!');
-  } else {
-    handleEndGame('Black resigns — White wins!');
-  }
-}
-
-/* Optional: hook rematch decline and countdown */
-rematchDeclineBtn.addEventListener('click', () => {
-  rematchModal.classList.remove('show');
-  handleEndGame('Rematch declined.');
-});
-
-// If you have auto-cancel countdown for rematch
-function showRematchModal() {
-  rematchModal.classList.add('show');
-  let countdown = REMATCH_AUTO_CANCEL;
-  rematchCountdownEl.textContent = `Auto-cancel in ${countdown}s`;
-
-  const timer = setInterval(() => {
-    countdown--;
-    rematchCountdownEl.textContent = `Auto-cancel in ${countdown}s`;
-    if(countdown <= 0){
-      clearInterval(timer);
-      rematchModal.classList.remove('show');
-      handleEndGame('Rematch auto-cancelled.');
-    }
-  }, 1000);
-}
 </script>
 <script src="sound.js" defer></script>
 </body>
