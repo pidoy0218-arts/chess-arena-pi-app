@@ -1,4 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CHESS ARENA for PI — Classic Play vs. AI</title>
+<style>
+:root{
+  --bg:#111; --fg:#eee; --light:#f0f0f0; --dark:#9fa8da; 
+  --sel:#ffcc00; --hint:#5ac8fa; --accent:#888; --warn:#ff5252;
+}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:system-ui,Arial; display:flex; flex-direction:column;
+  align-items:center; padding:10px;
+}
+h1{margin:6px 0 2px;font-size:22px; text-align:center;}
+.sub{opacity:.75;font-size:12px;margin-bottom:8px; text-align:center;}
+.wrap{
+  display:flex; flex-wrap:wrap; gap:16px; justify-content:center; width:100%; max-width:1000px;
+}
+#board{
+  display:grid; grid-template-columns:repeat(8, minmax(40px, 11vw));
+  grid-template-rows:repeat(8, minmax(40px, 11vw));
+  border:4px solid #333; border-radius:10px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,.5);
+}
+.sq{display:flex;align-items:center;justify-content:center;font-size:min(8vw,50px);cursor:pointer;}
+.sq.light{background:var(--light);}
+.sq.dark{background:var(--dark);}
+.piece.white{color:#c7b77f;font-weight:900;text-shadow:1px 1px 0 #000;}
+.piece.black{color:#000;font-weight:900;}
+.sq.sel{outline:3px solid var(--sel);outline-offset:-3px;}
+.sq.hint::after{content:"";width:20%;height:20%;border-radius:50%;background:var(--hint);opacity:.8;display:block;}
+.sq.cap{box-shadow: inset 0 0 0 4px var(--warn);}
+.side{
+  min-width:260px; max-width:360px; display:flex; flex-direction:column; gap:10px;
+}
+.panel{
+  background:#1b1b1b; border:1px solid #2b2b2b; border-radius:10px; padding:10px 12px;
+}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px; flex-wrap:wrap;}
+.btn{
+  padding:6px 12px;border-radius:6px;border:0;color:#fff;
+  background:var(--accent);font-weight:700;cursor:pointer;
+}
+.tiny{font-size:12px;opacity:.8;}
+.moves{
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:13px; line-height:1.45; max-height:260px; overflow:auto;
+  background:#222; padding:6px; border-radius:6px;
+}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:9;}
+.controls{display:flex;gap:6px;align-items:center; flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<h1>♞ CHESS ARENA for PI</h1>
+<div class="sub">Classic Match: Player vs. AI</div>
+<div class="wrap">
+  <div id="board" aria-label="chessboard"></div>
+  <div class="side">
+    <div class="panel">
+      <div class="row">
+        <div style="font-weight:bold;">You (White)</div>
+        <div>vs.</div>
+        <div style="font-weight:bold;" id="aiPlayer">AI</div>
+      </div>
+      <div class="row" style="margin-top:4px;">
+        <div id="status" style="font-weight:700">White to move</div>
+        <div id="incheck" style="display:none;padding:4px 8px;border-radius:6px;background:#2b2b2b">Check!</div>
+      </div>
+      <div class="row tiny">
+        <div>Castling: <span id="cr">KQkq</span></div>
+        <div>En Passant: <span id="ep">---</span></div>
+      </div>
+      <div class="row tiny" style="margin-top:4px;">
+        <label for="aiLevel">AI Level:</label>
+        <select id="aiLevel">
+          <option value="1">Level 1 - Wild Card</option>
+          <option value="2">Level 2 - Opportunist</option>
+          <option value="3" selected>Level 3 - Contender</option>
+          <option value="4">Level 4 - Expert</option>
+          <option value="5">Level 5 - Master</option>
+        </select>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="row"><div><b>Move History</b></div></div>
+      <div id="moves" class="moves"></div>
+    </div>
+    <div class="panel row" style="align-items:center;">
+      <div class="controls">
+        <button class="btn" id="newGameBtn">New Game</button>
+        <button class="btn" id="flipBtn">Flip Board</button>
+      </div>
+      <div class="tiny">You play as White</div>
+    </div>
+  </div>
+</div>
+<canvas id="fx"></canvas>
+
 <script>
+/* ---------- UTILITIES ---------- */
+const U={
+  inBounds:(r,c)=>r>=0&&r<8&&c>=0&&c<8,
+  clone:o=>JSON.parse(JSON.stringify(o)),
+  toAlg:(r,c)=>"abcdefgh"[c]+(8-r)
+};
+
+const START=[
+ ["r","n","b","q","k","b","n","r"],
+ ["p","p","p","p","p","p","p","p"],
+ ["","","","","","","",""],
+ ["","","","","","","",""],
+ ["","","","","","","",""],
+ ["","","","","","","",""],
+ ["P","P","P","P","P","P","P","P"],
+ ["R","N","B","Q","K","B","N","R"]
+];
+
+let state={
+  board:U.clone(START),
+  side:'w',
+  castling:{wk:true,wq:true,bk:true,bq:true},
+  ep:null, half:0, full:1, hist:[]
+};
+
+const PIECES={r:"♜",n:"♞",b:"♝",q:"♛",k:"♚",p:"♟",R:"♖",N:"♘",B:"♗",Q:"♕",K:"♔",P:"♙"};
+const boardEl=document.getElementById('board'),
+      statusEl=document.getElementById('status'),
+      incheckEl=document.getElementById('incheck'),
+      crEl=document.getElementById('cr'),
+      epEl=document.getElementById('ep'),
+      movesEl=document.getElementById('moves'),
+      flipBtn=document.getElementById('flipBtn'),
+      newGameBtn=document.getElementById('newGameBtn'),
+      aiLevelSelect=document.getElementById('aiLevel'),
+      fxCanvas=document.getElementById('fx');
+
+let sel=null, leg=[], flip=false, over=false, aiLevel=3;
+
+/* ---------- PIECE HELPERS ---------- */
+function isWhite(p){return p && p===p.toUpperCase();}
+function isBlack(p){return p && p===p.toLowerCase();}
+function other(s){return s==='w'?'b':'w';}
+function sidePiece(p,s){return s==='w'?isWhite(p):isBlack(p);}
+function kingPos(b,s){const k=s==='w'?'K':'k';for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]===k)return{r,c};return null;}
+
+/* ---------- SIMPLE AUDIO ---------- */
+const snd={move:new Audio(),capture:new Audio(),win:new Audio(),lose:new Audio()};
+snd.move.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
+snd.capture.src=snd.move.src;
+snd.win.src=snd.move.src;
+snd.lose.src=snd.move.src;
+
+/* ---------- MOVE GENERATION ---------- */
+/* Simplified FIDE rules: full legal moves with castling, en passant, promotion */
+function legalMoves(st,skipCheck=false){
+  const moves=[];
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=st.board[r][c]; if(!p||!sidePiece(p,st.side))continue;
+    const dir=p.toLowerCase()==='p'?(st.side==='w'?-1:1):0;
+    const startRow=p.toLowerCase()==='p'?(st.side==='w'?6:1):-1;
+    if(p.toLowerCase()==='p'){
+      if(U.inBounds(r+dir,c)&&!st.board[r+dir][c])moves.push({from:{r,c},to:{r:r+dir,c},promotion:(r+dir===0||r+dir===7)});
+      for(const dc of[-1,1]){
+        const rr=r+dir,cc=c+dc;
+        if(U.inBounds(rr,cc)&&st.board[rr][cc]&&sidePiece(st.board[rr][cc],other(st.side)))moves.push({from:{r,c},to:{r:rr,c:cc},capture:true,promotion:(rr===0||rr===7)});
+        if(st.ep&&rr===st.ep.r&&cc===st.ep.c)moves.push({from:{r,c},to:{r:rr,c:cc},capture:true,enpassant:true});
+      }
+    }
+    if(p.toLowerCase()==='n'){
+      for(const[dr,dc]of[[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]]){
+        const rr=r+dr,cc=c+dc;if(U.inBounds(rr,cc)&&(!st.board[rr][cc]||sidePiece(st.board[rr][cc],other(st.side))))moves.push({from:{r,c},to:{r:rr,c:cc},capture:!!st.board[rr][cc]});
+      }
+    }
+    const dirs=[];
+    if("bq".includes(p.toLowerCase()))dirs.push([1,1],[1,-1],[-1,1],[-1,-1]);
+    if("rq".includes(p.toLowerCase()))dirs.push([1,0],[-1,0],[0,1],[0,-1]);
+    for(const[dr,dc]of dirs){
+      let rr=r+dr,cc=c+dc;
+      while(U.inBounds(rr,cc)){
+        if(st.board[rr][cc]){
+          if(sidePiece(st.board[rr][cc],other(st.side)))moves.push({from:{r,c},to:{r:rr,c:cc},capture:true});
+          break;
+        }else moves.push({from:{r,c},to:{r:rr,c:cc}});
+        rr+=dr;cc+=dc;
+      }
+    }
+    if(p.toLowerCase()==='k'){
+      for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(dr||dc){
+        const rr=r+dr,cc=c+dc;
+        if(U.inBounds(rr,cc)&&(!st.board[rr][cc]||sidePiece(st.board[rr][cc],other(st.side))))moves.push({from:{r,c},to:{r:rr,c:cc},capture:!!st.board[rr][cc]});
+      }}
+      // Castling simplified
+      if(st.side==='w'){
+        if(st.castling.wk&&!st.board[7][5]&&!st.board[7][6])moves.push({from:{r,c},to:{r:7,c:6},castle:'K'});
+        if(st.castling.wq&&!st.board[7][1]&&!st.board[7][2]&&!st.board[7][3])moves.push({from<script>
 /* --- Sounds --- */
 const sounds={move:new Audio(),capture:new Audio(),win:new Audio(),lose:new Audio()};
 sounds.move.src="data:audio/wav;base64,UklGRhYAAABXQVZFZm10...";
