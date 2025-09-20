@@ -846,6 +846,20 @@ function handleGameEnd(result) {
     window.location.href = "leaderboard.html";
   }, 3000);
 }
+<script>
+  function newGameAfterRematch(){
+  // Reset state
+  state = { board: U.clone(START), side:'w', castling:{wk:true,wq:true,bk:true,bq:true}, ep:null, half:0, full:1, hist:[] };
+  selected = null; legal = []; pendingPromotion = null;
+  movesEl.innerHTML = '';
+  acceptDrawBtn.style.display = 'none';
+  resetClocks();
+  gameOver = false;
+  render();
+
+  // Redirect to quick.html
+  location.href = 'quick.html';
+}
 </script>
 <script src="sound.js" defer></script>
 </body>
