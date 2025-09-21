@@ -769,12 +769,12 @@ function choosePromotion(code){
 }
 
 /* ---------------- Rematch modal logic ---------------- */
-let rematchTimer = 5; // 5 seconds
+let rematchTimer = 5s; // 5 seconds
 let rematchRemaining = REMATCH_AUTO_CANCEL;
 function showRematchModal(){
   clearRematchTimer();
   rematchRemaining = REMATCH_AUTO_CANCEL;
-  rematchCountdownEl.textContent = `Auto-cancel in ${rematchRemaining}s`;
+  rematchCountdownEl.textContent = `Auto-cancel in ${rematchRemaining}5s`;
   rematchModal.classList.add('show');
   rematchModal.setAttribute('aria-hidden', 'false');
 
