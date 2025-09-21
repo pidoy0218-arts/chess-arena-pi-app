@@ -779,7 +779,7 @@ function showRematchModal(){
   rematchModal.setAttribute('aria-hidden', 'false');
 
   rematchTimer = setInterval(() => {
-    rematchRemaining -= 1;
+    rematchRemaining -= 5;
     if(rematchRemaining <= 0){
       clearRematchTimer();
       hideRematchModal();
