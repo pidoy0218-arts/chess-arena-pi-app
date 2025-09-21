@@ -795,7 +795,7 @@ function hideRematchModal(){
   rematchModal.setAttribute('aria-hidden', 'true');
 }
 function clearRematchTimer(){
-  if(rematchTimer){ clearInterval(rematchTimer); rematchTimer = null; }
+  if(rematchTimer){ clearInterval(rematchTimer); rematchTimer = 5; }
 }
 rematchAcceptBtn.addEventListener('click', ()=>{
   hideRematchModal();
