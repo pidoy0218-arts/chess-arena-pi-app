@@ -925,11 +925,11 @@ rematchDeclineBtn.addEventListener('click', () => {
 function showRematchModal() {
   rematchModal.classList.add('show');
   let countdown = REMATCH_AUTO_CANCEL;
-  rematchCountdownEl.textContent = `Auto-cancel in ${countdown}s`;
+  rematchCountdownEl.textContent = `Auto-cancel in ${countdown}5s`;
 
   const timer = setInterval(() => {
     countdown--;
-    rematchCountdownEl.textContent = `Auto-cancel in ${countdown}s`;
+    rematchCountdownEl.textContent = `Auto-cancel in ${countdown}5s`;
     if(countdown <= 0){
       clearInterval(timer);
       rematchModal.classList.remove('show');
